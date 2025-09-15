@@ -6,22 +6,39 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:init": "curl -X POST http://localhost:3000/api/init-db",
+    "db:seed": "curl -X POST http://localhost:3000/api/seed-db -H \"Content-Type: application/json\" -d \"{\\\"action\\\":\\\"seed\\\"}\"",
+    "db:clear-seed": "curl -X POST http://localhost:3000/api/seed-db -H \"Content-Type: application/json\" -d \"{\\\"action\\\":\\\"clear\\\"}\"",
+    "db:generate-cohorts": "curl -X POST http://localhost:3000/api/seed-db -H \"Content-Type: application/json\" -d \"{\\\"action\\\":\\\"generate-cohorts\\\"}\"",
+    "db:test": "curl -X POST http://localhost:3000/api/test-db",
+    "db:health": "curl http://localhost:3000/api/health",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/d3": "^7.4.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@vercel/blob": "^1.1.1",
+    "@vercel/kv": "^3.0.0",
+    "bcryptjs": "^3.0.2",
+    "d3": "^7.9.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.3"
+    "zod": "^4.1.8"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
