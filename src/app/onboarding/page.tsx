@@ -17,6 +17,27 @@ export default function OnboardingPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // Check if we're in demo mode
+        const isDemoMode =
+          localStorage.getItem("lifeleveling-demo-mode") === "true";
+        const demoUserId = localStorage.getItem("lifeleveling-demo-user-id");
+
+        if (isDemoMode && demoUserId) {
+          // Create a mock user for demo mode
+          const demoUser: UserProfile = {
+            id: demoUserId,
+            email: "demo@example.com",
+            name: "Demo User",
+            age: 25,
+            onboardingCompleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setUser(demoUser);
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch("/api/auth/me");
         const data = await response.json();
 
@@ -44,6 +65,26 @@ export default function OnboardingPage() {
   const handleOnboardingComplete = async (data: OnboardingData) => {
     setIsSubmitting(true);
     try {
+      const isDemoMode =
+        localStorage.getItem("lifeleveling-demo-mode") === "true";
+
+      if (isDemoMode) {
+        // Handle demo mode completion
+        const demoProfile = {
+          ...user,
+          interests: data.interests,
+          onboardingCompleted: true,
+          updatedAt: new Date(),
+        };
+
+        localStorage.setItem(
+          "lifeleveling-demo-profile",
+          JSON.stringify(demoProfile)
+        );
+        router.push("/dashboard");
+        return;
+      }
+
       const response = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: {
@@ -81,10 +122,14 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-2xl">🎯</span>
+          </div>
+          <p className="text-muted-foreground">
+            Loading your Life Leveling journey...
+          </p>
         </div>
       </div>
     );

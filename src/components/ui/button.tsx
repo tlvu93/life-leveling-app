@@ -65,43 +65,42 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantClasses = {
       primary: [
-        "bg-primary-500 text-white shadow-soft",
-        "hover:bg-primary-600 hover:shadow-medium",
-        "focus-visible:ring-primary-500",
+        "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg",
+        "hover:from-blue-600 hover:to-purple-700 hover:shadow-xl",
+        "focus-visible:ring-blue-500",
         playful && "hover:shadow-glow",
       ],
       secondary: [
-        "bg-secondary-500 text-white shadow-soft",
-        "hover:bg-secondary-600 hover:shadow-medium",
-        "focus-visible:ring-secondary-500",
+        "bg-secondary text-secondary-foreground shadow-md",
+        "hover:bg-secondary/80 hover:shadow-lg",
+        "focus-visible:ring-secondary",
         playful && "hover:shadow-glow",
       ],
       success: [
-        "bg-success-500 text-white shadow-soft",
-        "hover:bg-success-600 hover:shadow-medium",
-        "focus-visible:ring-success-500",
+        "bg-green-500 text-white shadow-md",
+        "hover:bg-green-600 hover:shadow-lg",
+        "focus-visible:ring-green-500",
         playful && "hover:shadow-glow-success",
       ],
       warning: [
-        "bg-warning-500 text-white shadow-soft",
-        "hover:bg-warning-600 hover:shadow-medium",
-        "focus-visible:ring-warning-500",
+        "bg-orange-500 text-white shadow-md",
+        "hover:bg-orange-600 hover:shadow-lg",
+        "focus-visible:ring-orange-500",
         playful && "hover:shadow-glow-warning",
       ],
       error: [
-        "bg-error-500 text-white shadow-soft",
-        "hover:bg-error-600 hover:shadow-medium",
-        "focus-visible:ring-error-500",
+        "bg-red-500 text-white shadow-md",
+        "hover:bg-red-600 hover:shadow-lg",
+        "focus-visible:ring-red-500",
       ],
       ghost: [
-        "text-neutral-700 hover:bg-neutral-100",
-        "focus-visible:ring-neutral-500",
-        "dark:text-neutral-300 dark:hover:bg-neutral-800",
+        "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        "focus-visible:ring-ring",
       ],
       outline: [
-        "border-2 border-primary-500 text-primary-500",
-        "hover:bg-primary-500 hover:text-white",
-        "focus-visible:ring-primary-500",
+        "border border-input bg-background text-foreground",
+        "hover:bg-accent hover:text-accent-foreground",
+        "focus-visible:ring-ring",
       ],
     };
 
