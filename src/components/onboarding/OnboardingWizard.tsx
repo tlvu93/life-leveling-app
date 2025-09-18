@@ -5,8 +5,10 @@ import { InterestSelectionStep } from "./InterestSelectionStep";
 import { SkillAssessmentStep } from "./SkillAssessmentStep";
 import { CommitmentLevelStep } from "./CommitmentLevelStep";
 import { OnboardingComplete } from "./OnboardingComplete";
-import { ProgressIndicator } from "./ProgressIndicator";
-import { INTEREST_CATEGORIES, SkillLevel, CommitmentLevel } from "@/types";
+import { ProgressIndicator } from "@/components/ui/ProgressIndicator";
+import { AppLayout, Container } from "@/components/layout/AppLayout";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { SkillLevel, CommitmentLevel } from "@/types";
 
 export interface OnboardingInterest {
   category: string;
@@ -115,13 +117,24 @@ export function OnboardingWizard({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <AppLayout variant="playful">
+      <Container size="lg" className="py-8">
+        {/* Theme Toggle */}
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+
         {/* Progress Indicator */}
-        <ProgressIndicator currentStep={currentStep} steps={STEPS} />
+        <ProgressIndicator
+          currentStep={currentStep}
+          steps={STEPS}
+          variant="playful"
+          showDescriptions={true}
+          className="mb-8"
+        />
 
         {/* Main Content */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
+        <div className="bg-card backdrop-blur-sm rounded-2xl shadow-large p-8 border border-border">
           {currentStep === 1 && (
             <InterestSelectionStep
               onNext={handleInterestSelection}
@@ -163,7 +176,7 @@ export function OnboardingWizard({
             />
           )}
         </div>
-      </div>
-    </div>
+      </Container>
+    </AppLayout>
   );
 }

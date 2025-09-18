@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/lib/auth";
-import { getUserWithPasswordByEmail } from "@/lib/database-operations";
+import { getUserWithPasswordByEmail } from "@/lib/database-operations-prisma";
 import { z } from "zod";
 
 // Validation schema for login

@@ -3,6 +3,7 @@ import { validateOnboardingData } from "@/lib/validation";
 import {
   createUserInterest,
   completeOnboarding,
+  getUserById,
 } from "@/lib/database-operations";
 import { AuthService } from "@/lib/auth";
 import { ApiResponse } from "@/types";
@@ -64,7 +65,50 @@ export async function POST(request: NextRequest) {
 
     // Mark onboarding as completed
     try {
+      console.log("Marking onboarding as completed for user:", userId);
       await completeOnboarding(userId);
+      console.log("✅ Onboarding completed successfully");
+
+      // Update JWT token with new onboarding status
+      const updatedUser = await getUserById(userId);
+      console.log("Updated user from database:", updatedUser);
+      if (updatedUser) {
+        // Map database user to AuthUser format
+        const authUser = {
+          id: updatedUser.id,
+          ageRangeMin: updatedUser.ageRangeMin,
+          ageRangeMax: updatedUser.ageRangeMax,
+          familyModeEnabled: updatedUser.familyModeEnabled,
+          onboardingCompleted: updatedUser.onboardingCompleted,
+          createdAt: updatedUser.createdAt,
+        };
+        console.log("AuthUser for JWT:", authUser);
+
+        const newToken = AuthService.generateToken({
+          userId: authUser.id,
+          sessionId: "onboarding-complete",
+          user: authUser,
+        });
+
+        // Set the updated token in the response
+        const response = NextResponse.json({
+          success: true,
+          data: {
+            interests: createdInterests,
+            onboardingCompleted: true,
+          },
+          message: "Onboarding completed successfully",
+        });
+
+        response.cookies.set(AuthService.COOKIE_NAME, newToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+        });
+
+        return response;
+      }
     } catch (error) {
       console.error("Error completing onboarding:", error);
       return NextResponse.json(
@@ -77,6 +121,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fallback response if token update failed
     const response: ApiResponse = {
       success: true,
       data: {

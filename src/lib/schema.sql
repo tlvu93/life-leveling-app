@@ -101,6 +101,44 @@ CREATE TABLE IF NOT EXISTS family_relationships (
     UNIQUE(parent_user_id, child_user_id)
 );
 
+-- Family activity log table for transparency
+CREATE TABLE IF NOT EXISTS family_activity_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    relationship_id UUID REFERENCES family_relationships(id) ON DELETE CASCADE,
+    action_type VARCHAR(50) NOT NULL, -- 'consent_updated', 'dashboard_accessed', 'privacy_changed', etc.
+    performed_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    details JSONB, -- Additional context about the action
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Family safety alerts table
+CREATE TABLE IF NOT EXISTS family_safety_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    relationship_id UUID REFERENCES family_relationships(id) ON DELETE CASCADE,
+    alert_type VARCHAR(50) NOT NULL, -- 'privacy_change', 'unusual_activity', 'consent_revoked', etc.
+    severity VARCHAR(10) CHECK (severity IN ('low', 'medium', 'high')) NOT NULL,
+    message TEXT NOT NULL,
+    resolved BOOLEAN DEFAULT FALSE,
+    resolved_at TIMESTAMP,
+    created_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Family safety settings table
+CREATE TABLE IF NOT EXISTS family_safety_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    relationship_id UUID REFERENCES family_relationships(id) ON DELETE CASCADE UNIQUE,
+    enable_activity_alerts BOOLEAN DEFAULT TRUE,
+    enable_privacy_change_alerts BOOLEAN DEFAULT TRUE,
+    enable_unusual_activity_detection BOOLEAN DEFAULT TRUE,
+    require_parent_approval_for_new_connections BOOLEAN DEFAULT TRUE,
+    max_daily_interaction_time INTEGER DEFAULT 60, -- in minutes
+    allowed_interaction_hours JSONB DEFAULT '{"start": "08:00", "end": "20:00"}'::jsonb,
+    updated_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Predefined paths table
 CREATE TABLE IF NOT EXISTS predefined_paths (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -152,6 +190,11 @@ CREATE INDEX IF NOT EXISTS idx_retrospectives_user_id ON retrospectives(user_id)
 CREATE INDEX IF NOT EXISTS idx_cohort_stats_lookup ON cohort_stats(age_range_min, age_range_max, interest_category, intent_level);
 CREATE INDEX IF NOT EXISTS idx_family_relationships_parent ON family_relationships(parent_user_id);
 CREATE INDEX IF NOT EXISTS idx_family_relationships_child ON family_relationships(child_user_id);
+CREATE INDEX IF NOT EXISTS idx_family_activity_log_relationship ON family_activity_log(relationship_id);
+CREATE INDEX IF NOT EXISTS idx_family_activity_log_user ON family_activity_log(performed_by_user_id);
+CREATE INDEX IF NOT EXISTS idx_family_safety_alerts_relationship ON family_safety_alerts(relationship_id);
+CREATE INDEX IF NOT EXISTS idx_family_safety_alerts_resolved ON family_safety_alerts(resolved);
+CREATE INDEX IF NOT EXISTS idx_family_safety_settings_relationship ON family_safety_settings(relationship_id);
 CREATE INDEX IF NOT EXISTS idx_predefined_paths_category ON predefined_paths(interest_category);
 CREATE INDEX IF NOT EXISTS idx_user_path_progress_user_id ON user_path_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_simulation_scenarios_user_id ON simulation_scenarios(user_id);

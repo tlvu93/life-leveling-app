@@ -1,0 +1,248 @@
+// Life Leveling Database Schema
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(uuid()) @db.Uuid
+  email                String   @unique @db.VarChar(255)
+  passwordHash         String   @map("password_hash") @db.VarChar(255)
+  ageRangeMin          Int      @map("age_range_min")
+  ageRangeMax          Int      @map("age_range_max")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  lastActive           DateTime @default(now()) @map("last_active") @db.Timestamp(6)
+  familyModeEnabled    Boolean  @default(false) @map("family_mode_enabled")
+  onboardingCompleted  Boolean  @default(false) @map("onboarding_completed")
+  privacyPreferences   Json?    @default("{\"allowPeerComparisons\": true, \"allowFamilyViewing\": false, \"shareGoalsWithFamily\": false, \"shareProgressWithFamily\": false, \"allowAnonymousDataCollection\": true, \"dataRetentionConsent\": true}") @map("privacy_preferences") @db.JsonB
+
+  // Relations
+  interests            UserInterest[]
+  goals                Goal[]
+  retrospectives       Retrospective[]
+  parentRelationships  FamilyRelationship[] @relation("ParentUser")
+  childRelationships   FamilyRelationship[] @relation("ChildUser")
+  activityLogs         FamilyActivityLog[]
+  pathProgress         UserPathProgress[]
+  simulationScenarios  SimulationScenario[]
+  cohortStats          CohortStats[]
+
+  @@map("users")
+}
+
+model UserInterest {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  category     String   @db.VarChar(50)
+  subcategory  String?  @db.VarChar(50)
+  currentLevel Int      @map("current_level") @db.Integer
+  intentLevel  String   @map("intent_level") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillHistory SkillHistory[]
+
+  @@unique([userId, category, subcategory])
+  @@map("user_interests")
+}
+
+model SkillHistory {
+  id               String        @id @default(uuid()) @db.Uuid
+  userInterestId   String        @map("user_interest_id") @db.Uuid
+  previousLevel    Int?          @map("previous_level")
+  newLevel         Int           @map("new_level")
+  changedAt        DateTime      @default(now()) @map("changed_at") @db.Timestamp(6)
+  retrospectiveId  String?       @map("retrospective_id") @db.Uuid
+  notes            String?
+
+  // Relations
+  userInterest     UserInterest  @relation(fields: [userInterestId], references: [id], onDelete: Cascade)
+  retrospective    Retrospective? @relation(fields: [retrospectiveId], references: [id])
+
+  @@map("skill_history")
+}
+
+model Goal {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  interestCategory String    @map("interest_category") @db.VarChar(50)
+  goalType         String    @map("goal_type") @db.VarChar(20)
+  title            String    @db.VarChar(255)
+  description      String
+  targetLevel      Int?      @map("target_level")
+  timeframe        String    @db.VarChar(20)
+  status           String    @default("active") @db.VarChar(20)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  targetDate       DateTime? @map("target_date") @db.Timestamp(6)
+  completedAt      DateTime? @map("completed_at") @db.Timestamp(6)
+
+  // Relations
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model Retrospective {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  type          String   @db.VarChar(20)
+  completedAt   DateTime @default(now()) @map("completed_at") @db.Timestamp(6)
+  insights      Json?    @db.JsonB
+  skillUpdates  Json?    @map("skill_updates") @db.JsonB
+  goalsReviewed Json?    @map("goals_reviewed") @db.JsonB
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillHistory  SkillHistory[]
+
+  @@map("retrospectives")
+}
+
+model CohortStats {
+  id               String   @id @default(uuid()) @db.Uuid
+  ageRangeMin      Int      @map("age_range_min")
+  ageRangeMax      Int      @map("age_range_max")
+  interestCategory String   @map("interest_category") @db.VarChar(50)
+  intentLevel      String   @map("intent_level") @db.VarChar(20)
+  skillLevel       Int      @map("skill_level")
+  userCount        Int      @map("user_count")
+  percentileData   Json     @map("percentile_data") @db.JsonB
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // This is a placeholder relation - cohort stats are anonymized
+  userId           String?  @map("user_id") @db.Uuid
+  user             User?    @relation(fields: [userId], references: [id])
+
+  @@unique([ageRangeMin, ageRangeMax, interestCategory, intentLevel, skillLevel])
+  @@map("cohort_stats")
+}
+
+model FamilyRelationship {
+  id                String   @id @default(uuid()) @db.Uuid
+  parentUserId      String   @map("parent_user_id") @db.Uuid
+  childUserId       String   @map("child_user_id") @db.Uuid
+  relationshipType  String   @default("parent_child") @map("relationship_type") @db.VarChar(20)
+  childConsentGiven Boolean  @default(false) @map("child_consent_given")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  // Relations
+  parentUser        User                 @relation("ParentUser", fields: [parentUserId], references: [id], onDelete: Cascade)
+  childUser         User                 @relation("ChildUser", fields: [childUserId], references: [id], onDelete: Cascade)
+  activityLogs      FamilyActivityLog[]
+  safetyAlerts      FamilySafetyAlert[]
+  safetySettings    FamilySafetySetting?
+
+  @@unique([parentUserId, childUserId])
+  @@map("family_relationships")
+}
+
+model FamilyActivityLog {
+  id               String             @id @default(uuid()) @db.Uuid
+  relationshipId   String             @map("relationship_id") @db.Uuid
+  actionType       String             @map("action_type") @db.VarChar(50)
+  performedByUserId String            @map("performed_by_user_id") @db.Uuid
+  details          Json?              @db.JsonB
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+
+  // Relations
+  relationship     FamilyRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  performedByUser  User               @relation(fields: [performedByUserId], references: [id], onDelete: Cascade)
+
+  @@map("family_activity_log")
+}
+
+model FamilySafetyAlert {
+  id               String             @id @default(uuid()) @db.Uuid
+  relationshipId   String             @map("relationship_id") @db.Uuid
+  alertType        String             @map("alert_type") @db.VarChar(50)
+  severity         String             @db.VarChar(10)
+  message          String
+  resolved         Boolean            @default(false)
+  resolvedAt       DateTime?          @map("resolved_at") @db.Timestamp(6)
+  createdByUserId  String             @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+
+  // Relations
+  relationship     FamilyRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@map("family_safety_alerts")
+}
+
+model FamilySafetySetting {
+  id                                      String             @id @default(uuid()) @db.Uuid
+  relationshipId                          String             @unique @map("relationship_id") @db.Uuid
+  enableActivityAlerts                    Boolean            @default(true) @map("enable_activity_alerts")
+  enablePrivacyChangeAlerts               Boolean            @default(true) @map("enable_privacy_change_alerts")
+  enableUnusualActivityDetection          Boolean            @default(true) @map("enable_unusual_activity_detection")
+  requireParentApprovalForNewConnections  Boolean            @default(true) @map("require_parent_approval_for_new_connections")
+  maxDailyInteractionTime                 Int                @default(60) @map("max_daily_interaction_time")
+  allowedInteractionHours                 Json               @default("{\"start\": \"08:00\", \"end\": \"20:00\"}") @map("allowed_interaction_hours") @db.JsonB
+  updatedByUserId                         String?            @map("updated_by_user_id") @db.Uuid
+  createdAt                               DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                               DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  relationship                            FamilyRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@map("family_safety_settings")
+}
+
+model PredefinedPath {
+  id               String   @id @default(uuid()) @db.Uuid
+  interestCategory String   @map("interest_category") @db.VarChar(50)
+  pathName         String   @map("path_name") @db.VarChar(255)
+  description      String?
+  ageRangeMin      Int?     @map("age_range_min")
+  ageRangeMax      Int?     @map("age_range_max")
+  intentLevels     String[] @map("intent_levels") @db.VarChar(100)
+  stages           Json     @db.JsonB
+  synergies        Json?    @db.JsonB
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Relations
+  userProgress     UserPathProgress[]
+
+  @@map("predefined_paths")
+}
+
+model UserPathProgress {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @map("user_id") @db.Uuid
+  pathId           String         @map("path_id") @db.Uuid
+  currentStage     Int            @default(0) @map("current_stage")
+  stagesCompleted  Json           @default("[]") @map("stages_completed") @db.JsonB
+  startedAt        DateTime       @default(now()) @map("started_at") @db.Timestamp(6)
+  lastUpdated      DateTime       @default(now()) @updatedAt @map("last_updated") @db.Timestamp(6)
+
+  // Relations
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path             PredefinedPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pathId])
+  @@map("user_path_progress")
+}
+
+model SimulationScenario {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  scenarioName         String   @map("scenario_name") @db.VarChar(255)
+  effortAllocation     Json     @map("effort_allocation") @db.JsonB
+  forecastedResults    Json     @map("forecasted_results") @db.JsonB
+  timeframeWeeks       Int      @map("timeframe_weeks")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  isConvertedToGoals   Boolean  @default(false) @map("is_converted_to_goals")
+
+  // Relations
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("simulation_scenarios")
+}

@@ -188,12 +188,12 @@ export class UserDAL {
       const interests = await InterestDAL.findByUserId(userId);
 
       // Get goals
-      const activeGoals = await GoalDAL.findByUserId(userId, {
+      const activeGoals = (await GoalDAL.findByUserId(userId, {
         status: GoalStatus.ACTIVE,
-      });
-      const completedGoals = await GoalDAL.findByUserId(userId, {
+      })) as Goal[];
+      const completedGoals = (await GoalDAL.findByUserId(userId, {
         status: GoalStatus.COMPLETED,
-      });
+      })) as Goal[];
 
       // Get last retrospective
       const retrospectives = await RetrospectiveDAL.findByUserId(
@@ -256,7 +256,7 @@ export class InterestDAL {
         "created_at ASC"
       );
 
-      return interests.map((interest) => ({
+      return interests.map((interest: any) => ({
         id: interest.id,
         userId: interest.user_id,
         category: interest.category,
@@ -289,7 +289,7 @@ export class InterestDAL {
         throw new Error("Failed to create interest");
       }
 
-      const interest = result.data;
+      const interest = result.data as any;
       return {
         id: interest.id,
         userId: interest.user_id,
@@ -318,7 +318,7 @@ export class InterestDAL {
         throw new Error("Interest not found");
       }
 
-      const previousLevel = currentInterest.current_level;
+      const previousLevel = (currentInterest as any).current_level;
 
       // Update the interest level
       const result = await updateRecord("user_interests", interestId, {
@@ -338,7 +338,7 @@ export class InterestDAL {
         retrospective_id: retrospectiveId || null,
       });
 
-      const interest = result.data;
+      const interest = result.data as any;
       return {
         id: interest.id,
         userId: interest.user_id,
@@ -354,29 +354,36 @@ export class InterestDAL {
 
   static async getAnalytics(category?: string): Promise<InterestAnalytics[]> {
     return executeWithErrorHandling(async () => {
-      let query = `
-        SELECT 
-          category,
-          COUNT(*) as total_users,
-          AVG(current_level) as average_level,
-          current_level,
-          intent_level,
-          COUNT(*) as level_count
-        FROM user_interests
-      `;
+      let results;
 
-      const params: any[] = [];
       if (category) {
-        query += " WHERE category = $1";
-        params.push(category);
+        results = await sql`
+          SELECT 
+            category,
+            COUNT(*) as total_users,
+            AVG(current_level) as average_level,
+            current_level,
+            intent_level,
+            COUNT(*) as level_count
+          FROM user_interests
+          WHERE category = ${category}
+          GROUP BY category, current_level, intent_level
+          ORDER BY category, current_level
+        `;
+      } else {
+        results = await sql`
+          SELECT 
+            category,
+            COUNT(*) as total_users,
+            AVG(current_level) as average_level,
+            current_level,
+            intent_level,
+            COUNT(*) as level_count
+          FROM user_interests
+          GROUP BY category, current_level, intent_level
+          ORDER BY category, current_level
+        `;
       }
-
-      query += `
-        GROUP BY category, current_level, intent_level
-        ORDER BY category, current_level
-      `;
-
-      const results = await sql(query, ...params);
 
       // Group results by category
       const analyticsMap = new Map<string, any>();
@@ -626,7 +633,7 @@ export class RetrospectiveDAL {
     type: RetrospectiveType;
     insights?: Record<string, any>;
     skillUpdates?: Record<string, any>;
-    goalsReviewed?: Record<string, any>;
+    goalsReviewed?: Record<string, unknown>;
   }): Promise<Retrospective> {
     return executeWithErrorHandling(async () => {
       const result = await createRecord("retrospectives", {
@@ -741,7 +748,7 @@ export class CohortStatsDAL {
           percentiles: cohortStats.reduce((acc, stat) => {
             acc[stat.skill_level] = stat.percentile_data;
             return acc;
-          }, {} as Record<string, any>),
+          }, {} as Record<string, unknown>),
         },
         userPercentile: percentile,
         encouragingMessage,

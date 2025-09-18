@@ -254,14 +254,14 @@ export function InterestSelectionStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-4">
           What are you interested in? 🌟
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Choose up to 8 areas that spark your curiosity. Don&apos;t worry - you
           can always change these later!
         </p>
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-4 text-sm text-muted-foreground">
           {selectedInterests.length}/8 selected
         </div>
       </div>
@@ -282,18 +282,18 @@ export function InterestSelectionStep({
                 relative p-6 rounded-xl border-2 transition-all duration-200 text-left
                 ${
                   isSelected
-                    ? "border-blue-500 bg-blue-50 shadow-md"
+                    ? "border-primary bg-primary/10 shadow-md"
                     : isDisabled
-                    ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-                    : `border-gray-200 ${style.bgColor} hover:border-gray-300 hover:shadow-sm`
+                    ? "border-border bg-muted opacity-50 cursor-not-allowed"
+                    : `border-border bg-card hover:border-border/60 hover:shadow-sm hover:bg-muted/50`
                 }
               `}
             >
               {/* Selection Indicator */}
               {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                   <svg
-                    className="w-4 h-4 text-white"
+                    className="w-4 h-4 text-primary-foreground"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -310,9 +310,9 @@ export function InterestSelectionStep({
               <div className="space-y-2">
                 <div className="text-3xl">{style.icon}</div>
                 <div>
-                  <h3 className={`font-semibold ${style.color}`}>{category}</h3>
+                  <h3 className="font-semibold text-foreground">{category}</h3>
                   {subcategories[category] && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {subcategories[category]}
                     </p>
                   )}
@@ -321,17 +321,26 @@ export function InterestSelectionStep({
 
               {/* Subcategory Button */}
               {isSelected && SUBCATEGORIES[category]?.length > 0 && (
-                <button
+                <div
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowSubcategoryFor(category);
                   }}
-                  className="mt-3 text-xs text-blue-600 hover:text-blue-800 underline"
+                  className="mt-3 text-xs text-primary hover:text-primary/80 underline cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowSubcategoryFor(category);
+                    }
+                  }}
                 >
                   {subcategories[category]
                     ? "Change specialty"
                     : "Add specialty"}
-                </button>
+                </div>
               )}
             </button>
           );
@@ -340,9 +349,9 @@ export function InterestSelectionStep({
 
       {/* Subcategory Selection Modal */}
       {showSubcategoryFor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto border border-border shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Choose a {showSubcategoryFor} specialty
             </h3>
             <div className="space-y-2">
@@ -352,7 +361,7 @@ export function InterestSelectionStep({
                   onClick={() =>
                     handleSubcategorySelect(showSubcategoryFor, subcategory)
                   }
-                  className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="w-full text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-foreground"
                 >
                   {subcategory}
                 </button>
@@ -361,7 +370,7 @@ export function InterestSelectionStep({
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => setShowSubcategoryFor(null)}
-                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 text-muted-foreground border border-border rounded-lg hover:bg-muted"
               >
                 Skip
               </button>
@@ -371,8 +380,8 @@ export function InterestSelectionStep({
       )}
 
       {/* Navigation */}
-      <div className="flex justify-between items-center pt-6 border-t">
-        <div className="text-sm text-gray-500">
+      <div className="flex justify-between items-center pt-6 border-t border-border">
+        <div className="text-sm text-muted-foreground">
           {selectedInterests.length === 0 &&
             "Select at least one interest to continue"}
           {selectedInterests.length > 0 &&
@@ -386,11 +395,11 @@ export function InterestSelectionStep({
           onClick={handleNext}
           disabled={!canProceed}
           className={`
-            px-8 py-3 rounded-lg font-medium transition-all duration-200
+            px-8 py-3 rounded-lg font-medium transition-all duration-200 border
             ${
               canProceed
-                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg border-primary/20 hover:border-primary/30 cursor-pointer"
+                : "bg-muted text-muted-foreground cursor-not-allowed border-border"
             }
           `}
         >

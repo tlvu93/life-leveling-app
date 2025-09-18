@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/lib/auth";
-import { createUser, getUserByEmail } from "@/lib/database-operations";
+import { createUser, getUserByEmail } from "@/lib/database-operations-prisma";
 import { parseAgeRange } from "@/types";
 import { z } from "zod";
 

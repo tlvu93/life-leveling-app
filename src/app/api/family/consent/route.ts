@@ -8,6 +8,7 @@ const consentSchema = z.object({
   consentGiven: z.boolean(),
 });
 
+// POST - Give or revoke child consent for family relationship
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await AuthService.getCurrentUser();
@@ -26,17 +27,23 @@ export async function POST(request: NextRequest) {
 
     const { sql } = await import("@/lib/db");
 
-    // Get the family relationship
+    // Verify the relationship exists and the current user is the child
     const relationshipResult = await sql`
-      SELECT * FROM family_relationships 
-      WHERE id = ${relationshipId} AND child_user_id = ${currentUser.id}
+      SELECT fr.*, 
+             p.email as parent_email,
+             c.email as child_email,
+             c.age_range_min as child_age_min
+      FROM family_relationships fr
+      JOIN users p ON fr.parent_user_id = p.id
+      JOIN users c ON fr.child_user_id = c.id
+      WHERE fr.id = ${relationshipId} AND fr.child_user_id = ${currentUser.id}
     `;
 
     if (relationshipResult.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "Family relationship not found or you don't have permission",
+          error: "Family relationship not found or unauthorized",
         },
         { status: 404 }
       );
@@ -44,46 +51,57 @@ export async function POST(request: NextRequest) {
 
     const relationship = relationshipResult[0];
 
-    if (consentGiven) {
-      // Grant consent and enable family mode for both users
-      await sql`
-        UPDATE family_relationships 
-        SET child_consent_given = true 
-        WHERE id = ${relationshipId}
-      `;
+    // Update consent status
+    const updateResult = await sql`
+      UPDATE family_relationships 
+      SET child_consent_given = ${consentGiven}
+      WHERE id = ${relationshipId}
+      RETURNING *
+    `;
 
-      // Enable family mode for both parent and child
+    if (updateResult.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Failed to update consent" },
+        { status: 500 }
+      );
+    }
+
+    // If consent is given, enable family mode for both users
+    if (consentGiven) {
       await sql`
         UPDATE users 
         SET family_mode_enabled = true 
-        WHERE id = ${relationship.parent_user_id} OR id = ${relationship.child_user_id}
+        WHERE id IN (${relationship.parent_user_id}, ${relationship.child_user_id})
       `;
-
-      return NextResponse.json({
-        success: true,
-        message: "Family mode activated successfully",
-        data: {
-          relationshipId: relationship.id,
-          childConsentGiven: true,
-          familyModeEnabled: true,
-        },
-      });
-    } else {
-      // Deny consent and delete the relationship request
-      await sql`
-        DELETE FROM family_relationships 
-        WHERE id = ${relationshipId}
-      `;
-
-      return NextResponse.json({
-        success: true,
-        message: "Family link request declined and removed",
-        data: {
-          relationshipId: relationship.id,
-          childConsentGiven: false,
-        },
-      });
     }
+
+    // Log the consent action for transparency
+    await sql`
+      INSERT INTO family_activity_log (
+        relationship_id, 
+        action_type, 
+        performed_by_user_id, 
+        details
+      )
+      VALUES (
+        ${relationshipId}, 
+        'consent_updated', 
+        ${currentUser.id}, 
+        ${JSON.stringify({ consentGiven, timestamp: new Date().toISOString() })}
+      )
+    `;
+
+    return NextResponse.json({
+      success: true,
+      message: consentGiven
+        ? "Family mode activated successfully"
+        : "Family mode consent revoked",
+      data: {
+        relationshipId: updateResult[0].id,
+        childConsentGiven: updateResult[0].child_consent_given,
+        familyModeEnabled: consentGiven,
+      },
+    });
   } catch (error) {
     console.error("Family consent error:", error);
 
@@ -92,14 +110,61 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation failed",
-          details: error.issues.map((e: any) => ({
-            field: e.path.join("."),
-            message: e.message,
+          details: error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
           })),
         },
         { status: 400 }
       );
     }
+
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// GET - Get pending consent requests for current user
+export async function GET(request: NextRequest) {
+  try {
+    const currentUser = await AuthService.getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const { sql } = await import("@/lib/db");
+
+    // Get pending consent requests where current user is the child
+    const pendingRequests = await sql`
+      SELECT fr.*, 
+             p.email as parent_email,
+             p.age_range_min as parent_age_min,
+             p.age_range_max as parent_age_max
+      FROM family_relationships fr
+      JOIN users p ON fr.parent_user_id = p.id
+      WHERE fr.child_user_id = ${currentUser.id} 
+        AND fr.child_consent_given = false
+      ORDER BY fr.created_at DESC
+    `;
+
+    return NextResponse.json({
+      success: true,
+      data: pendingRequests.map((request) => ({
+        relationshipId: request.id,
+        parentEmail: request.parent_email,
+        parentAgeRange: `${request.parent_age_min}-${request.parent_age_max}`,
+        relationshipType: request.relationship_type,
+        createdAt: request.created_at,
+      })),
+    });
+  } catch (error) {
+    console.error("Get consent requests error:", error);
 
     return NextResponse.json(
       { success: false, error: "Internal server error" },

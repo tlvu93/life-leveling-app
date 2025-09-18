@@ -133,6 +133,24 @@ export interface FamilyRelationship {
   createdAt: Date;
 }
 
+export interface FamilyActivityLog {
+  id: string;
+  relationshipId: string;
+  actionType: string;
+  performedByUserId: string;
+  details?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface PrivacyPreferences {
+  allowPeerComparisons: boolean;
+  allowFamilyViewing: boolean;
+  shareGoalsWithFamily: boolean;
+  shareProgressWithFamily: boolean;
+  allowAnonymousDataCollection: boolean;
+  dataRetentionConsent: boolean;
+}
+
 export interface PredefinedPath {
   id: string;
   interestCategory: string;
