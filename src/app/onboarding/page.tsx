@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   OnboardingWizard,
   OnboardingData,
@@ -13,6 +13,8 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,7 +26,7 @@ export default function OnboardingPage() {
 
         if (isDemoMode && demoUserId) {
           // Create a mock user for demo mode
-          const demoUser: UserProfile = {
+          let demoUser: UserProfile = {
             id: demoUserId,
             email: "demo@example.com",
             name: "Demo User",
@@ -33,6 +35,17 @@ export default function OnboardingPage() {
             createdAt: new Date(),
             updatedAt: new Date(),
           };
+
+          // If editing, load existing demo profile
+          if (isEditMode) {
+            const existingProfile = localStorage.getItem(
+              "lifeleveling-demo-profile"
+            );
+            if (existingProfile) {
+              demoUser = JSON.parse(existingProfile);
+            }
+          }
+
           setUser(demoUser);
           setIsLoading(false);
           return;
@@ -43,8 +56,8 @@ export default function OnboardingPage() {
 
         if (data.success) {
           setUser(data.data);
-          // If user has already completed onboarding, redirect to dashboard
-          if (data.data.onboardingCompleted) {
+          // If user has already completed onboarding and not in edit mode, redirect to dashboard
+          if (data.data.onboardingCompleted && !isEditMode) {
             router.push("/dashboard");
           }
         } else {
@@ -160,6 +173,8 @@ export default function OnboardingPage() {
     <OnboardingWizard
       onComplete={handleOnboardingComplete}
       isLoading={isSubmitting}
+      existingProfile={user}
+      isEditMode={isEditMode}
     />
   );
 }

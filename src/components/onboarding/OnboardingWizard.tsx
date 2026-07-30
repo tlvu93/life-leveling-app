@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { InterestSelectionStep } from "./InterestSelectionStep";
 import { SkillAssessmentStep } from "./SkillAssessmentStep";
 import { CommitmentLevelStep } from "./CommitmentLevelStep";
@@ -24,6 +24,8 @@ export interface OnboardingData {
 interface OnboardingWizardProps {
   onComplete: (data: OnboardingData) => Promise<void>;
   isLoading?: boolean;
+  existingProfile?: any; // Existing profile data for editing
+  isEditMode?: boolean; // Whether we're editing an existing profile
 }
 
 const STEPS = [
@@ -48,6 +50,8 @@ const STEPS = [
 export function OnboardingWizard({
   onComplete,
   isLoading = false,
+  existingProfile,
+  isEditMode = false,
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -60,6 +64,31 @@ export function OnboardingWizard({
   const [commitmentLevels, setCommitmentLevels] = useState<
     Record<string, CommitmentLevel>
   >({});
+
+  // Initialize with existing profile data if available
+  useEffect(() => {
+    if (existingProfile && existingProfile.interests) {
+      const interests = existingProfile.interests.map(
+        (interest: any) => interest.category
+      );
+      const subcategories: Record<string, string> = {};
+      const skills: Record<string, SkillLevel> = {};
+      const commitments: Record<string, CommitmentLevel> = {};
+
+      existingProfile.interests.forEach((interest: any) => {
+        if (interest.subcategory) {
+          subcategories[interest.category] = interest.subcategory;
+        }
+        skills[interest.category] = interest.level;
+        commitments[interest.category] = interest.intent;
+      });
+
+      setSelectedInterests(interests);
+      setInterestSubcategories(subcategories);
+      setSkillLevels(skills);
+      setCommitmentLevels(commitments);
+    }
+  }, [existingProfile]);
 
   const handleInterestSelection = (
     interests: string[],
@@ -132,10 +161,12 @@ export function OnboardingWizard({
             </div>
             <div>
               <h1 className="text-3xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                Welcome to Life Leveling!
+                {isEditMode ? "Edit Your Profile" : "Welcome to Life Leveling!"}
               </h1>
               <p className="text-muted-foreground mt-2">
-                Let's set up your personal growth journey
+                {isEditMode
+                  ? "Update your interests, skills, and commitment levels"
+                  : "Let's set up your personal growth journey"}
               </p>
             </div>
 
