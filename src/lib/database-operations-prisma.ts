@@ -285,3 +285,4 @@ export async function getUserInterests(userId: string): Promise<Interest[]> {
     throw new Error("Failed to get user interests");
   }
 }
+

@@ -118,3 +118,4 @@ export const SkillLevelCard = React.forwardRef<
 );
 
 SkillLevelCard.displayName = "SkillLevelCard";
+
