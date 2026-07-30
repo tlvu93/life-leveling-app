@@ -11,7 +11,8 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     | "success"
     | "warning"
     | "error"
-    | "skill";
+    | "skill"
+    | "outline";
   size?: "sm" | "md" | "lg";
   skillLevel?: "novice" | "intermediate" | "advanced" | "expert";
   dot?: boolean;
@@ -77,6 +78,10 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
               "bg-skill-expert text-pink-800 border border-skill-expert-border",
           ]
         : "bg-neutral-100 text-neutral-800 border border-neutral-200",
+      outline: [
+        "bg-transparent border border-input text-foreground",
+        "hover:bg-accent hover:text-accent-foreground",
+      ],
     };
 
     const sizeClasses = {
@@ -100,6 +105,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
             expert: "bg-skill-expert-border",
           }[skillLevel]
         : "bg-neutral-400",
+      outline: "bg-current",
     };
 
     return (

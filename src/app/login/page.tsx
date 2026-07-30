@@ -154,12 +154,22 @@ export default function LoginPage() {
                 <p className="text-sm text-muted-foreground">
                   Want to try without creating an account?
                 </p>
-                <Link
-                  href="/demo"
+                <button
+                  onClick={() => {
+                    // Set up demo mode and redirect
+                    const demoUserId =
+                      "demo-" + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem("lifeleveling-demo-mode", "true");
+                    localStorage.setItem(
+                      "lifeleveling-demo-user-id",
+                      demoUserId
+                    );
+                    router.push("/onboarding");
+                  }}
                   className="w-full inline-flex justify-center items-center gap-2 border border-blue-300 text-blue-700 hover:bg-blue-50 font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   🚀 Try Demo Mode
-                </Link>
+                </button>
                 <p className="text-xs text-muted-foreground">
                   Demo mode saves your progress locally. No account required!
                 </p>
