@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -20,10 +20,13 @@ import {
   EyeOff,
   Calendar,
   Star,
-  BookOpen,
   Activity,
 } from "lucide-react";
-import { getSkillLevelName, getCommitmentLevelName } from "@/types";
+import {
+  CommitmentLevel,
+  getSkillLevelName,
+  getCommitmentLevelName,
+} from "@/types";
 
 interface ChildInfo {
   email: string;
@@ -85,11 +88,7 @@ export default function ParentDashboard({ childUserId }: ParentDashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [childUserId]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -104,12 +103,16 @@ export default function ParentDashboard({ childUserId }: ParentDashboardProps) {
       } else {
         setError(result.error || "Failed to load dashboard data");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [childUserId]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   if (isLoading) {
     return (
@@ -148,7 +151,7 @@ export default function ParentDashboard({ childUserId }: ParentDashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-pink-500" />
-            {childInfo.email}'s Journey
+            {childInfo.email}&apos;s Journey
           </CardTitle>
           <CardDescription>
             Age {childInfo.ageRange} • Exploring their interests and setting
@@ -249,7 +252,10 @@ export default function ParentDashboard({ childUserId }: ParentDashboardProps) {
                       )}
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
-                          {getCommitmentLevelName(interest.intentLevel as any)}{" "}
+                          {getCommitmentLevelName(
+                            // API returns the CommitmentLevel enum's string value.
+                            interest.intentLevel as CommitmentLevel
+                          )}{" "}
                           commitment
                         </span>
                         <span className="text-muted-foreground">
@@ -382,7 +388,7 @@ export default function ParentDashboard({ childUserId }: ParentDashboardProps) {
                           {new Date(progress.changedAt).toLocaleDateString()}
                         </span>
                         {progress.notes && (
-                          <span className="italic">"{progress.notes}"</span>
+                          <span className="italic">&quot;{progress.notes}&quot;</span>
                         )}
                       </div>
                     </div>

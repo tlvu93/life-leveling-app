@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ResponsiveLifeStatMatrix from "../ResponsiveLifeStatMatrix";
 import TimeBasedMatrixComparison from "../TimeBasedMatrixComparison";
 import { Interest, LifeStatMatrixData } from "@/types";
-import {
-  createLifeStatMatrixData,
-  generateSampleLifeStatData,
-} from "@/lib/chart-utils";
+import { createLifeStatMatrixData } from "@/lib/chart-utils";
 import {
   generateSampleActivityData,
   activityToRadarData,
@@ -35,11 +32,7 @@ export default function LifeStatMatrixCard({
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"activity" | "skills">("activity");
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -109,16 +102,16 @@ export default function LifeStatMatrixCard({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchUserData();
+  }, [fetchUserData]);
 
   const handleSkillClick = (skill: string) => {
     setSelectedSkill(skill);
     // In a real app, this could open a detailed skill view or edit modal
     console.log("Clicked skill:", skill);
-  };
-
-  const toggleHistoricalView = () => {
-    setShowHistorical(!showHistorical);
   };
 
   if (loading) {
@@ -151,7 +144,8 @@ export default function LifeStatMatrixCard({
           <div className="text-center">
             <p className="text-destructive mb-2">Failed to load matrix</p>
             <button
-              onClick={fetchUserInterests}
+              type="button"
+              onClick={() => void fetchUserData()}
               className="text-primary hover:text-primary/80 text-sm font-medium"
             >
               Try again
@@ -259,6 +253,7 @@ export default function LifeStatMatrixCard({
               onClick={fetchUserData}
               className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               title="Refresh"
+              aria-label="Refresh"
             >
               <svg
                 className="w-4 h-4"

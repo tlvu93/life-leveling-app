@@ -4,7 +4,7 @@ import { getUserById, updateUserLastActive } from "@/lib/database-operations";
 import { z } from "zod";
 
 // GET - Get user profile
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const currentUser = await AuthService.getCurrentUser();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Interest, CommitmentLevel } from "@/types";
 import { CommitmentLevelUpdater } from "./CommitmentLevelUpdater";
 
@@ -13,11 +13,7 @@ export function ComparisonManagement({ userId }: ComparisonManagementProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadUserInterests();
-  }, [userId]);
-
-  const loadUserInterests = async () => {
+  const loadUserInterests = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/user/profile?userId=${userId}`);
@@ -35,7 +31,11 @@ export function ComparisonManagement({ userId }: ComparisonManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserInterests();
+  }, [loadUserInterests]);
 
   const handleCommitmentUpdate = async (
     interestId: string,
@@ -124,7 +124,7 @@ export function ComparisonManagement({ userId }: ComparisonManagementProps) {
           Manage Your Comparison Settings
         </h1>
         <p className="text-gray-600">
-          Update your commitment levels to change which peer groups you're
+          Update your commitment levels to change which peer groups you&apos;re
           compared with
         </p>
       </div>
@@ -175,7 +175,7 @@ export function ComparisonManagement({ userId }: ComparisonManagementProps) {
                 </h3>
                 <p className="text-sm text-blue-800">
                   Changing your commitment level will move you to a different
-                  peer group. You'll only be compared with others who have the
+                  peer group. You&apos;ll only be compared with others who have the
                   same commitment level for each interest.
                 </p>
               </div>

@@ -1,8 +1,24 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import * as d3 from "d3";
 import { RadarChartData, LifeStatMatrixData, SkillLevel } from "@/types";
+
+// No-op subscription: there is nothing to subscribe to, we only need this to
+// distinguish the server render pass from the client render pass so D3 (a
+// DOM-only library) doesn't run during SSR. Using useSyncExternalStore avoids
+// the hydration-mismatch problems a plain useState+useEffect pair would have.
+function subscribeNever() {
+  return () => {};
+}
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 interface LifeStatMatrixProps {
   data: LifeStatMatrixData;
@@ -33,26 +49,30 @@ export default function LifeStatMatrix({
   animationDuration = 750,
 }: LifeStatMatrixProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [isClient, setIsClient] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
 
   // Ensure we're on the client side for D3 rendering
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isClient = useSyncExternalStore(
+    subscribeNever,
+    getClientSnapshot,
+    getServerSnapshot
+  );
 
   // Configuration for the radar chart
-  const config: RadarChartConfig = {
-    radius: Math.min(width, height) / 2 - 60,
-    centerX: width / 2,
-    centerY: height / 2,
-    levels: 4, // Novice, Intermediate, Advanced, Expert
-    maxValue: 4, // Maximum skill level
-    angleSlice: (Math.PI * 2) / data.current.length,
-  };
+  const config: RadarChartConfig = useMemo(
+    () => ({
+      radius: Math.min(width, height) / 2 - 60,
+      centerX: width / 2,
+      centerY: height / 2,
+      levels: 4, // Novice, Intermediate, Advanced, Expert
+      maxValue: 4, // Maximum skill level
+      angleSlice: (Math.PI * 2) / data.current.length,
+    }),
+    [width, height, data]
+  );
 
   // Color scheme for skills
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+  const colorScale = useMemo(() => d3.scaleOrdinal(d3.schemeCategory10), []);
 
   useEffect(() => {
     if (!isClient || !svgRef.current || !data.current.length) return;
@@ -85,7 +105,17 @@ export default function LifeStatMatrix({
 
     // Add interactivity
     addInteractivity(g, config, data.current, onSkillClick, setHoveredSkill);
-  }, [isClient, data, width, height, showHistorical, animationDuration]);
+  }, [
+    isClient,
+    data,
+    width,
+    height,
+    showHistorical,
+    animationDuration,
+    colorScale,
+    config,
+    onSkillClick,
+  ]);
 
   if (!isClient) {
     return (
@@ -289,8 +319,7 @@ function drawDataPoints(
     .enter()
     .append("circle")
     .attr("class", "data-point")
-    .attr("cx", (_, i) => {
-      const angle = config.angleSlice * i - Math.PI / 2;
+    .attr("cx", () => {
       return 0; // Start from center for animation
     })
     .attr("cy", 0)
@@ -347,8 +376,10 @@ function addInteractivity(
     .on("mouseenter", (event, d) => {
       setHoveredSkill?.(d.skill);
       // Highlight the corresponding data point
-      g.selectAll(".data-point")
-        .filter((pointData: any) => pointData.skill === d.skill)
+      // `selectAll` erases the datum type, so re-assert it here rather than
+      // letting the filter callback receive `unknown`.
+      g.selectAll<SVGCircleElement, RadarChartData>(".data-point")
+        .filter((pointData) => pointData.skill === d.skill)
         .transition()
         .duration(200)
         .attr("r", 6);

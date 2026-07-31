@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import GoalCreationWizard from "@/components/goals/GoalCreationWizard";
 import GoalsList from "@/components/goals/GoalsList";
@@ -14,11 +14,26 @@ export default function AdventurePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
+  const loadGoals = useCallback(async () => {
+    try {
+      const response = await fetch("/api/goals");
+      if (!response.ok) {
+        throw new Error("Failed to load goals");
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to load goals");
+      }
+
+      setGoals(data.data || []);
+    } catch (error) {
+      console.error("Error loading goals:", error);
+      throw error;
+    }
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -48,26 +63,11 @@ export default function AdventurePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, loadGoals]);
 
-  const loadGoals = async () => {
-    try {
-      const response = await fetch("/api/goals");
-      if (!response.ok) {
-        throw new Error("Failed to load goals");
-      }
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || "Failed to load goals");
-      }
-
-      setGoals(data.data || []);
-    } catch (error) {
-      console.error("Error loading goals:", error);
-      throw error;
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateGoal = async (goalData: GoalFormData) => {
     try {

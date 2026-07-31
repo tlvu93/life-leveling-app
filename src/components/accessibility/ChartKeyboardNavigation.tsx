@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { KEYBOARD_KEYS } from "@/lib/accessibility";
+
+interface ChartDataPoint {
+  id: string;
+  label: string;
+  value: number;
+  [key: string]: unknown;
+}
 
 interface ChartKeyboardNavigationProps {
   children: React.ReactNode;
-  dataPoints: Array<{
-    id: string;
-    label: string;
-    value: number;
-    [key: string]: any;
-  }>;
-  onDataPointFocus?: (dataPoint: any, index: number) => void;
-  onDataPointSelect?: (dataPoint: any, index: number) => void;
+  dataPoints: ChartDataPoint[];
+  onDataPointFocus?: (dataPoint: ChartDataPoint, index: number) => void;
+  onDataPointSelect?: (dataPoint: ChartDataPoint, index: number) => void;
   onEscape?: () => void;
   className?: string;
   ariaLabel?: string;
@@ -145,10 +147,13 @@ export const ChartKeyboardNavigation: React.FC<
           ` Currently focused on ${dataPoints[focusedIndex]?.label}: ${dataPoints[focusedIndex]?.value}.`}
       </div>
 
-      {React.cloneElement(children as React.ReactElement, {
-        focusedIndex,
-        isKeyboardActive: isActive,
-      })}
+      {React.cloneElement(
+        children as React.ReactElement<Record<string, unknown>>,
+        {
+          focusedIndex,
+          isKeyboardActive: isActive,
+        }
+      )}
 
       {/* Live region for announcements */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -161,15 +166,18 @@ export const ChartKeyboardNavigation: React.FC<
 };
 
 // Hook for managing chart keyboard navigation state
-export const useChartKeyboardNavigation = (dataPoints: any[]) => {
+export const useChartKeyboardNavigation = (dataPoints: ChartDataPoint[]) => {
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);
 
-  const handleDataPointFocus = (dataPoint: any, index: number) => {
+  const handleDataPointFocus = (_dataPoint: ChartDataPoint, index: number) => {
     setFocusedIndex(index);
   };
 
-  const handleDataPointSelect = (dataPoint: any, index: number) => {
+  const handleDataPointSelect = (
+    _dataPoint: ChartDataPoint,
+    _index: number
+  ) => {
     // Override in parent component
   };
 

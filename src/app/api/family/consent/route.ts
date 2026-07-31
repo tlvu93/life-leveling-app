@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - Get pending consent requests for current user
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const currentUser = await AuthService.getCurrentUser();
 

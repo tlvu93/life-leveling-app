@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/lib/auth";
 import { getUserById } from "@/lib/database-operations";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Get current user from session
     const currentUser = await AuthService.getCurrentUser();

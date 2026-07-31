@@ -5,11 +5,11 @@ import { ApiResponse } from "@/types";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { commitmentLevel } = await request.json();
-    const { id: interestId } = params;
+    const { id: interestId } = await params;
 
     if (!interestId) {
       return NextResponse.json(

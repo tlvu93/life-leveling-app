@@ -17,10 +17,12 @@ export interface UseErrorHandlerOptions {
 
 export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   const { addToast } = useToast();
-  const { showToast = true, ageGroup = "teen", onError } = options;
+  // `ageGroup` is part of the public options shape for future age-tailored
+  // messaging, but isn't consumed here yet.
+  const { showToast = true, onError } = options;
 
   const handleErrorWithFeedback = useCallback(
-    (error: Error | LifeLevelingError, context?: Record<string, any>) => {
+    (error: Error | LifeLevelingError, context?: Record<string, unknown>) => {
       const appError = handleError(error, context);
       const strategy = getErrorHandlingStrategy(appError.severity);
 
@@ -49,7 +51,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
 
       return appError;
     },
-    [addToast, showToast, ageGroup, onError]
+    [addToast, showToast, onError]
   );
 
   return {

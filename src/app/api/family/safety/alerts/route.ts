@@ -3,7 +3,9 @@ import { AuthService } from "@/lib/auth";
 import { z } from "zod";
 
 // Validation schemas
-const getAlertsSchema = z.object({
+// TODO: `relationshipId` from GET's query string is currently checked only
+// for presence (see below); wire this schema in to validate its format too.
+const _getAlertsSchema = z.object({
   relationshipId: z.string().uuid(),
 });
 

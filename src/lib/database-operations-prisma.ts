@@ -1,22 +1,30 @@
+import type { UserInterest } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
+import { getErrorDetails } from "./utils";
 import {
   UserProfile,
   Interest,
-  Goal,
-  Retrospective,
-  SkillHistoryEntry,
-  CohortStats,
-  FamilyRelationship,
-  PredefinedPath,
-  UserPathProgress,
-  SimulationScenario,
   SkillLevel,
   CommitmentLevel,
-  GoalType,
-  Timeframe,
-  GoalStatus,
-  RetrospectiveType,
 } from "@/types";
+
+/**
+ * Prisma models nullable columns as `T | null`; the domain types use optional
+ * (`T | undefined`) properties. This is the single place that bridges the two
+ * for user interests.
+ */
+function toInterest(interest: UserInterest): Interest {
+  return {
+    id: interest.id,
+    userId: interest.userId,
+    category: interest.category,
+    subcategory: interest.subcategory ?? undefined,
+    currentLevel: interest.currentLevel as SkillLevel,
+    intentLevel: interest.intentLevel as CommitmentLevel,
+    createdAt: interest.createdAt,
+    updatedAt: interest.updatedAt,
+  };
+}
 
 // User Operations
 export async function createUser(userData: {
@@ -69,16 +77,7 @@ export async function getUserById(userId: string): Promise<UserProfile | null> {
       return null;
     }
 
-    const interests: Interest[] = user.interests.map((interest) => ({
-      id: interest.id,
-      userId: interest.userId,
-      category: interest.category,
-      subcategory: interest.subcategory,
-      currentLevel: interest.currentLevel as SkillLevel,
-      intentLevel: interest.intentLevel as CommitmentLevel,
-      createdAt: interest.createdAt,
-      updatedAt: interest.updatedAt,
-    }));
+    const interests: Interest[] = user.interests.map(toInterest);
 
     return {
       id: user.id,
@@ -101,8 +100,8 @@ export async function getUserByEmail(
   email: string
 ): Promise<UserProfile | null> {
   try {
-    console.log("Attempting to get user by email:", email);
-
+    // Deliberately not logging the email or the returned row: the record
+    // includes `passwordHash`, and emails are personal data.
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -112,23 +111,11 @@ export async function getUserByEmail(
       },
     });
 
-    console.log("Prisma query result:", user);
-
     if (!user) {
-      console.log("No user found with email:", email);
       return null;
     }
 
-    const interests: Interest[] = user.interests.map((interest) => ({
-      id: interest.id,
-      userId: interest.userId,
-      category: interest.category,
-      subcategory: interest.subcategory,
-      currentLevel: interest.currentLevel as SkillLevel,
-      intentLevel: interest.intentLevel as CommitmentLevel,
-      createdAt: interest.createdAt,
-      updatedAt: interest.updatedAt,
-    }));
+    const interests: Interest[] = user.interests.map(toInterest);
 
     return {
       id: user.id,
@@ -143,11 +130,7 @@ export async function getUserByEmail(
     };
   } catch (error) {
     console.error("Error getting user by email:", error);
-    console.error("Error details:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-    });
+    console.error("Error details:", getErrorDetails(error));
     throw new Error("Failed to get user by email");
   }
 }
@@ -169,16 +152,7 @@ export async function getUserWithPasswordByEmail(
       return null;
     }
 
-    const interests: Interest[] = user.interests.map((interest) => ({
-      id: interest.id,
-      userId: interest.userId,
-      category: interest.category,
-      subcategory: interest.subcategory,
-      currentLevel: interest.currentLevel as SkillLevel,
-      intentLevel: interest.intentLevel as CommitmentLevel,
-      createdAt: interest.createdAt,
-      updatedAt: interest.updatedAt,
-    }));
+    const interests: Interest[] = user.interests.map(toInterest);
 
     const userProfile: UserProfile = {
       id: user.id,
@@ -247,16 +221,7 @@ export async function createUserInterest(interestData: {
 
     // TODO: Trigger cohort stats update in background
 
-    return {
-      id: interest.id,
-      userId: interest.userId,
-      category: interest.category,
-      subcategory: interest.subcategory,
-      currentLevel: interest.currentLevel as SkillLevel,
-      intentLevel: interest.intentLevel as CommitmentLevel,
-      createdAt: interest.createdAt,
-      updatedAt: interest.updatedAt,
-    };
+    return toInterest(interest);
   } catch (error) {
     console.error("Error creating user interest:", error);
     throw new Error("Failed to create user interest");
@@ -270,19 +235,9 @@ export async function getUserInterests(userId: string): Promise<Interest[]> {
       orderBy: { createdAt: "asc" },
     });
 
-    return interests.map((interest) => ({
-      id: interest.id,
-      userId: interest.userId,
-      category: interest.category,
-      subcategory: interest.subcategory,
-      currentLevel: interest.currentLevel as SkillLevel,
-      intentLevel: interest.intentLevel as CommitmentLevel,
-      createdAt: interest.createdAt,
-      updatedAt: interest.updatedAt,
-    }));
+    return interests.map(toInterest);
   } catch (error) {
     console.error("Error getting user interests:", error);
     throw new Error("Failed to get user interests");
   }
 }
-

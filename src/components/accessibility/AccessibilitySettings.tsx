@@ -18,12 +18,22 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
     useAccessibility();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSettingChange = (key: string, value: any) => {
-    updateSettings({ [key]: value });
+  // Derived from the hook's own signature rather than duplicating the
+  // (unexported) AccessibilitySettings interface here.
+  type SettingsPatch = Parameters<typeof updateSettings>[0];
+
+  const handleSettingChange = <K extends keyof SettingsPatch>(
+    key: K,
+    value: SettingsPatch[K]
+  ) => {
+    // A computed-key object literal can't be narrowed back to the generic
+    // `{ [key: K]: SettingsPatch[K] }` shape by TS, even though `key`/`value`
+    // are individually well-typed above, hence the explicit assertion here.
+    updateSettings({ [key]: value } as SettingsPatch);
     announceToScreenReader(`${key} setting changed to ${value}`, "polite");
   };
 
-  const fontSizeOptions = [
+  const fontSizeOptions: { value: NonNullable<SettingsPatch["fontSize"]>; label: string }[] = [
     { value: "small", label: "Small (14px)" },
     { value: "medium", label: "Medium (16px)" },
     { value: "large", label: "Large (18px)" },

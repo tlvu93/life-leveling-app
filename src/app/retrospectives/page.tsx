@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import RetrospectiveWizard from "@/components/retrospectives/RetrospectiveWizard";
 import RetrospectivesList from "@/components/retrospectives/RetrospectivesList";
@@ -28,11 +28,26 @@ export default function RetrospectivesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
+  const loadRetrospectives = useCallback(async () => {
+    try {
+      const response = await fetch("/api/retrospectives");
+      if (!response.ok) {
+        throw new Error("Failed to load retrospectives");
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to load retrospectives");
+      }
+
+      setRetrospectives(data.data || []);
+    } catch (error) {
+      console.error("Error loading retrospectives:", error);
+      throw error;
+    }
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -71,30 +86,15 @@ export default function RetrospectivesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, loadRetrospectives]);
 
-  const loadRetrospectives = async () => {
-    try {
-      const response = await fetch("/api/retrospectives");
-      if (!response.ok) {
-        throw new Error("Failed to load retrospectives");
-      }
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || "Failed to load retrospectives");
-      }
-
-      setRetrospectives(data.data || []);
-    } catch (error) {
-      console.error("Error loading retrospectives:", error);
-      throw error;
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateRetrospective = async (retrospectiveData: {
     type: RetrospectiveType;
-    insights: Record<string, any>;
+    insights: Record<string, unknown>;
     skillUpdates: Record<string, SkillLevel>;
     goalsReviewed: string[];
   }) => {
@@ -249,6 +249,7 @@ export default function RetrospectivesPage() {
                       onChange={(e) =>
                         setSelectedType(e.target.value as RetrospectiveType)
                       }
+                      aria-label="Retrospective type"
                       className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value={RetrospectiveType.WEEKLY}>

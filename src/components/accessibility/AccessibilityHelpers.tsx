@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useId, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/ui-utils";
 
 // Skip to main content link
@@ -30,19 +30,26 @@ export const ScreenReaderAnnouncement: React.FC<AnnouncementProps> = ({
   priority = "polite",
   clearAfter = 5000,
 }) => {
+  // Track the prop and adjust state during render (React's documented
+  // pattern for "resetting state when a prop changes") instead of calling
+  // setState synchronously inside an effect.
+  const [trackedMessage, setTrackedMessage] = useState(message);
   const [currentMessage, setCurrentMessage] = useState(message);
 
-  useEffect(() => {
+  if (message !== trackedMessage) {
+    setTrackedMessage(message);
     setCurrentMessage(message);
+  }
 
-    if (clearAfter > 0) {
+  useEffect(() => {
+    if (clearAfter > 0 && currentMessage) {
       const timer = setTimeout(() => {
         setCurrentMessage("");
       }, clearAfter);
 
       return () => clearTimeout(timer);
     }
-  }, [message, clearAfter]);
+  }, [currentMessage, clearAfter]);
 
   return (
     <div aria-live={priority} aria-atomic="true" className="sr-only">
@@ -171,43 +178,32 @@ export const KeyboardNavigation: React.FC<KeyboardNavigationProps> = ({
   );
 };
 
+// Shared media-query subscription helper. Using useSyncExternalStore (rather
+// than useState+useEffect) means there's no synchronous setState call inside
+// an effect, and the server/client snapshots are explicit so there's no
+// hydration mismatch risk.
+function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const mediaQueryList = window.matchMedia(query);
+      mediaQueryList.addEventListener("change", onStoreChange);
+      return () => mediaQueryList.removeEventListener("change", onStoreChange);
+    },
+    [query]
+  );
+
+  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query]);
+  const getServerSnapshot = useCallback(() => false, []);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 // High contrast mode detector
-export const useHighContrast = () => {
-  const [isHighContrast, setIsHighContrast] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-contrast: high)");
-    setIsHighContrast(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsHighContrast(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  return isHighContrast;
-};
+export const useHighContrast = () => useMediaQuery("(prefers-contrast: high)");
 
 // Reduced motion detector
-export const useReducedMotion = () => {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  return prefersReducedMotion;
-};
+export const useReducedMotion = () =>
+  useMediaQuery("(prefers-reduced-motion: reduce)");
 
 // Accessible button with proper ARIA attributes
 interface AccessibleButtonProps
@@ -285,7 +281,9 @@ export const AccessibleField: React.FC<AccessibleFieldProps> = ({
         )}
       </label>
 
-      {React.cloneElement(children as React.ReactElement, {
+      {/* React 19 types `ReactElement`'s props as `unknown` by default, so the
+          element has to be widened before extra props can be injected. */}
+      {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
         id,
         "aria-describedby": describedBy,
         "aria-invalid": error ? "true" : "false",
@@ -327,18 +325,23 @@ export const LoadingAnnouncer: React.FC<LoadingAnnouncerProps> = ({
   loadingMessage = "Loading...",
   completedMessage = "Loading completed",
 }) => {
-  const [message, setMessage] = useState("");
+  // Track the prop and adjust state during render instead of calling
+  // setState synchronously inside an effect.
+  const [prevIsLoading, setPrevIsLoading] = useState(isLoading);
+  const [message, setMessage] = useState(isLoading ? loadingMessage : "");
+
+  if (isLoading !== prevIsLoading) {
+    setPrevIsLoading(isLoading);
+    setMessage(isLoading ? loadingMessage : completedMessage);
+  }
 
   useEffect(() => {
-    if (isLoading) {
-      setMessage(loadingMessage);
-    } else if (message === loadingMessage) {
-      setMessage(completedMessage);
+    if (!isLoading && message === completedMessage) {
       // Clear the message after a short delay
       const timer = setTimeout(() => setMessage(""), 1000);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, loadingMessage, completedMessage, message]);
+  }, [isLoading, message, completedMessage]);
 
   return (
     <ScreenReaderAnnouncement
@@ -364,11 +367,12 @@ export const AccessibleTooltip: React.FC<AccessibleTooltipProps> = ({
   className,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const tooltipId = id || `tooltip-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = useId();
+  const tooltipId = id || `tooltip-${generatedId}`;
 
   return (
     <div className={cn("relative inline-block", className)}>
-      {React.cloneElement(children as React.ReactElement, {
+      {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
         "aria-describedby": tooltipId,
         onMouseEnter: () => setIsVisible(true),
         onMouseLeave: () => setIsVisible(false),

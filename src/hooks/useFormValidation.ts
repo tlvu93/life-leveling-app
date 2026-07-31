@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { createValidationError } from "@/lib/error-handler";
 
-export interface ValidationRule<T = any> {
+export interface ValidationRule<T = unknown> {
   required?: boolean;
   minLength?: number;
   maxLength?: number;
@@ -22,7 +21,7 @@ export interface ValidationErrors {
   [key: string]: string;
 }
 
-export interface FormState<T = Record<string, any>> {
+export interface FormState<T = Record<string, unknown>> {
   values: T;
   errors: ValidationErrors;
   touched: Record<string, boolean>;
@@ -38,7 +37,7 @@ export interface UseFormValidationOptions<T> {
   validateOnBlur?: boolean;
 }
 
-export function useFormValidation<T extends Record<string, any>>({
+export function useFormValidation<T extends Record<string, unknown>>({
   initialValues,
   validationRules,
   onSubmit,
@@ -52,7 +51,7 @@ export function useFormValidation<T extends Record<string, any>>({
 
   // Validate a single field
   const validateField = useCallback(
-    (name: string, value: any): string | null => {
+    (name: string, value: unknown): string | null => {
       const rule = validationRules[name];
       if (!rule) return null;
 
@@ -138,7 +137,7 @@ export function useFormValidation<T extends Record<string, any>>({
 
   // Handle field change
   const handleChange = useCallback(
-    (name: string, value: any) => {
+    (name: string, value: unknown) => {
       setValues((prev) => ({ ...prev, [name]: value }));
 
       if (validateOnChange && touched[name]) {
@@ -261,7 +260,7 @@ export function useFormValidation<T extends Record<string, any>>({
 function getDefaultErrorMessage(
   type: string,
   fieldName: string,
-  value?: any
+  value?: unknown
 ): string {
   const friendlyFieldName = fieldName
     .replace(/([A-Z])/g, " $1")

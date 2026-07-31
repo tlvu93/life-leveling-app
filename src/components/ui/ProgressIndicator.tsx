@@ -3,6 +3,8 @@
 import React from "react";
 import { cn } from "@/lib/ui-utils";
 
+type StepStatus = "completed" | "current" | "upcoming";
+
 export interface ProgressStep {
   id: number;
   title: string;
@@ -29,13 +31,13 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
 }) => {
   const isHorizontal = orientation === "horizontal";
 
-  const getStepStatus = (stepId: number) => {
+  const getStepStatus = (stepId: number): StepStatus => {
     if (stepId < currentStep) return "completed";
     if (stepId === currentStep) return "current";
     return "upcoming";
   };
 
-  const getStepClasses = (status: string) => {
+  const getStepClasses = (status: StepStatus) => {
     const baseClasses = [
       "flex items-center justify-center rounded-full transition-all duration-300",
       "font-semibold text-sm",
@@ -62,7 +64,10 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
     return cn(baseClasses, statusClasses[status], sizeClasses);
   };
 
-  const getConnectorClasses = (fromStatus: string, toStatus: string) => {
+  const getConnectorClasses = (
+    fromStatus: StepStatus,
+    toStatus: StepStatus
+  ) => {
     const baseClasses = [
       "transition-all duration-500",
       isHorizontal ? "h-0.5 flex-1" : "w-0.5 h-8",

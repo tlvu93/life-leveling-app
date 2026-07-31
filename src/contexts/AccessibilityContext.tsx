@@ -49,51 +49,59 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       "(prefers-reduced-motion: reduce)"
     );
 
-    const updateHighContrast = (e: MediaQueryListEvent) => {
-      setIsHighContrast(e.matches);
-      if (e.matches) {
+    // Applies a matches value to state; used both for the initial read and
+    // for subsequent "change" events, so the setState calls live in one
+    // place instead of being duplicated (and inlined) in the effect body.
+    const updateHighContrast = (matches: boolean) => {
+      setIsHighContrast(matches);
+      if (matches) {
         setSettings((prev) => ({ ...prev, highContrast: true }));
       }
     };
 
-    const updateReducedMotion = (e: MediaQueryListEvent) => {
-      setIsReducedMotion(e.matches);
-      if (e.matches) {
+    const updateReducedMotion = (matches: boolean) => {
+      setIsReducedMotion(matches);
+      if (matches) {
         setSettings((prev) => ({ ...prev, reducedMotion: true }));
       }
     };
 
-    // Set initial values
-    setIsHighContrast(highContrastQuery.matches);
-    setIsReducedMotion(reducedMotionQuery.matches);
+    const handleHighContrastChange = (e: MediaQueryListEvent) =>
+      updateHighContrast(e.matches);
+    const handleReducedMotionChange = (e: MediaQueryListEvent) =>
+      updateReducedMotion(e.matches);
 
-    if (highContrastQuery.matches) {
-      setSettings((prev) => ({ ...prev, highContrast: true }));
-    }
-    if (reducedMotionQuery.matches) {
-      setSettings((prev) => ({ ...prev, reducedMotion: true }));
-    }
+    // Set initial values
+    updateHighContrast(highContrastQuery.matches);
+    updateReducedMotion(reducedMotionQuery.matches);
 
     // Listen for changes
-    highContrastQuery.addEventListener("change", updateHighContrast);
-    reducedMotionQuery.addEventListener("change", updateReducedMotion);
+    highContrastQuery.addEventListener("change", handleHighContrastChange);
+    reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
 
     return () => {
-      highContrastQuery.removeEventListener("change", updateHighContrast);
-      reducedMotionQuery.removeEventListener("change", updateReducedMotion);
+      highContrastQuery.removeEventListener("change", handleHighContrastChange);
+      reducedMotionQuery.removeEventListener(
+        "change",
+        handleReducedMotionChange
+      );
     };
   }, []);
 
   // Load saved settings from localStorage
   useEffect(() => {
-    const savedSettings = localStorage.getItem("accessibility-settings");
-    if (savedSettings) {
+    const applySavedSettings = (raw: string) => {
       try {
-        const parsed = JSON.parse(savedSettings);
+        const parsed = JSON.parse(raw);
         setSettings((prev) => ({ ...prev, ...parsed }));
       } catch (error) {
         console.warn("Failed to parse saved accessibility settings:", error);
       }
+    };
+
+    const savedSettings = localStorage.getItem("accessibility-settings");
+    if (savedSettings) {
+      applySavedSettings(savedSettings);
     }
   }, []);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { CohortComparison, CommitmentLevel } from "@/types";
 import { ComparisonCard } from "./ComparisonCard";
 import { ComparisonSettings } from "./ComparisonSettings";
@@ -16,12 +16,7 @@ export function ComparisonDashboard({ userId }: ComparisonDashboardProps) {
   const [hasOptedIn, setHasOptedIn] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    loadComparisons();
-    checkOptInStatus();
-  }, [userId]);
-
-  const loadComparisons = async () => {
+  const loadComparisons = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/comparisons?userId=${userId}`);
@@ -43,9 +38,9 @@ export function ComparisonDashboard({ userId }: ComparisonDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  const checkOptInStatus = async () => {
+  const checkOptInStatus = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/comparisons/preferences?userId=${userId}`
@@ -58,7 +53,12 @@ export function ComparisonDashboard({ userId }: ComparisonDashboardProps) {
     } catch (err) {
       console.error("Error checking opt-in status:", err);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadComparisons();
+    checkOptInStatus();
+  }, [loadComparisons, checkOptInStatus]);
 
   const handleOptInChange = async (optedIn: boolean) => {
     try {
@@ -130,7 +130,7 @@ export function ComparisonDashboard({ userId }: ComparisonDashboardProps) {
             Compare Your Progress with Peers
           </h2>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            See how you're doing compared to other learners your age with
+            See how you&apos;re doing compared to other learners your age with
             similar interests and commitment levels. All comparisons are
             completely anonymous and designed to encourage your growth journey.
           </p>
@@ -261,7 +261,7 @@ export function ComparisonDashboard({ userId }: ComparisonDashboardProps) {
             Your Progress Compared to Peers
           </h1>
           <p className="text-gray-600">
-            See how you're doing compared to other learners with similar
+            See how you&apos;re doing compared to other learners with similar
             interests and commitment levels
           </p>
         </div>

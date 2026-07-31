@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -49,11 +49,7 @@ export default function ChildPrivacySettings({
     "info"
   );
 
-  useEffect(() => {
-    loadPrivacyPreferences();
-  }, []);
-
-  const loadPrivacyPreferences = async () => {
+  const loadPrivacyPreferences = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/user/privacy");
@@ -65,13 +61,17 @@ export default function ChildPrivacySettings({
         setMessage("Failed to load privacy preferences");
         setMessageType("error");
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage("Network error. Please try again.");
       setMessageType("error");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPrivacyPreferences();
+  }, [loadPrivacyPreferences]);
 
   const updatePreference = async (
     key: keyof PrivacyPreferences,
@@ -104,7 +104,7 @@ export default function ChildPrivacySettings({
         setMessage(result.error || "Failed to update privacy settings");
         setMessageType("error");
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage("Network error. Please try again.");
       setMessageType("error");
     } finally {
@@ -250,7 +250,7 @@ export default function ChildPrivacySettings({
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        variant={isEnabled ? "default" : "outline"}
+                        variant={isEnabled ? "primary" : "outline"}
                         size="sm"
                         onClick={() =>
                           updatePreference(setting.key, !isEnabled)
@@ -314,7 +314,7 @@ export default function ChildPrivacySettings({
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant={isEnabled ? "default" : "outline"}
+                      variant={isEnabled ? "primary" : "outline"}
                       size="sm"
                       onClick={() => updatePreference(setting.key, !isEnabled)}
                       disabled={isSaving}

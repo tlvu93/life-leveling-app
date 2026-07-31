@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import ResponsiveLifeStatMatrix from "./ResponsiveLifeStatMatrix";
 import SkillTooltip from "./SkillTooltip";
 import { LifeStatMatrixData, RadarChartData } from "@/types";
@@ -76,22 +76,6 @@ export default function TimeBasedMatrixComparison({
     historical: historicalData
       ? [{ date: new Date(), data: historicalData }]
       : undefined,
-  };
-
-  const handleSkillHover = (skill: string, event: React.MouseEvent) => {
-    const skillData = data.current.find((s) => s.skill === skill);
-    const historicalValue = historicalData?.find(
-      (s) => s.skill === skill
-    )?.value;
-
-    if (skillData) {
-      setTooltip({
-        visible: true,
-        skill: skillData,
-        historicalValue,
-        position: { x: event.clientX, y: event.clientY },
-      });
-    }
   };
 
   const handleSkillClick = (skill: string) => {
@@ -280,9 +264,10 @@ export default function TimeBasedMatrixComparison({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {improvements.map((item) => (
-              <div
+              <button
                 key={item.skill}
-                className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                type="button"
+                className={`w-full text-left p-3 rounded-lg border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   item.improvement > 0
                     ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30"
                     : item.improvement < 0
@@ -311,7 +296,7 @@ export default function TimeBasedMatrixComparison({
                 <div className="text-sm text-muted-foreground">
                   {item.historical} → {item.current}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

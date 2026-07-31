@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PredefinedPath, UserPathProgress, Interest } from "@/types";
 import { PathMilestone, calculateSkillSynergies } from "@/lib/path-management";
 import PathVisualization from "./PathVisualization";
@@ -26,11 +26,7 @@ export default function PathsDashboard({ userId }: PathsDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadUserData();
-  }, [userId]);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -62,7 +58,11 @@ export default function PathsDashboard({ userId }: PathsDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const handlePathSelect = async (pathId: string) => {
     try {
@@ -326,8 +326,17 @@ export default function PathsDashboard({ userId }: PathsDashboardProps) {
                 {userPaths.map((path) => (
                   <div
                     key={path.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${path.pathName}`}
                     className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => handlePathSelect(path.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handlePathSelect(path.id);
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-lg font-semibold text-gray-800">
@@ -421,7 +430,7 @@ export default function PathsDashboard({ userId }: PathsDashboardProps) {
               synergies={synergies}
               width={800}
               height={500}
-              onNodeClick={(skill) => {
+              onNodeClick={(_skill) => {
                 // Filter paths by skill and switch to recommendations
                 setActiveTab("recommendations");
               }}

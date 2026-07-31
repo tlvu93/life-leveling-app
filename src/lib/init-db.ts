@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { getErrorMessage } from "./utils";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -47,7 +48,9 @@ export async function initializeDatabase() {
             `Executing statement ${i + 1}/${statements.length}:`,
             statement.substring(0, 50) + "..."
           );
-          await sql.unsafe(statement);
+          // `sql.unsafe()` only builds an interpolation marker — it does not
+          // execute anything. `sql.query()` is what actually runs a raw string.
+          await sql.query(statement);
           console.log(`✓ Statement ${i + 1} executed successfully`);
         } catch (error) {
           console.error(`✗ Statement ${i + 1} failed:`, error);
@@ -74,7 +77,7 @@ export async function initializeDatabase() {
       ];
 
       for (const table of tables) {
-        await sql.unsafe(
+        await sql.query(
           `ALTER TABLE ${table} ALTER COLUMN id SET DEFAULT uuid_generate_v4()`
         );
       }
@@ -82,7 +85,7 @@ export async function initializeDatabase() {
     } catch (error) {
       console.log(
         "Note: Some UUID defaults may already be set:",
-        error.message
+        getErrorMessage(error)
       );
     }
 

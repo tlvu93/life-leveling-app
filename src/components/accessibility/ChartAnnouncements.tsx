@@ -111,8 +111,12 @@ export const useSonification = () => {
 
   const initializeAudioContext = () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      // Safari historically only exposed the vendor-prefixed constructor.
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      audioContextRef.current = new AudioContextClass();
     }
     return audioContextRef.current;
   };
@@ -175,12 +179,12 @@ export const useSonification = () => {
 
 // Data table generator for charts
 export const generateChartDataTable = (
-  data: Array<{ label: string; value: number; [key: string]: any }>,
+  data: Array<{ label: string; value: number; [key: string]: unknown }>,
   title: string = "Chart Data",
   additionalColumns?: Array<{
     key: string;
     label: string;
-    formatter?: (value: any) => string;
+    formatter?: (value: unknown) => string;
   }>
 ) => {
   return {

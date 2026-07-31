@@ -210,7 +210,6 @@ export const AccessibilityControlPanel: React.FC<
                     ];
                     const newSize = sizes[parseInt(e.target.value)];
                     if (newSize) {
-                      const event = { target: { value: newSize } };
                       // Update theme with new font size
                       if (newSize === "small") decreaseFontSize();
                       else if (newSize === "large") increaseFontSize();

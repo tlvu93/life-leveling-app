@@ -10,7 +10,6 @@ interface ComparisonSettingsProps {
 }
 
 export function ComparisonSettings({
-  userId,
   hasOptedIn,
   onOptInChange,
   onClose,
@@ -98,7 +97,7 @@ export function ComparisonSettings({
                   </div>
                   <div>
                     <p className="text-sm text-gray-700">
-                      <strong>Anonymous Grouping:</strong> You're grouped with
+                      <strong>Anonymous Grouping:</strong> You&apos;re grouped with
                       other learners who have similar age ranges, interests, and
                       commitment levels.
                     </p>
@@ -112,7 +111,7 @@ export function ComparisonSettings({
                     <p className="text-sm text-gray-700">
                       <strong>Percentile Ranking:</strong> We calculate where
                       your skill level falls compared to your peer group (e.g.,
-                      "75th percentile").
+                      &quot;75th percentile&quot;).
                     </p>
                   </div>
                 </div>
@@ -212,7 +211,7 @@ export function ComparisonSettings({
                 Commitment Level Comparisons
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                You're only compared with peers who have the same commitment
+                You&apos;re only compared with peers who have the same commitment
                 level for each interest:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

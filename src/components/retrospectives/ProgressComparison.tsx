@@ -205,7 +205,7 @@ export default function ProgressComparison({
                     {pausedGoals}
                   </div>
                   <div className="text-sm text-yellow-700">
-                    Paused (that's okay!)
+                    Paused (that&apos;s okay!)
                   </div>
                 </div>
               )}
@@ -281,7 +281,7 @@ export default function ProgressComparison({
 
       {/* Next Steps */}
       <div className="mt-6 pt-6 border-t border-gray-200">
-        <h4 className="font-semibold text-gray-800 mb-3">💡 What's Next?</h4>
+        <h4 className="font-semibold text-gray-800 mb-3">💡 What&apos;s Next?</h4>
         <div className="space-y-2 text-sm text-gray-600">
           {activeGoals > 0 && (
             <p>

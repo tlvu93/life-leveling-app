@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       success: true,
       message,
       action,
+      data: result,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

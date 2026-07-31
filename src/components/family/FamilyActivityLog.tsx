@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -21,11 +21,17 @@ import {
   ChevronUp,
 } from "lucide-react";
 
+interface ActivityDetails {
+  consentGiven?: boolean;
+  dataAccessed?: Record<string, boolean>;
+  [key: string]: unknown;
+}
+
 interface ActivityEntry {
   id: string;
   actionType: string;
   performedBy: string;
-  details: any;
+  details: ActivityDetails;
   createdAt: string;
 }
 
@@ -55,43 +61,49 @@ export default function FamilyActivityLog({
     new Set()
   );
 
+  const loadActivityLog = useCallback(
+    async (offset = 0) => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          `/api/family/activity-log?relationshipId=${relationshipId}&limit=20&offset=${offset}`
+        );
+        const result = await response.json();
+
+        if (result.success) {
+          if (offset === 0) {
+            setActivityData(result.data);
+          } else {
+            // Append to existing data for "load more"
+            setActivityData((prev) =>
+              prev
+                ? {
+                    ...result.data,
+                    activities: [
+                      ...prev.activities,
+                      ...result.data.activities,
+                    ],
+                  }
+                : result.data
+            );
+          }
+        } else {
+          setError(result.error || "Failed to load activity log");
+        }
+      } catch (_error) {
+        setError("Network error. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [relationshipId]
+  );
+
   useEffect(() => {
     loadActivityLog();
-  }, [relationshipId]);
-
-  const loadActivityLog = async (offset = 0) => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch(
-        `/api/family/activity-log?relationshipId=${relationshipId}&limit=20&offset=${offset}`
-      );
-      const result = await response.json();
-
-      if (result.success) {
-        if (offset === 0) {
-          setActivityData(result.data);
-        } else {
-          // Append to existing data for "load more"
-          setActivityData((prev) =>
-            prev
-              ? {
-                  ...result.data,
-                  activities: [...prev.activities, ...result.data.activities],
-                }
-              : result.data
-          );
-        }
-      } else {
-        setError(result.error || "Failed to load activity log");
-      }
-    } catch (error) {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [loadActivityLog]);
 
   const loadMore = () => {
     if (activityData && activityData.pagination.hasMore) {
@@ -122,7 +134,10 @@ export default function FamilyActivityLog({
     }
   };
 
-  const getActionDescription = (actionType: string, details: any) => {
+  const getActionDescription = (
+    actionType: string,
+    details: ActivityDetails
+  ) => {
     switch (actionType) {
       case "consent_updated":
         return details.consentGiven

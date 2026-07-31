@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  SkillLevel,
-  CommitmentLevel,
-  getCommitmentLevelName,
-  getSkillLevelName,
-} from "@/types";
+import { SkillLevel, CommitmentLevel, getSkillLevelName } from "@/types";
 import { CommitmentLevelCard } from "@/components/ui/commitment-level-card";
 
 interface CommitmentLevelStepProps {
@@ -25,6 +20,7 @@ const COMMITMENT_LEVEL_DESCRIPTIONS = {
     details: "Light engagement, no pressure, just for enjoyment",
     icon: "😊",
     variant: "casual" as const,
+    color: "text-secondary-600 dark:text-secondary-400",
   },
   [CommitmentLevel.AVERAGE]: {
     title: "Average",
@@ -32,6 +28,7 @@ const COMMITMENT_LEVEL_DESCRIPTIONS = {
     details: "Regular practice, moderate goals, balanced approach",
     icon: "📈",
     variant: "average" as const,
+    color: "text-primary-600 dark:text-primary-400",
   },
   [CommitmentLevel.INVESTED]: {
     title: "Invested",
@@ -39,6 +36,7 @@ const COMMITMENT_LEVEL_DESCRIPTIONS = {
     details: "Focused effort, clear goals, willing to challenge myself",
     icon: "🎯",
     variant: "invested" as const,
+    color: "text-accent-purple",
   },
   [CommitmentLevel.COMPETITIVE]: {
     title: "Competitive",
@@ -46,6 +44,7 @@ const COMMITMENT_LEVEL_DESCRIPTIONS = {
     details: "High dedication, ambitious goals, performance-focused",
     icon: "🏆",
     variant: "competitive" as const,
+    color: "text-warning-600 dark:text-warning-400",
   },
 };
 

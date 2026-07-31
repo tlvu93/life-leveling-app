@@ -10,44 +10,44 @@ import {
 } from "@/types";
 
 // Type Guards
-export function isSkillLevel(value: any): value is SkillLevel {
+export function isSkillLevel(value: unknown): value is SkillLevel {
   return typeof value === "number" && value >= 1 && value <= 4;
 }
 
-export function isCommitmentLevel(value: any): value is CommitmentLevel {
+export function isCommitmentLevel(value: unknown): value is CommitmentLevel {
   return (
     typeof value === "string" &&
     ["casual", "average", "invested", "competitive"].includes(value)
   );
 }
 
-export function isGoalType(value: any): value is GoalType {
+export function isGoalType(value: unknown): value is GoalType {
   return (
     typeof value === "string" &&
     ["skill_increase", "project_completion", "broad_promise"].includes(value)
   );
 }
 
-export function isTimeframe(value: any): value is Timeframe {
+export function isTimeframe(value: unknown): value is Timeframe {
   return (
     typeof value === "string" && ["weekly", "monthly", "yearly"].includes(value)
   );
 }
 
-export function isGoalStatus(value: any): value is GoalStatus {
+export function isGoalStatus(value: unknown): value is GoalStatus {
   return (
     typeof value === "string" &&
     ["active", "completed", "paused", "cancelled"].includes(value)
   );
 }
 
-export function isRetrospectiveType(value: any): value is RetrospectiveType {
+export function isRetrospectiveType(value: unknown): value is RetrospectiveType {
   return (
     typeof value === "string" && ["weekly", "monthly", "yearly"].includes(value)
   );
 }
 
-export function isInterestCategory(value: any): value is InterestCategory {
+export function isInterestCategory(value: unknown): value is InterestCategory {
   return (
     typeof value === "string" &&
     INTEREST_CATEGORIES.includes(value as InterestCategory)
@@ -119,8 +119,8 @@ export function validateUserRegistration(data: {
 export function validateInterest(data: {
   category: string;
   subcategory?: string;
-  currentLevel: any;
-  intentLevel: any;
+  currentLevel: unknown;
+  intentLevel: unknown;
 }): ValidationResult {
   const errors: string[] = [];
 
@@ -154,11 +154,11 @@ export function validateInterest(data: {
 
 export function validateGoal(data: {
   interestCategory: string;
-  goalType: any;
+  goalType: unknown;
   title: string;
   description: string;
-  targetLevel?: any;
-  timeframe: any;
+  targetLevel?: unknown;
+  timeframe: unknown;
   targetDate?: Date;
 }): ValidationResult {
   const errors: string[] = [];
@@ -216,10 +216,10 @@ export function validateGoal(data: {
 }
 
 export function validateRetrospective(data: {
-  type: any;
-  insights?: Record<string, any>;
-  skillUpdates?: Record<string, any>;
-  goalsReviewed?: Record<string, any>;
+  type: unknown;
+  insights?: Record<string, unknown>;
+  skillUpdates?: Record<string, unknown>;
+  goalsReviewed?: Record<string, unknown>;
 }): ValidationResult {
   const errors: string[] = [];
 
@@ -350,7 +350,7 @@ export function sanitizeInterestCategory(category: string): string {
 }
 
 // Data transformation helpers
-export function normalizeSkillLevel(level: any): SkillLevel | null {
+export function normalizeSkillLevel(level: unknown): SkillLevel | null {
   const num = Number(level);
   if (isSkillLevel(num)) {
     return num;
@@ -358,7 +358,7 @@ export function normalizeSkillLevel(level: any): SkillLevel | null {
   return null;
 }
 
-export function normalizeCommitmentLevel(level: any): CommitmentLevel | null {
+export function normalizeCommitmentLevel(level: unknown): CommitmentLevel | null {
   if (typeof level === "string") {
     const normalized = level.toLowerCase().trim();
     if (isCommitmentLevel(normalized)) {
@@ -373,8 +373,8 @@ export function validateOnboardingData(data: {
   interests: Array<{
     category: string;
     subcategory?: string;
-    level: any;
-    intent: any;
+    level: unknown;
+    intent: unknown;
   }>;
 }): ValidationResult {
   const errors: string[] = [];

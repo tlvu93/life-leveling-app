@@ -23,7 +23,8 @@ export function ComparisonCard({
     return "text-pink-600 bg-pink-50 border-pink-200";
   };
 
-  const getPercentileIcon = (percentile: number): JSX.Element => {
+  // React 19 dropped the global `JSX` namespace; it now lives under `React`.
+  const getPercentileIcon = (percentile: number): React.JSX.Element => {
     if (percentile >= 90) {
       return (
         <svg

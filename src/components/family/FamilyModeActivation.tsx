@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,7 +28,7 @@ interface FamilyModeActivationProps {
 }
 
 export default function FamilyModeActivation({
-  userAge,
+  userAge: _userAge,
   isMinor,
 }: FamilyModeActivationProps) {
   const [childEmail, setChildEmail] = useState("");
@@ -39,14 +39,7 @@ export default function FamilyModeActivation({
   );
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
 
-  // Load pending consent requests for minors
-  useEffect(() => {
-    if (isMinor) {
-      loadPendingRequests();
-    }
-  }, [isMinor]);
-
-  const loadPendingRequests = async () => {
+  const loadPendingRequests = useCallback(async () => {
     try {
       const response = await fetch("/api/family/consent");
       const result = await response.json();
@@ -57,7 +50,14 @@ export default function FamilyModeActivation({
     } catch (error) {
       console.error("Failed to load pending requests:", error);
     }
-  };
+  }, []);
+
+  // Load pending consent requests for minors
+  useEffect(() => {
+    if (isMinor) {
+      loadPendingRequests();
+    }
+  }, [isMinor, loadPendingRequests]);
 
   const handleCreateFamilyLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +86,7 @@ export default function FamilyModeActivation({
         setMessage(result.error || "Failed to create family link");
         setMessageType("error");
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage("Network error. Please try again.");
       setMessageType("error");
     } finally {
@@ -123,7 +123,7 @@ export default function FamilyModeActivation({
         setMessage(result.error || "Failed to update consent");
         setMessageType("error");
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage("Network error. Please try again.");
       setMessageType("error");
     } finally {
@@ -179,7 +179,7 @@ export default function FamilyModeActivation({
           <CardHeader>
             <CardTitle>Connect with Your Child</CardTitle>
             <CardDescription>
-              Enter your child's email address to send a family connection
+              Enter your child&apos;s email address to send a family connection
               request.
             </CardDescription>
           </CardHeader>
@@ -190,7 +190,7 @@ export default function FamilyModeActivation({
                   htmlFor="childEmail"
                   className="block text-sm font-medium mb-2"
                 >
-                  Child's Email Address
+                  Child&apos;s Email Address
                 </label>
                 <Input
                   id="childEmail"

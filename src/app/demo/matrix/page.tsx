@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import ResponsiveLifeStatMatrix from "@/components/ResponsiveLifeStatMatrix";
 import TimeBasedMatrixComparison from "@/components/TimeBasedMatrixComparison";
-import { LifeStatMatrixData, RadarChartData } from "@/types";
+import { LifeStatMatrixData } from "@/types";
 import { generateSampleLifeStatData } from "@/lib/chart-utils";
 
 export default function MatrixDemoPage() {
@@ -113,6 +113,7 @@ export default function MatrixDemoPage() {
                     onChange={(e) =>
                       updateSkillLevel(index, parseInt(e.target.value))
                     }
+                    aria-label={`${skill.skill} level`}
                     className="flex-1"
                   />
                   <span className="text-sm font-medium text-gray-900 w-12">

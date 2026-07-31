@@ -1,11 +1,28 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import * as d3 from "d3";
 import { RadarChartData, LifeStatMatrixData, SkillLevel } from "@/types";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
-import { KEYBOARD_KEYS, announceToScreenReader } from "@/lib/accessibility";
+import { KEYBOARD_KEYS } from "@/lib/accessibility";
 import { Button } from "@/components/ui/button";
+
+// No-op subscription: there is nothing to subscribe to, we only need this to
+// distinguish the server render pass from the client render pass so D3 (a
+// DOM-only library) doesn't run during SSR. Using useSyncExternalStore avoids
+// the hydration-mismatch problems a plain useState+useEffect pair would have.
+function subscribeNever() {
+  return () => {};
+}
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 interface AccessibleLifeStatMatrixProps {
   data: LifeStatMatrixData;
@@ -40,7 +57,6 @@ export default function AccessibleLifeStatMatrix({
   description = "Interactive radar chart displaying current skill levels across different interests",
 }: AccessibleLifeStatMatrixProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [isClient, setIsClient] = useState(false);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [focusedSkillIndex, setFocusedSkillIndex] = useState<number>(-1);
   const [showDataTable, setShowDataTable] = useState(false);
@@ -50,31 +66,40 @@ export default function AccessibleLifeStatMatrix({
     useAccessibility();
 
   // Ensure we're on the client side for D3 rendering
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isClient = useSyncExternalStore(
+    subscribeNever,
+    getClientSnapshot,
+    getServerSnapshot
+  );
 
   // Configuration for the radar chart
-  const config: RadarChartConfig = {
-    radius: Math.min(width, height) / 2 - 60,
-    centerX: width / 2,
-    centerY: height / 2,
-    levels: 4, // Novice, Intermediate, Advanced, Expert
-    maxValue: 4, // Maximum skill level
-    angleSlice: (Math.PI * 2) / data.current.length,
-  };
+  const config: RadarChartConfig = useMemo(
+    () => ({
+      radius: Math.min(width, height) / 2 - 60,
+      centerX: width / 2,
+      centerY: height / 2,
+      levels: 4, // Novice, Intermediate, Advanced, Expert
+      maxValue: 4, // Maximum skill level
+      angleSlice: (Math.PI * 2) / data.current.length,
+    }),
+    [width, height, data]
+  );
 
   // Color scheme for skills with high contrast support
-  const colorScale = d3.scaleOrdinal([
-    "#1e40af",
-    "#dc2626",
-    "#059669",
-    "#7c2d12",
-    "#6b21a8",
-    "#be185d",
-    "#0369a1",
-    "#ea580c",
-  ]);
+  const colorScale = useMemo(
+    () =>
+      d3.scaleOrdinal([
+        "#1e40af",
+        "#dc2626",
+        "#059669",
+        "#7c2d12",
+        "#6b21a8",
+        "#be185d",
+        "#0369a1",
+        "#ea580c",
+      ]),
+    []
+  );
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -676,8 +701,10 @@ function addInteractivity(
     .on("mouseenter", (event, d) => {
       setHoveredSkill?.(d.skill);
       // Highlight the corresponding data point
-      g.selectAll(".data-point")
-        .filter((pointData: RadarChartData) => pointData.skill === d.skill)
+      // `selectAll` erases the datum type, so re-assert it here rather than
+      // letting the filter callback receive `unknown`.
+      g.selectAll<SVGCircleElement, RadarChartData>(".data-point")
+        .filter((pointData) => pointData.skill === d.skill)
         .transition()
         .duration(200)
         .attr("r", 7)

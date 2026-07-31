@@ -23,7 +23,7 @@ export function validateContrast(
   isLargeText = false
 ): boolean {
   // This is a simplified version - in production, you'd use a proper color contrast library
-  const requiredRatio = isLargeText
+  const _requiredRatio = isLargeText
     ? CONTRAST_RATIOS.LARGE_TEXT
     : CONTRAST_RATIOS.NORMAL_TEXT;
 

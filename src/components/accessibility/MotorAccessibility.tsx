@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui-utils";
 import { TOUCH_TARGETS } from "@/lib/accessibility";
 
@@ -12,7 +11,10 @@ interface LargeTouchTargetProps {
   className?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  /** Forwarded to `aria-expanded` for disclosure-style triggers. */
+  ariaExpanded?: boolean;
   minSize?: number;
+  type?: "button" | "submit" | "reset";
 }
 
 export const LargeTouchTarget: React.FC<LargeTouchTargetProps> = ({
@@ -21,13 +23,17 @@ export const LargeTouchTarget: React.FC<LargeTouchTargetProps> = ({
   className = "",
   disabled = false,
   ariaLabel,
+  ariaExpanded,
   minSize = TOUCH_TARGETS.RECOMMENDED,
+  type = "button",
 }) => {
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
       className={cn(
         "large-touch-target flex items-center justify-center",
         "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
@@ -49,7 +55,11 @@ export const LargeTouchTarget: React.FC<LargeTouchTargetProps> = ({
 
 // Drag and drop with keyboard alternatives
 interface AccessibleDragDropProps {
-  items: Array<{ id: string; content: React.ReactNode; [key: string]: any }>;
+  items: Array<{
+    id: string;
+    content: React.ReactNode;
+    [key: string]: unknown;
+  }>;
   onReorder: (newOrder: string[]) => void;
   className?: string;
   itemClassName?: string;
@@ -540,10 +550,12 @@ export const DwellClick: React.FC<DwellClickProps> = ({
   );
 };
 
-export default {
+const MotorAccessibilityComponents = {
   LargeTouchTarget,
   AccessibleDragDrop,
   GestureAlternative,
   StickyActions,
   DwellClick,
 };
+
+export default MotorAccessibilityComponents;

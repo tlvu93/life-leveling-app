@@ -3,15 +3,18 @@
  * Tracks recent effort and goal completion instead of static skill levels
  */
 
+/**
+ * Every activity kind that earns points. Derived from `ACTIVITY_POINTS` below
+ * so the two can never drift apart — the hand-written union that used to live
+ * here was missing `daily_bonus`.
+ */
+export type ActivityType = keyof typeof ACTIVITY_POINTS;
+
 export interface ActivityEntry {
   id: string;
   userId: string;
   category: string; // Interest category (Music, Sports, etc.)
-  activityType:
-    | "goal_completed"
-    | "practice_session"
-    | "milestone_reached"
-    | "streak_bonus";
+  activityType: ActivityType;
   points: number;
   description: string;
   completedAt: Date;
@@ -119,7 +122,7 @@ export function calculateStreak(activities: ActivityEntry[]): number {
   );
 
   let streak = 0;
-  let currentDate = new Date();
+  const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
 
   // Check if there's activity today or yesterday
@@ -144,7 +147,7 @@ export function calculateStreak(activities: ActivityEntry[]): number {
     })
   );
 
-  let checkDate = new Date(mostRecentDate);
+  const checkDate = new Date(mostRecentDate);
   while (activityDates.has(checkDate.getTime())) {
     streak++;
     checkDate.setDate(checkDate.getDate() - 1);
@@ -238,9 +241,11 @@ export function generateSampleActivityData(): ActivityMatrixData {
  */
 function getActivityDescription(
   category: string,
-  activityType: keyof typeof ACTIVITY_POINTS
+  activityType: ActivityType
 ): string {
-  const descriptions = {
+  const descriptions: Partial<
+    Record<ActivityType, Record<string, string | undefined>>
+  > = {
     goal_completed: {
       Music: "Completed practice goal",
       Sports: "Finished workout routine",
@@ -273,12 +278,19 @@ function getActivityDescription(
       Creativity: "Creative streak",
       Technical: "Coding streak",
     },
+    daily_bonus: {
+      Music: "Showed up today",
+      Sports: "Showed up today",
+      Math: "Showed up today",
+      Communication: "Showed up today",
+      Creativity: "Showed up today",
+      Technical: "Showed up today",
+    },
   };
 
   return (
-    descriptions[activityType][
-      category as keyof (typeof descriptions)[typeof activityType]
-    ] || `${activityType.replace("_", " ")} in ${category}`
+    descriptions[activityType]?.[category] ??
+    `${activityType.replaceAll("_", " ")} in ${category}`
   );
 }
 

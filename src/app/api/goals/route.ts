@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGoal, getUserGoals } from "@/lib/database-operations";
 import { validateGoal } from "@/lib/validation";
 import { getTokenUserId } from "@/lib/auth";
-import { GoalType, Timeframe, SkillLevel } from "@/types";
+import { GoalType, Timeframe, SkillLevel, GoalStatus } from "@/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     const goals = await getUserGoals(
       userId,
-      status as any // Will be validated in the database operation
+      status ? (status as GoalStatus) : undefined // Will be validated in the database operation
     );
 
     return NextResponse.json({
