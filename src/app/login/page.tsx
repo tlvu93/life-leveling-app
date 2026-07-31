@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-export default function LoginPage() {
+function LoginForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -179,5 +180,24 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * `useSearchParams()` opts the subtree into client-side rendering, so Next.js
+ * requires a Suspense boundary above it; without one the production build fails
+ * to prerender this route.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+          <LoadingSpinner size="lg" label="Loading sign in" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

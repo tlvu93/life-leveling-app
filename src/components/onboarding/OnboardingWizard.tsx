@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { InterestSelectionStep } from "./InterestSelectionStep";
 import { SkillAssessmentStep } from "./SkillAssessmentStep";
 import { CommitmentLevelStep } from "./CommitmentLevelStep";
 import { OnboardingComplete } from "./OnboardingComplete";
-import { ProgressIndicator } from "@/components/ui/ProgressIndicator";
-import { AppLayout, Container } from "@/components/layout/AppLayout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { SkillLevel, CommitmentLevel } from "@/types";
+import { SkillLevel, CommitmentLevel, UserProfile } from "@/types";
 
 export interface OnboardingInterest {
   category: string;
@@ -24,7 +22,7 @@ export interface OnboardingData {
 interface OnboardingWizardProps {
   onComplete: (data: OnboardingData) => Promise<void>;
   isLoading?: boolean;
-  existingProfile?: any; // Existing profile data for editing
+  existingProfile?: UserProfile | null; // Existing profile data for editing
   isEditMode?: boolean; // Whether we're editing an existing profile
 }
 
@@ -65,22 +63,28 @@ export function OnboardingWizard({
     Record<string, CommitmentLevel>
   >({});
 
-  // Initialize with existing profile data if available
-  useEffect(() => {
+  // Initialize with existing profile data if available. This re-derives the
+  // wizard's local state whenever a *new* `existingProfile` is passed in
+  // (identity change), while preserving in-progress edits across re-renders
+  // in between.
+  const [syncedProfile, setSyncedProfile] = useState(existingProfile);
+  if (existingProfile !== syncedProfile) {
+    setSyncedProfile(existingProfile);
+
     if (existingProfile && existingProfile.interests) {
       const interests = existingProfile.interests.map(
-        (interest: any) => interest.category
+        (interest) => interest.category
       );
       const subcategories: Record<string, string> = {};
       const skills: Record<string, SkillLevel> = {};
       const commitments: Record<string, CommitmentLevel> = {};
 
-      existingProfile.interests.forEach((interest: any) => {
+      existingProfile.interests.forEach((interest) => {
         if (interest.subcategory) {
           subcategories[interest.category] = interest.subcategory;
         }
-        skills[interest.category] = interest.level;
-        commitments[interest.category] = interest.intent;
+        skills[interest.category] = interest.currentLevel;
+        commitments[interest.category] = interest.intentLevel;
       });
 
       setSelectedInterests(interests);
@@ -88,7 +92,7 @@ export function OnboardingWizard({
       setSkillLevels(skills);
       setCommitmentLevels(commitments);
     }
-  }, [existingProfile]);
+  }
 
   const handleInterestSelection = (
     interests: string[],

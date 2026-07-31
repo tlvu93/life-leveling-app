@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Target,
   Users,
@@ -44,7 +43,7 @@ interface SharedGoalSettingProps {
 }
 
 export default function SharedGoalSetting({
-  relationshipId,
+  relationshipId: _relationshipId,
   isParent,
   childInterests,
 }: SharedGoalSettingProps) {
@@ -86,14 +85,18 @@ export default function SharedGoalSetting({
     setSharedGoals((prev) =>
       prev.map((goal) => {
         if (goal.id === goalId) {
-          const role = isParent ? "parent" : "child";
+          const role: SharedGoal["createdBy"] = isParent ? "parent" : "child";
           if (!goal.agreedBy.includes(role)) {
-            const updatedAgreedBy = [...goal.agreedBy, role];
-            return {
+            const updatedAgreedBy: SharedGoal["agreedBy"] = [
+              ...goal.agreedBy,
+              role,
+            ];
+            const updated: SharedGoal = {
               ...goal,
               agreedBy: updatedAgreedBy,
               status: updatedAgreedBy.length === 2 ? "active" : goal.status,
             };
+            return updated;
           }
         }
         return goal;
@@ -181,10 +184,14 @@ export default function SharedGoalSetting({
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label
+                  htmlFor="shared-goal-title"
+                  className="block text-sm font-medium mb-2"
+                >
                   Goal Title
                 </label>
                 <Input
+                  id="shared-goal-title"
                   value={newGoal.title}
                   onChange={(e) =>
                     setNewGoal((prev) => ({ ...prev, title: e.target.value }))
@@ -194,10 +201,14 @@ export default function SharedGoalSetting({
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label
+                  htmlFor="shared-goal-description"
+                  className="block text-sm font-medium mb-2"
+                >
                   Description
                 </label>
                 <Input
+                  id="shared-goal-description"
                   value={newGoal.description}
                   onChange={(e) =>
                     setNewGoal((prev) => ({
@@ -211,10 +222,14 @@ export default function SharedGoalSetting({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label
+                    htmlFor="shared-goal-category"
+                    className="block text-sm font-medium mb-2"
+                  >
                     Category
                   </label>
                   <select
+                    id="shared-goal-category"
                     value={newGoal.category}
                     onChange={(e) =>
                       setNewGoal((prev) => ({
@@ -235,10 +250,14 @@ export default function SharedGoalSetting({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label
+                    htmlFor="shared-goal-timeframe"
+                    className="block text-sm font-medium mb-2"
+                  >
                     Timeframe
                   </label>
                   <select
+                    id="shared-goal-timeframe"
                     value={newGoal.timeframe}
                     onChange={(e) =>
                       setNewGoal((prev) => ({
@@ -276,7 +295,7 @@ export default function SharedGoalSetting({
       <Card>
         <CardHeader>
           <CardTitle>Shared Goals</CardTitle>
-          <CardDescription>Goals you're working on together</CardDescription>
+          <CardDescription>Goals you&apos;re working on together</CardDescription>
         </CardHeader>
         <CardContent>
           {sharedGoals.length === 0 ? (
@@ -399,6 +418,7 @@ export default function SharedGoalSetting({
                           value={discussionPoint}
                           onChange={(e) => setDiscussionPoint(e.target.value)}
                           placeholder="Add a discussion point or question..."
+                          aria-label="Discussion point"
                           className="flex-1"
                         />
                         <Button

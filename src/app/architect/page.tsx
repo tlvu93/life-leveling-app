@@ -4,6 +4,10 @@ import { AuthService } from "@/lib/auth";
 import { getUserByEmail } from "@/lib/database-operations";
 import ArchitectModeInterface from "@/components/architect/ArchitectModeInterface";
 
+// Reads the auth cookie, so it can never be prerendered. Without this the build
+// tried to statically render it and the auth lookup silently failed.
+export const dynamic = "force-dynamic";
+
 export default async function ArchitectPage() {
   const user = await AuthService.getCurrentUser();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   OnboardingWizard,
@@ -8,7 +8,7 @@ import {
 } from "@/components/onboarding/OnboardingWizard";
 import { UserProfile } from "@/types";
 
-export default function OnboardingPage() {
+function OnboardingFlow() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,11 +29,13 @@ export default function OnboardingPage() {
           let demoUser: UserProfile = {
             id: demoUserId,
             email: "demo@example.com",
-            name: "Demo User",
-            age: 25,
+            ageRangeMin: 22,
+            ageRangeMax: 29,
+            interests: [],
+            familyModeEnabled: false,
             onboardingCompleted: false,
             createdAt: new Date(),
-            updatedAt: new Date(),
+            lastActive: new Date(),
           };
 
           // If editing, load existing demo profile
@@ -72,8 +74,8 @@ export default function OnboardingPage() {
       }
     };
 
-    fetchUser();
-  }, [router]);
+    void fetchUser();
+  }, [router, isEditMode]);
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
     setIsSubmitting(true);
@@ -134,18 +136,7 @@ export default function OnboardingPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-2xl">🎯</span>
-          </div>
-          <p className="text-muted-foreground">
-            Loading your Life Leveling journey...
-          </p>
-        </div>
-      </div>
-    );
+    return <OnboardingLoading />;
   }
 
   if (!user) {
@@ -176,5 +167,39 @@ export default function OnboardingPage() {
       existingProfile={user}
       isEditMode={isEditMode}
     />
+  );
+}
+
+function OnboardingLoading() {
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 flex items-center justify-center"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="text-center space-y-4">
+        <div
+          className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto"
+          aria-hidden="true"
+        >
+          <span className="text-2xl">🎯</span>
+        </div>
+        <p className="text-muted-foreground">
+          Loading your Life Leveling journey...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * `useSearchParams()` (used for `?edit=true`) needs a Suspense boundary above
+ * it or the production build cannot prerender this route.
+ */
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingLoading />}>
+      <OnboardingFlow />
+    </Suspense>
   );
 }

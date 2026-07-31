@@ -5,7 +5,7 @@ import { clsx } from "clsx";
 
 export interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg" | "xl";
-  variant?: "primary" | "secondary" | "neutral";
+  variant?: "primary" | "secondary" | "success" | "neutral";
   className?: string;
   label?: string;
 }
@@ -26,6 +26,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const variantClasses = {
     primary: "border-primary-200 border-t-primary-600",
     secondary: "border-secondary-200 border-t-secondary-600",
+    success: "border-success-200 border-t-success-600",
     neutral: "border-neutral-200 border-t-neutral-600",
   };
 
