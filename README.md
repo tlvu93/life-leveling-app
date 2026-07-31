@@ -6,43 +6,43 @@ A playful, game-like application designed to help kids, teens, and adults set li
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
-- Neon Database account (PostgreSQL)
-- Vercel account (for KV and Blob storage)
+- Node.js 20+ (developed against Node 24)
+- npm
+- A Neon (PostgreSQL) database
+- A Vercel KV (Redis) store — used to cache Architect-mode scenarios
 
 ### Environment Setup
 
-1. Clone the repository and install dependencies:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Copy the environment variables template:
-
-```bash
-cp .env.local.example .env.local
-```
-
-3. Update `.env.local` with your actual values:
+2. Create `.env.local` in the project root and set the following variables. Only
+   the **names** are listed here — get the values from your Neon and Vercel
+   dashboards, and never commit them.
 
 ```env
-# Database - Get from Neon Dashboard
-DATABASE_URL="postgresql://[username]:[password]@[host]/[database]?sslmode=require"
+# Neon / PostgreSQL connection string. Read by both the Neon HTTP driver
+# (src/lib/db.ts) and the Prisma pg adapter (src/lib/prisma.ts).
+DATABASE_URL=
 
-# Vercel KV - Get from Vercel Dashboard
-KV_URL="redis://[kv-url]"
-KV_REST_API_URL="https://[kv-rest-api-url]"
-KV_REST_API_TOKEN="[kv-rest-api-token]"
+# Signing key for the auth JWT stored in an HTTP-only cookie.
+JWT_SECRET=
 
-# Vercel Blob Storage - Get from Vercel Dashboard
-BLOB_READ_WRITE_TOKEN="[blob-token]"
+# Vercel KV (Redis) — used by src/lib/scenario-cache.ts.
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
+```
 
-# Authentication - Generate secure secrets
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-NEXTAUTH_SECRET="your-nextauth-secret-change-this-in-production"
-NEXTAUTH_URL="http://localhost:3000"
+`.env*` is gitignored. The Prisma CLI reads `DATABASE_URL` through
+`prisma.config.ts` (which loads `.env`); Next.js loads `.env.local` at runtime.
+
+3. Generate the Prisma client:
+
+```bash
+npm run db:generate
 ```
 
 ### Database Setup
@@ -53,7 +53,8 @@ NEXTAUTH_URL="http://localhost:3000"
 npm run dev
 ```
 
-2. Initialize the database schema:
+2. Initialize the database schema (development only — the route refuses to run
+   in production):
 
 ```bash
 npm run db:init
@@ -65,21 +66,47 @@ npm run db:init
 npm run db:health
 ```
 
-### Development
-
 The app will be available at [http://localhost:3000](http://localhost:3000).
+
+## 📜 Scripts
+
+| Script                 | What it does                                    |
+| ---------------------- | ----------------------------------------------- |
+| `npm run dev`          | Next.js dev server                              |
+| `npm run build`        | Production build (runs a full type check)       |
+| `npm start`            | Serve the production build                      |
+| `npm run lint`         | ESLint over the whole repo                      |
+| `npm run lint:fix`     | ESLint with `--fix`                             |
+| `npm run type-check`   | `tsc --noEmit`                                  |
+| `npm test`             | Vitest, single run                              |
+| `npm run test:watch`   | Vitest in watch mode                            |
+| `npm run db:generate`  | `prisma generate`                               |
+| `npm run db:validate`  | `prisma validate`                               |
+| `npm run db:migrate`   | `prisma migrate dev`                            |
+| `npm run db:deploy`    | `prisma migrate deploy`                         |
+| `npm run db:init`      | POST `/api/init-db` (creates tables)            |
+| `npm run db:seed`      | POST `/api/seed-db` with `{"action":"seed"}`    |
+| `npm run db:health`    | GET `/api/health`                               |
 
 ## 🏗️ Architecture
 
 ### Tech Stack
 
-- **Frontend & Backend**: Next.js 14+ with App Router
-- **Database**: Neon (PostgreSQL)
-- **Cache & Sessions**: Vercel KV (Redis)
-- **File Storage**: Vercel Blob Storage
-- **Styling**: Tailwind CSS
+- **Framework**: Next.js 16 (App Router, Turbopack) + React 19
+- **Language**: TypeScript 5 (strict)
+- **Database**: Neon (PostgreSQL), accessed two ways —
+  the Neon HTTP driver for hand-written SQL and Prisma 7 (with the
+  `@prisma/adapter-pg` driver adapter) for the modelled tables
+- **Cache**: Vercel KV (Redis)
+- **Styling**: Tailwind CSS v4 (CSS-first; the design tokens live in
+  `src/app/globals.css` under `@theme`, there is no `tailwind.config.ts`)
 - **Charts**: D3.js
-- **Authentication**: JWT with HTTP-only cookies
+- **Auth**: JWT in an HTTP-only cookie, enforced by `src/proxy.ts`
+- **Tests**: Vitest
+
+> Next.js 16 renamed `middleware.ts` to `proxy.ts` and the exported function
+> from `middleware` to `proxy`; that is why routing/auth interception lives in
+> `src/proxy.ts`.
 
 ### Key Features
 
@@ -93,42 +120,49 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 ## 📁 Project Structure
 
 ```
+prisma/
+└── schema.prisma           # Prisma models (datasource URL comes from prisma.config.ts)
 src/
 ├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   ├── dashboard/         # Main dashboard
-│   ├── login/            # Authentication pages
-│   └── register/
-├── lib/                   # Core utilities
-│   ├── auth.ts           # Authentication service
-│   ├── db.ts             # Database connection
-│   ├── kv.ts             # Redis/KV utilities
-│   ├── init-db.ts        # Database initialization
-│   └── schema.sql        # Database schema
-├── types/                 # TypeScript type definitions
-└── components/           # Reusable React components
+│   ├── api/                # Route handlers
+│   ├── architect/          # Architect (simulation) mode
+│   ├── dashboard/          # Main dashboard
+│   ├── family/             # Family mode
+│   └── login/ register/ onboarding/
+├── components/             # React components, grouped by feature
+│   └── ui/                 # Shared design-system primitives
+├── contexts/               # React context providers
+├── hooks/                  # Shared hooks
+├── lib/                    # Core utilities
+│   ├── auth.ts             # Authentication service
+│   ├── db.ts               # Neon HTTP driver
+│   ├── prisma.ts           # Prisma client + driver adapter
+│   ├── simulation.ts       # Architect-mode forecast maths
+│   ├── simulation.test.ts  # Vitest unit tests for the forecast
+│   └── init-db.ts          # Database initialization
+├── generated/prisma/       # Generated Prisma client (gitignored)
+├── types/                  # Shared TypeScript types
+└── proxy.ts                # Route protection (formerly middleware.ts)
 ```
 
 ## 🔒 Security & Privacy
 
-- **Child Privacy**: COPPA and GDPR compliance
+- **Child Privacy**: COPPA and GDPR oriented data handling
 - **Anonymous Comparisons**: No personally identifiable information in peer data
 - **Secure Authentication**: JWT tokens with HTTP-only cookies
-- **Data Encryption**: At rest and in transit
 - **Family Mode**: Transparent parent-child interactions with child consent
 
 ## 🧪 Testing
 
 ```bash
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-
-# Run tests (when implemented)
-npm test
+npm run type-check   # tsc --noEmit
+npm run lint         # ESLint
+npm test             # Vitest
+npm run build        # Production build (also type-checks)
 ```
+
+Unit tests live next to the code they cover as `*.test.ts`. The Architect-mode
+forecast maths (`src/lib/simulation.ts`) is the main covered surface.
 
 ## 📊 Database Schema
 
@@ -141,6 +175,7 @@ The application uses PostgreSQL with the following main tables:
 - `cohort_stats` - Anonymous comparison data
 - `predefined_paths` - Growth paths and progressions
 - `family_relationships` - Parent-child connections
+- `simulation_scenarios` - Saved Architect-mode scenarios
 
 ## 🚀 Deployment
 
@@ -148,15 +183,14 @@ The app is designed to deploy on Vercel with:
 
 1. Automatic deployments from Git
 2. Neon database for production
-3. Vercel KV for session management
-4. Vercel Blob for file storage
+3. Vercel KV for scenario caching
 
 ## 🤝 Contributing
 
 1. Follow the existing code style and patterns
-2. Add tests for new features
-3. Update documentation as needed
-4. Ensure privacy and security best practices
+2. Add tests for new logic
+3. Keep `npm run lint`, `npm run type-check` and `npm test` green
+4. Never commit secrets — `.env*` is gitignored
 
 ## 📝 License
 
