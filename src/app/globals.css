@@ -1,5 +1,224 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 is CSS-first: it does NOT auto-load `tailwind.config.ts`.
+ * Every token below used to live in that file, which meant none of the custom
+ * utilities (bg-primary-600, shadow-glow, animate-fade-in, bg-card, ...) were
+ * actually being generated. They are declared here instead.
+ */
+
+/*
+ * `dark:` must follow the `.dark` class that ThemeProvider puts on <html>,
+ * not `prefers-color-scheme` (Tailwind v4's default) — otherwise the theme
+ * toggle changes nothing.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand blue — the primary action colour across the app. */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  /* Secondary sky scale — supporting accents and highlights. */
+  --color-secondary-50: #f0f9ff;
+  --color-secondary-100: #e0f2fe;
+  --color-secondary-200: #bae6fd;
+  --color-secondary-300: #7dd3fc;
+  --color-secondary-400: #38bdf8;
+  --color-secondary-500: #0ea5e9;
+  --color-secondary-600: #0284c7;
+  --color-secondary-700: #0369a1;
+  --color-secondary-800: #075985;
+  --color-secondary-900: #0c4a6e;
+  --color-secondary-950: #082f49;
+
+  /* Status scales. 600+ meets 4.5:1 on white; 400 meets it on near-black. */
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-success-800: #166534;
+  --color-success-900: #14532d;
+  --color-success-950: #052e16;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+  --color-warning-950: #451a03;
+
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-300: #fca5a5;
+  --color-error-400: #f87171;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-800: #991b1b;
+  --color-error-900: #7f1d1d;
+  --color-error-950: #450a0a;
+
+  /* Skill tiers — the LifeStat Matrix's visual language. */
+  --color-skill-novice: #fef3c7;
+  --color-skill-novice-border: #f59e0b;
+  --color-skill-intermediate: #ddd6fe;
+  --color-skill-intermediate-border: #8b5cf6;
+  --color-skill-advanced: #dcfce7;
+  --color-skill-advanced-border: #10b981;
+  --color-skill-expert: #fce7f3;
+  --color-skill-expert-border: #ec4899;
+
+  /* Playful accents used by category chips and path visualisations. */
+  --color-accent-purple: #a855f7;
+  --color-accent-pink: #ec4899;
+  --color-accent-orange: #f97316;
+  --color-accent-teal: #14b8a6;
+  --color-accent-indigo: #6366f1;
+  --color-accent-emerald: #10b981;
+
+  /* next/font injects --font-inter and --font-poppins in layout.tsx. */
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-display: var(--font-poppins), "Poppins", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  /* Elevation scale — soft/medium/large, plus coloured "glow" states. */
+  --shadow-soft: 0 2px 15px -3px rgb(0 0 0 / 0.07),
+    0 10px 20px -2px rgb(0 0 0 / 0.04);
+  --shadow-medium: 0 4px 25px -5px rgb(0 0 0 / 0.1),
+    0 10px 10px -5px rgb(0 0 0 / 0.04);
+  --shadow-large: 0 10px 40px -10px rgb(0 0 0 / 0.1),
+    0 2px 10px -2px rgb(0 0 0 / 0.04);
+  --shadow-glow: 0 0 20px rgb(59 130 246 / 0.15);
+  --shadow-glow-success: 0 0 20px rgb(34 197 94 / 0.15);
+  --shadow-glow-warning: 0 0 20px rgb(245 158 11 / 0.15);
+
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
+  --animate-scale-in: scaleIn 0.2s ease-out;
+  --animate-bounce-gentle: bounceGentle 0.6s ease-in-out;
+  --animate-pulse-soft: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-wiggle: wiggle 1s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    0% {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes slideDown {
+    0% {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes bounceGentle {
+    0%,
+    100% {
+      transform: translateY(-5%);
+    }
+    50% {
+      transform: translateY(0);
+    }
+  }
+  @keyframes pulseSoft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
+}
+
+/*
+ * Semantic surface tokens. `@theme inline` emits the utilities with the raw
+ * `var(--x)` reference, so `bg-card` follows the light/dark values redefined
+ * on `:root` / `.dark` below at runtime.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
 :root {
   --font-size: 16px;
   --background: #ffffff;
@@ -24,7 +243,9 @@
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
+  /* Focus ring uses the brand blue: the previous neutral grey only reached
+     ~3:1 against white, which is below the 3:1 floor once offset. */
+  --ring: #3b82f6;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -49,10 +270,14 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
+  /* Was oklch(0.637 0.237 25.331) — a saturated red sitting on a dark red
+     surface, roughly 1.6:1. Near-white restores legibility. */
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --input-background: oklch(0.205 0 0);
+  --switch-background: oklch(0.371 0 0);
+  --ring: #60a5fa;
 }
 
 * {
@@ -62,7 +287,7 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01";
   font-variation-settings: "opsz" 32;
   line-height: 1.6;
@@ -128,15 +353,16 @@ textarea:focus-visible,
   background: #a3a3a3;
 }
 
-/* Dark mode scrollbar */
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #404040;
-  }
+/* Dark mode scrollbar.
+   Keyed off the `.dark` class ThemeProvider sets on <html>, not
+   `prefers-color-scheme` — otherwise the in-app theme toggle left the
+   scrollbar light on a dark page. */
+.dark ::-webkit-scrollbar-thumb {
+  background: #404040;
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: #525252;
-  }
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #525252;
 }
 
 /* Reduced motion preferences */
@@ -160,13 +386,13 @@ textarea:focus-visible,
     --foreground: #000000;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --border: #ffffff;
-      --primary: #ffffff;
-      --background: #000000;
-      --foreground: #ffffff;
-    }
+  /* Again keyed off `.dark` rather than `prefers-color-scheme`, so the
+     high-contrast palette follows the in-app theme toggle. */
+  .dark {
+    --border: #ffffff;
+    --primary: #ffffff;
+    --background: #000000;
+    --foreground: #ffffff;
   }
 
   /* Ensure all text meets enhanced contrast requirements */
@@ -322,14 +548,16 @@ html[style*="font-size: 20px"] {
   top: 6px;
 }
 
-/* Ensure sufficient color contrast for all text */
+/* Ensure sufficient color contrast for all text.
+   `--neutral-600`/`--neutral-800` were never defined anywhere, so this rule
+   previously resolved to nothing. */
 .text-muted {
-  color: var(--neutral-600) !important;
+  color: var(--muted-foreground) !important;
 }
 
 @media (prefers-contrast: high) {
   .text-muted {
-    color: var(--neutral-800) !important;
+    color: var(--foreground) !important;
   }
 }
 
@@ -426,34 +654,46 @@ label {
   font-weight: 500;
 }
 
-/* Error states with proper contrast */
+/* Status states with proper contrast.
+   These used to reference `--error`/`--success`/`--warning`, which are not
+   declared anywhere; they now use the theme scales from `@theme` above. */
 .error {
-  color: var(--error);
-  border-color: var(--error);
+  color: var(--color-error-700);
+  border-color: var(--color-error-600);
 }
 
 .error:focus {
-  outline-color: var(--error);
+  outline-color: var(--color-error-600);
 }
 
-/* Success states with proper contrast */
 .success {
-  color: var(--success);
-  border-color: var(--success);
+  color: var(--color-success-700);
+  border-color: var(--color-success-600);
 }
 
 .success:focus {
-  outline-color: var(--success);
+  outline-color: var(--color-success-600);
 }
 
-/* Warning states with proper contrast */
 .warning {
-  color: var(--warning);
-  border-color: var(--warning);
+  color: var(--color-warning-700);
+  border-color: var(--color-warning-600);
 }
 
 .warning:focus {
-  outline-color: var(--warning);
+  outline-color: var(--color-warning-600);
+}
+
+.dark .error {
+  color: var(--color-error-400);
+}
+
+.dark .success {
+  color: var(--color-success-400);
+}
+
+.dark .warning {
+  color: var(--color-warning-400);
 }
 
 /* Color blind friendly mode */

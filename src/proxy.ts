@@ -26,10 +26,10 @@ const protectedApiRoutes = [
   "/api/family",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static files and API routes that don't need auth
+  // Skip the proxy for static files and API routes that don't need auth
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
@@ -102,7 +102,7 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error("Middleware error:", error);
+    console.error("Proxy error:", error);
 
     // If there's an error with authentication, redirect to login for protected routes
     if (protectedRoutes.some((route) => pathname.startsWith(route))) {
@@ -131,5 +131,4 @@ export const config = {
      */
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
-  runtime: "nodejs",
 };
