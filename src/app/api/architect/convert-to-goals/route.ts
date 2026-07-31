@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/lib/auth";
 import { getUserById } from "@/lib/database-operations";
 import { sql } from "@/lib/db";
-import { GoalType, Timeframe } from "@/types";
+import { GoalType, Timeframe, type ForecastedResults } from "@/types";
 
 interface ConvertToGoalsRequest {
   scenarioId: string;
   effortAllocation: Record<string, number>;
-  forecastedResults: Record<string, unknown>;
+  forecastedResults: ForecastedResults;
   timeframeWeeks: number;
 }
 

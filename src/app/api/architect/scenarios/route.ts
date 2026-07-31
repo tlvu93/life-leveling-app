@@ -4,11 +4,12 @@ import { getUserById } from "@/lib/database-operations";
 import { sql } from "@/lib/db";
 import { SimulationScenario } from "@/types";
 import { ScenarioCache } from "@/lib/scenario-cache";
+import { parseForecastedResults } from "@/lib/simulation";
 
 interface CreateScenarioRequest {
   scenarioName: string;
   effortAllocation: Record<string, number>;
-  forecastedResults: Record<string, unknown>;
+  forecastedResults: unknown;
   timeframeWeeks: number;
 }
 
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
         userId: row.user_id,
         scenarioName: row.scenario_name,
         effortAllocation: row.effort_allocation,
-        forecastedResults: row.forecasted_results,
+        forecastedResults: parseForecastedResults(row.forecasted_results),
         timeframeWeeks: row.timeframe_weeks,
         createdAt: row.created_at,
         isConvertedToGoals: row.is_converted_to_goals,
@@ -80,18 +81,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreateScenarioRequest = await request.json();
-    const {
-      scenarioName,
-      effortAllocation,
-      forecastedResults,
-      timeframeWeeks,
-    } = body;
+    const { scenarioName, effortAllocation, timeframeWeeks } = body;
+    const forecastedResults = parseForecastedResults(body.forecastedResults);
 
     // Validate input
     if (
       !scenarioName ||
       !effortAllocation ||
-      !forecastedResults ||
+      Object.keys(forecastedResults).length === 0 ||
       !timeframeWeeks
     ) {
       return NextResponse.json(
@@ -140,7 +137,7 @@ export async function POST(request: NextRequest) {
       userId: newScenario.user_id,
       scenarioName: newScenario.scenario_name,
       effortAllocation: newScenario.effort_allocation,
-      forecastedResults: newScenario.forecasted_results,
+      forecastedResults: parseForecastedResults(newScenario.forecasted_results),
       timeframeWeeks: newScenario.timeframe_weeks,
       createdAt: newScenario.created_at,
       isConvertedToGoals: newScenario.is_converted_to_goals,

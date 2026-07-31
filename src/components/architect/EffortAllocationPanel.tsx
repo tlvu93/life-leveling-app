@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Interest, getSkillLevelName, getCommitmentLevelName } from "@/types";
 
 interface EffortAllocationPanelProps {
@@ -14,16 +14,12 @@ export default function EffortAllocationPanel({
   effortAllocation,
   onEffortChange,
 }: EffortAllocationPanelProps) {
-  const [totalEffort, setTotalEffort] = useState(0);
   const [isBalancing, setIsBalancing] = useState(false);
 
-  useEffect(() => {
-    const total = Object.values(effortAllocation).reduce(
-      (sum, effort) => sum + effort,
-      0
-    );
-    setTotalEffort(total);
-  }, [effortAllocation]);
+  const totalEffort = Object.values(effortAllocation).reduce(
+    (sum, effort) => sum + effort,
+    0
+  );
 
   const handleSliderChange = (category: string, newEffort: number) => {
     onEffortChange(category, newEffort);
@@ -139,6 +135,7 @@ export default function EffortAllocationPanel({
                       Number(e.target.value)
                     )
                   }
+                  aria-label={`${interest.category} effort allocation`}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   style={{
                     background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${effort}%, #e5e7eb ${effort}%, #e5e7eb 100%)`,

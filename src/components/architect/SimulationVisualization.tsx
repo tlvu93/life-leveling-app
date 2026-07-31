@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Interest, SkillLevel, RadarChartData } from "@/types";
+import { useState } from "react";
+import { Interest, RadarChartData, ForecastedResults } from "@/types";
 import ResponsiveLifeStatMatrix from "@/components/ResponsiveLifeStatMatrix";
 
 interface SimulationVisualizationProps {
   currentInterests: Interest[];
   effortAllocation: Record<string, number>;
-  forecastedResults: Record<string, unknown>;
+  forecastedResults: ForecastedResults;
   timeframeWeeks: number;
 }
 
@@ -17,34 +17,29 @@ export default function SimulationVisualization({
   forecastedResults,
   timeframeWeeks,
 }: SimulationVisualizationProps) {
-  const [currentData, setCurrentData] = useState<RadarChartData[]>([]);
-  const [forecastedData, setForecastedData] = useState<RadarChartData[]>([]);
   const [showComparison, setShowComparison] = useState(false);
 
-  useEffect(() => {
-    // Convert current interests to radar chart data
-    const current = currentInterests.map((interest) => ({
-      skill: interest.category,
-      value: interest.currentLevel,
-      maxValue: 4,
-      color: "#8b5cf6",
-    }));
-    setCurrentData(current);
+  // Convert current interests to radar chart data
+  const currentData: RadarChartData[] = currentInterests.map((interest) => ({
+    skill: interest.category,
+    value: interest.currentLevel,
+    maxValue: 4,
+    color: "#8b5cf6",
+  }));
 
-    // Convert forecasted results to radar chart data
-    if (Object.keys(forecastedResults).length > 0) {
-      const forecasted = currentInterests.map((interest) => {
-        const forecast = forecastedResults[interest.category];
-        return {
-          skill: interest.category,
-          value: forecast?.projectedLevel || interest.currentLevel,
-          maxValue: 4,
-          color: "#10b981",
-        };
-      });
-      setForecastedData(forecasted);
-    }
-  }, [currentInterests, forecastedResults]);
+  // Convert forecasted results to radar chart data
+  const forecastedData: RadarChartData[] =
+    Object.keys(forecastedResults).length > 0
+      ? currentInterests.map((interest) => {
+          const forecast = forecastedResults[interest.category];
+          return {
+            skill: interest.category,
+            value: forecast?.projectedLevel || interest.currentLevel,
+            maxValue: 4,
+            color: "#10b981",
+          };
+        })
+      : [];
 
   const calculateGrowthMetrics = () => {
     if (Object.keys(forecastedResults).length === 0) return null;

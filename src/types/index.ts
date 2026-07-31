@@ -97,9 +97,13 @@ export interface Retrospective {
   userId: string;
   type: RetrospectiveType;
   completedAt: Date;
-  insights?: Record<string, any>;
-  skillUpdates?: Record<string, any>;
-  goalsReviewed?: Record<string, any>;
+  // These mirror the shapes actually produced by RetrospectiveWizard's form
+  // data (insights are free-text answers, skillUpdates map a category to the
+  // new SkillLevel); `goalsReviewed` is left loose because call sites treat
+  // it as either an array of goal ids or a keyed object depending on source.
+  insights?: Record<string, string>;
+  skillUpdates?: Record<string, SkillLevel>;
+  goalsReviewed?: Record<string, unknown>;
 }
 
 export interface CohortComparison {
@@ -120,7 +124,7 @@ export interface CohortStats {
   intentLevel: CommitmentLevel;
   skillLevel: SkillLevel;
   userCount: number;
-  percentileData: Record<string, any>;
+  percentileData: Record<string, unknown>;
   updatedAt: Date;
 }
 
@@ -138,7 +142,7 @@ export interface FamilyActivityLog {
   relationshipId: string;
   actionType: string;
   performedByUserId: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -171,7 +175,7 @@ export interface PathStage {
   description: string;
   requirements: {
     level: SkillLevel;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -185,19 +189,30 @@ export interface UserPathProgress {
   lastUpdated: Date;
 }
 
+/** Per-category output of the Architect-mode simulation. */
+export interface SimulationResult {
+  projectedLevel: number;
+  growthRate: number;
+  synergyBonus: number;
+  effortEfficiency: number;
+}
+
+/** Simulation output keyed by interest category. */
+export type ForecastedResults = Record<string, SimulationResult | undefined>;
+
 export interface SimulationScenario {
   id: string;
   userId: string;
   scenarioName: string;
   effortAllocation: Record<string, number>; // skill -> effort percentage
-  forecastedResults: Record<string, any>;
+  forecastedResults: ForecastedResults;
   timeframeWeeks: number;
   createdAt: Date;
   isConvertedToGoals: boolean;
 }
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -235,7 +250,7 @@ export interface GoalFormData {
 
 export interface RetrospectiveFormData {
   type: RetrospectiveType;
-  insights: Record<string, any>;
+  insights: Record<string, unknown>;
   skillUpdates: Record<string, SkillLevel>;
   goalsReviewed: string[];
 }
@@ -451,21 +466,11 @@ export interface UserRanking {
   totalInCohort: number;
 }
 
-export interface CohortComparison {
-  userId: string;
-  category: string;
-  userLevel: SkillLevel;
-  cohortStats: {
-    ageRangeMin: number;
-    ageRangeMax: number;
-    intentLevel: CommitmentLevel;
-    totalUsers: number;
-    averageLevel: number;
-    percentiles: Record<string, number>;
-  };
-  userPercentile: number;
-  encouragingMessage: string;
-}
+// NOTE: a second `CohortComparison` interface used to be declared here.
+// TypeScript merges duplicate interface declarations, so the exported type was
+// silently the union of both shapes and nothing could satisfy it. The single
+// definition near the top of this file (userId/interest/percentile/cohortSize/
+// ageRange/intentLevel/encouragingMessage) is the one the UI actually renders.
 
 // Error types for better error handling
 export interface DatabaseError extends Error {
@@ -477,7 +482,7 @@ export interface DatabaseError extends Error {
 
 export interface ValidationError extends Error {
   field?: string;
-  value?: any;
+  value?: unknown;
   constraint?: string;
 }
 
@@ -511,7 +516,7 @@ export interface BatchCreateResult<T> {
   success: boolean;
   created: T[];
   failed: Array<{
-    data: any;
+    data: unknown;
     error: string;
   }>;
   totalAttempted: number;
@@ -530,7 +535,7 @@ export interface QueryBuilder {
   select?: string[];
   from: string;
   joins?: JoinQuery[];
-  where?: Record<string, any>;
+  where?: Record<string, unknown>;
   orderBy?: Array<{
     column: string;
     direction: "ASC" | "DESC";
@@ -540,37 +545,40 @@ export interface QueryBuilder {
 }
 
 // Type guards for runtime type checking
-export function isDatabaseUser(obj: any): obj is DatabaseUser {
+export function isDatabaseUser(obj: unknown): obj is DatabaseUser {
+  if (typeof obj !== "object" || obj === null) return false;
+  const rec = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj.id === "string" &&
-    typeof obj.email === "string" &&
-    typeof obj.password_hash === "string" &&
-    typeof obj.age_range_min === "number" &&
-    typeof obj.age_range_max === "number"
+    typeof rec.id === "string" &&
+    typeof rec.email === "string" &&
+    typeof rec.password_hash === "string" &&
+    typeof rec.age_range_min === "number" &&
+    typeof rec.age_range_max === "number"
   );
 }
 
-export function isDatabaseInterest(obj: any): obj is DatabaseInterest {
+export function isDatabaseInterest(obj: unknown): obj is DatabaseInterest {
+  if (typeof obj !== "object" || obj === null) return false;
+  const rec = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj.id === "string" &&
-    typeof obj.user_id === "string" &&
-    typeof obj.category === "string" &&
-    typeof obj.current_level === "number" &&
-    typeof obj.intent_level === "string"
+    typeof rec.id === "string" &&
+    typeof rec.user_id === "string" &&
+    typeof rec.category === "string" &&
+    typeof rec.current_level === "number" &&
+    typeof rec.intent_level === "string"
   );
 }
 
-export function isDatabaseGoal(obj: any): obj is DatabaseGoal {
+export function isDatabaseGoal(obj: unknown): obj is DatabaseGoal {
+  if (typeof obj !== "object" || obj === null) return false;
+  const rec = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj.id === "string" &&
-    typeof obj.user_id === "string" &&
-    typeof obj.interest_category === "string" &&
-    typeof obj.goal_type === "string" &&
-    typeof obj.title === "string" &&
-    typeof obj.description === "string"
+    typeof rec.id === "string" &&
+    typeof rec.user_id === "string" &&
+    typeof rec.interest_category === "string" &&
+    typeof rec.goal_type === "string" &&
+    typeof rec.title === "string" &&
+    typeof rec.description === "string"
   );
 }
 

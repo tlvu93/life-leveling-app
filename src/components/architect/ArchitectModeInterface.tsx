@@ -1,7 +1,12 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect } from "react";
-import { UserProfile, Interest, SimulationScenario } from "@/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  UserProfile,
+  SimulationScenario,
+  type ForecastedResults,
+} from "@/types";
+import { parseForecastedResults } from "@/lib/simulation";
 import EffortAllocationPanel from "./EffortAllocationPanel";
 import SimulationVisualization from "./SimulationVisualization";
 import ScenarioManager from "./ScenarioManager";
@@ -17,54 +22,71 @@ export default function ArchitectModeInterface({
 }: ArchitectModeInterfaceProps) {
   const [currentScenario, setCurrentScenario] =
     useState<SimulationScenario | null>(null);
-  const [effortAllocation, setEffortAllocation] = useState<
-    Record<string, number>
-  >({});
   const [timeframeWeeks, setTimeframeWeeks] = useState<number>(8);
-  const [forecastedResults, setForecastedResults] = useState<
-    Record<string, unknown>
-  >({});
+  const [forecastedResults, setForecastedResults] = useState<ForecastedResults>(
+    {}
+  );
   const [isSimulating, setIsSimulating] = useState(false);
   const [savedScenarios, setSavedScenarios] = useState<SimulationScenario[]>(
     []
   );
   const [showComparison, setShowComparison] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
 
-  // Initialize effort allocation with user's current interests
-  useEffect(() => {
-    const initialAllocation: Record<string, number> = {};
-    const equalEffort = Math.floor(100 / userProfile.interests.length);
+  const interests = useMemo(
+    () => userProfile.interests ?? [],
+    [userProfile.interests]
+  );
+
+  // Spread effort evenly across the tracked interests, giving the remainder to
+  // the last one so the allocation always sums to exactly 100%.
+  const initialAllocation = useMemo(() => {
+    const allocation: Record<string, number> = {};
+    if (interests.length === 0) return allocation;
+
+    const equalEffort = Math.floor(100 / interests.length);
     let remainingEffort = 100;
 
-    userProfile.interests.forEach((interest, index) => {
-      if (index === userProfile.interests.length - 1) {
-        // Give remaining effort to last interest to ensure total is 100%
-        initialAllocation[interest.category] = remainingEffort;
+    interests.forEach((interest, index) => {
+      if (index === interests.length - 1) {
+        allocation[interest.category] = remainingEffort;
       } else {
-        initialAllocation[interest.category] = equalEffort;
+        allocation[interest.category] = equalEffort;
         remainingEffort -= equalEffort;
       }
     });
 
+    return allocation;
+  }, [interests]);
+
+  // Track the allocation the user is actively editing. It starts out equal
+  // to `initialAllocation` and is re-synced whenever the computed default
+  // changes (e.g. the tracked interests change) — but user edits in between
+  // are preserved, since this only runs when `initialAllocation` itself
+  // changes identity, not on every render.
+  const [effortAllocation, setEffortAllocation] =
+    useState<Record<string, number>>(initialAllocation);
+  const [syncedAllocation, setSyncedAllocation] = useState(initialAllocation);
+  if (initialAllocation !== syncedAllocation) {
+    setSyncedAllocation(initialAllocation);
     setEffortAllocation(initialAllocation);
-  }, [userProfile.interests]);
+  }
 
-  // Load saved scenarios on component mount
-  useEffect(() => {
-    loadSavedScenarios();
-  }, []);
-
-  const loadSavedScenarios = async () => {
+  const loadSavedScenarios = useCallback(async () => {
     try {
       const response = await fetch("/api/architect/scenarios");
       if (response.ok) {
         const data = await response.json();
-        setSavedScenarios(data.scenarios || []);
+        setSavedScenarios(data.scenarios ?? []);
       }
     } catch (error) {
       console.error("Failed to load saved scenarios:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadSavedScenarios();
+  }, [loadSavedScenarios]);
 
   const handleEffortChange = (category: string, effort: number) => {
     setEffortAllocation((prev) => ({
@@ -75,6 +97,7 @@ export default function ArchitectModeInterface({
 
   const runSimulation = async () => {
     setIsSimulating(true);
+    setSimulationError(null);
 
     try {
       const response = await fetch("/api/architect/simulate", {
@@ -85,18 +108,21 @@ export default function ArchitectModeInterface({
         body: JSON.stringify({
           effortAllocation,
           timeframeWeeks,
-          currentInterests: userProfile.interests,
+          currentInterests: interests,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setForecastedResults(data.forecastedResults);
+        setForecastedResults(parseForecastedResults(data.forecastedResults));
       } else {
-        console.error("Simulation failed");
+        setSimulationError(
+          "We could not run that simulation. Please try again."
+        );
       }
     } catch (error) {
       console.error("Simulation error:", error);
+      setSimulationError("Something went wrong while running the simulation.");
     } finally {
       setIsSimulating(false);
     }
@@ -131,7 +157,8 @@ export default function ArchitectModeInterface({
     setCurrentScenario(scenario);
     setEffortAllocation(scenario.effortAllocation);
     setTimeframeWeeks(scenario.timeframeWeeks);
-    setForecastedResults(scenario.forecastedResults);
+    // Persisted scenarios are JSON blobs that predate `SimulationResult`.
+    setForecastedResults(parseForecastedResults(scenario.forecastedResults));
   };
 
   const convertToGoals = async () => {
@@ -203,14 +230,35 @@ export default function ArchitectModeInterface({
             </div>
 
             <button
+              type="button"
               onClick={runSimulation}
-              disabled={isSimulating}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isSimulating || interests.length === 0}
+              aria-busy={isSimulating}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {isSimulating ? "Simulating..." : "Run Simulation"}
             </button>
           </div>
         </div>
+
+        <p aria-live="polite" className="sr-only">
+          {isSimulating ? "Running simulation" : ""}
+        </p>
+
+        {simulationError && (
+          <p
+            role="alert"
+            className="mt-4 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-800 dark:bg-error-950 dark:text-error-300"
+          >
+            {simulationError}
+          </p>
+        )}
+
+        {interests.length === 0 && (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Add at least one interest during onboarding to run simulations.
+          </p>
+        )}
       </div>
 
       {/* Main Content Grid */}
@@ -218,7 +266,7 @@ export default function ArchitectModeInterface({
         {/* Left Column - Effort Allocation */}
         <div className="xl:col-span-1">
           <EffortAllocationPanel
-            interests={userProfile.interests}
+            interests={interests}
             effortAllocation={effortAllocation}
             onEffortChange={handleEffortChange}
           />
@@ -227,7 +275,7 @@ export default function ArchitectModeInterface({
         {/* Middle Column - Visualization */}
         <div className="xl:col-span-1">
           <SimulationVisualization
-            currentInterests={userProfile.interests}
+            currentInterests={interests}
             effortAllocation={effortAllocation}
             forecastedResults={forecastedResults}
             timeframeWeeks={timeframeWeeks}
@@ -238,8 +286,7 @@ export default function ArchitectModeInterface({
         <div className="xl:col-span-1 space-y-6">
           <TradeOffAnalysis
             effortAllocation={effortAllocation}
-            forecastedResults={forecastedResults}
-            interests={userProfile.interests}
+            interests={interests}
           />
 
           <ScenarioManager
@@ -257,7 +304,7 @@ export default function ArchitectModeInterface({
       {showComparison && (
         <ScenarioComparison
           scenarios={savedScenarios}
-          userInterests={userProfile.interests}
+          userInterests={interests}
           onClose={() => setShowComparison(false)}
         />
       )}
