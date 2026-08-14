@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -8,9 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Lightbulb,
@@ -20,8 +18,6 @@ import {
   Heart,
   Star,
   BookOpen,
-  Users,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import SharedGoalSetting from "./SharedGoalSetting";
@@ -58,30 +54,299 @@ interface ExplorationInterfaceProps {
   childAge: number;
 }
 
+// The prompt/suggestion builders below are pure functions of their
+// arguments only (no component state or props captured via closure), so
+// they live at module scope. That avoids the "used before declaration"
+// hazard of defining them as `const` inside the component while also
+// skipping needless re-creation of the functions on every render.
+const getPromptsForCategory = (
+  category: string,
+  level: number,
+  age: number
+): Omit<DiscussionPrompt, "id" | "category">[] => {
+  const basePrompts = {
+    Music: [
+      {
+        prompt: "What kind of music makes you feel most excited or happy?",
+        type: "exploration" as const,
+        ageAppropriate: age >= 6,
+      },
+      {
+        prompt:
+          "Would you like to try learning a new instrument or exploring a different music style?",
+        type: "goal_setting" as const,
+        ageAppropriate: age >= 8,
+      },
+      {
+        prompt: "How does music help you express yourself?",
+        type: "reflection" as const,
+        ageAppropriate: age >= 10,
+      },
+    ],
+    Sports: [
+      {
+        prompt:
+          "What physical activities make you feel strong and confident?",
+        type: "exploration" as const,
+        ageAppropriate: age >= 6,
+      },
+      {
+        prompt:
+          "Would you be interested in trying a team sport or individual activity?",
+        type: "goal_setting" as const,
+        ageAppropriate: age >= 8,
+      },
+      {
+        prompt: "How do you feel after being physically active?",
+        type: "reflection" as const,
+        ageAppropriate: age >= 8,
+      },
+    ],
+    Technical: [
+      {
+        prompt:
+          "What kind of problems would you like to solve with technology?",
+        type: "exploration" as const,
+        ageAppropriate: age >= 10,
+      },
+      {
+        prompt:
+          "Would you like to build something cool with code or technology?",
+        type: "goal_setting" as const,
+        ageAppropriate: age >= 12,
+      },
+      {
+        prompt: "How do you think technology can help make the world better?",
+        type: "reflection" as const,
+        ageAppropriate: age >= 12,
+      },
+    ],
+    Creativity: [
+      {
+        prompt: "What creative projects make you lose track of time?",
+        type: "exploration" as const,
+        ageAppropriate: age >= 6,
+      },
+      {
+        prompt: "Would you like to try a new art form or creative medium?",
+        type: "goal_setting" as const,
+        ageAppropriate: age >= 8,
+      },
+      {
+        prompt: "How does creating something make you feel?",
+        type: "reflection" as const,
+        ageAppropriate: age >= 8,
+      },
+    ],
+  };
+
+  return basePrompts[category as keyof typeof basePrompts] || [];
+};
+
+const getGeneralExplorationPrompts = (age: number): DiscussionPrompt[] => {
+  const prompts = [
+    {
+      id: "general-curiosity",
+      category: "General",
+      prompt:
+        "What's something you've always been curious about but haven't tried yet?",
+      type: "exploration" as const,
+      ageAppropriate: age >= 8,
+    },
+    {
+      id: "general-strength",
+      category: "General",
+      prompt: "What do you think you're naturally good at?",
+      type: "encouragement" as const,
+      ageAppropriate: age >= 6,
+    },
+    {
+      id: "general-challenge",
+      category: "General",
+      prompt: "What's something challenging you'd like to get better at?",
+      type: "goal_setting" as const,
+      ageAppropriate: age >= 8,
+    },
+    {
+      id: "general-growth",
+      category: "General",
+      prompt: "How have you grown or changed in the past few months?",
+      type: "reflection" as const,
+      ageAppropriate: age >= 10,
+    },
+  ];
+
+  return prompts.filter((prompt) => prompt.ageAppropriate);
+};
+
+const getSuggestionsForCategory = (
+  category: string,
+  level: number
+): ExplorationSuggestion[] => {
+  const suggestions = {
+    Music: [
+      {
+        id: `music-${level}-1`,
+        title: "Explore New Genres",
+        description:
+          "Listen to different music styles and find what resonates with you",
+        category: "Music",
+        difficulty:
+          level <= 2 ? ("beginner" as const) : ("intermediate" as const),
+        timeCommitment: "15-30 minutes daily",
+        resources: [
+          "Spotify playlists",
+          "YouTube music channels",
+          "Local radio stations",
+        ],
+      },
+      {
+        id: `music-${level}-2`,
+        title: "Try a New Instrument",
+        description:
+          "Experiment with different instruments to find your favorite",
+        category: "Music",
+        difficulty: "beginner" as const,
+        timeCommitment: "30 minutes, 2-3 times per week",
+        resources: [
+          "Local music stores",
+          "Online tutorials",
+          "Music teacher",
+        ],
+      },
+    ],
+    Sports: [
+      {
+        id: `sports-${level}-1`,
+        title: "Try a New Sport",
+        description:
+          "Explore different physical activities to find what you enjoy",
+        category: "Sports",
+        difficulty: "beginner" as const,
+        timeCommitment: "1 hour per week",
+        resources: [
+          "Local sports clubs",
+          "Community centers",
+          "YouTube tutorials",
+        ],
+      },
+      {
+        id: `sports-${level}-2`,
+        title: "Set a Fitness Goal",
+        description: "Work towards a specific physical achievement",
+        category: "Sports",
+        difficulty:
+          level <= 2 ? ("beginner" as const) : ("intermediate" as const),
+        timeCommitment: "30 minutes, 3-4 times per week",
+        resources: ["Fitness apps", "Local gym", "Sports coach"],
+      },
+    ],
+    Technical: [
+      {
+        id: `tech-${level}-1`,
+        title: "Build Your First App",
+        description: "Create a simple application or website",
+        category: "Technical",
+        difficulty:
+          level <= 1 ? ("beginner" as const) : ("intermediate" as const),
+        timeCommitment: "1-2 hours per week",
+        resources: [
+          "Scratch programming",
+          "Code.org",
+          "Local coding classes",
+        ],
+      },
+      {
+        id: `tech-${level}-2`,
+        title: "Learn About AI",
+        description:
+          "Explore how artificial intelligence works and its applications",
+        category: "Technical",
+        difficulty: "intermediate" as const,
+        timeCommitment: "30 minutes per week",
+        resources: [
+          "Educational videos",
+          "AI for kids books",
+          "Interactive demos",
+        ],
+      },
+    ],
+  };
+
+  return suggestions[category as keyof typeof suggestions] || [];
+};
+
+const getCrossCategorySuggestions = (
+  interests: Interest[]
+): ExplorationSuggestion[] => {
+  if (interests.length < 2) return [];
+
+  return [
+    {
+      id: "cross-creative-tech",
+      title: "Digital Art Project",
+      description:
+        "Combine creativity and technology to create digital artwork",
+      category: "Cross-Category",
+      difficulty: "intermediate" as const,
+      timeCommitment: "1 hour per week",
+      resources: ["Digital art apps", "Online tutorials", "Art communities"],
+    },
+    {
+      id: "cross-music-tech",
+      title: "Music Production",
+      description: "Use technology to create and produce your own music",
+      category: "Cross-Category",
+      difficulty: "intermediate" as const,
+      timeCommitment: "1-2 hours per week",
+      resources: [
+        "GarageBand",
+        "Music production software",
+        "Online courses",
+      ],
+    },
+  ];
+};
+
+const getPromptIcon = (type: string) => {
+  switch (type) {
+    case "exploration":
+      return <Compass className="h-4 w-4" />;
+    case "encouragement":
+      return <Heart className="h-4 w-4" />;
+    case "goal_setting":
+      return <Target className="h-4 w-4" />;
+    case "reflection":
+      return <BookOpen className="h-4 w-4" />;
+    default:
+      return <MessageCircle className="h-4 w-4" />;
+  }
+};
+
+const getPromptColor = (type: string) => {
+  switch (type) {
+    case "exploration":
+      return "bg-blue-100 text-blue-800";
+    case "encouragement":
+      return "bg-pink-100 text-pink-800";
+    case "goal_setting":
+      return "bg-green-100 text-green-800";
+    case "reflection":
+      return "bg-purple-100 text-purple-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 export default function ExplorationInterface({
-  childUserId,
+  childUserId: _childUserId,
   childInterests,
   childAge,
 }: ExplorationInterfaceProps) {
-  const [discussionPrompts, setDiscussionPrompts] = useState<
-    DiscussionPrompt[]
-  >([]);
-  const [explorationSuggestions, setExplorationSuggestions] = useState<
-    ExplorationSuggestion[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    generateDiscussionPrompts();
-    generateExplorationSuggestions();
-  }, [
-    childInterests,
-    childAge,
-    generateDiscussionPrompts,
-    generateExplorationSuggestions,
-  ]);
-
-  const generateDiscussionPrompts = () => {
+  // Both lists are derived synchronously from props, so they're computed
+  // during render via useMemo instead of stashed in state and populated by
+  // an effect (which previously triggered a cascading setState-in-effect).
+  const discussionPrompts = useMemo<DiscussionPrompt[]>(() => {
     const prompts: DiscussionPrompt[] = [];
 
     // Generate prompts based on child's interests
@@ -101,324 +366,26 @@ export default function ExplorationInterface({
     });
 
     // Add general exploration prompts
-    const generalPrompts = getGeneralExplorationPrompts(childAge);
-    prompts.push(...generalPrompts);
+    prompts.push(...getGeneralExplorationPrompts(childAge));
 
-    setDiscussionPrompts(prompts);
-  };
+    return prompts;
+  }, [childInterests, childAge]);
 
-  const generateExplorationSuggestions = () => {
+  const explorationSuggestions = useMemo<ExplorationSuggestion[]>(() => {
     const suggestions: ExplorationSuggestion[] = [];
 
     // Generate suggestions based on interests
     childInterests.forEach((interest) => {
-      const categorySuggestions = getSuggestionsForCategory(
-        interest.category,
-        interest.currentLevel
+      suggestions.push(
+        ...getSuggestionsForCategory(interest.category, interest.currentLevel)
       );
-      suggestions.push(...categorySuggestions);
     });
 
     // Add cross-category suggestions
-    const crossCategorySuggestions =
-      getCrossCategorySuggestions(childInterests);
-    suggestions.push(...crossCategorySuggestions);
+    suggestions.push(...getCrossCategorySuggestions(childInterests));
 
-    setExplorationSuggestions(suggestions);
-    setIsLoading(false);
-  };
-
-  const getPromptsForCategory = (
-    category: string,
-    level: number,
-    age: number
-  ): Omit<DiscussionPrompt, "id" | "category">[] => {
-    const basePrompts = {
-      Music: [
-        {
-          prompt: "What kind of music makes you feel most excited or happy?",
-          type: "exploration" as const,
-          ageAppropriate: age >= 6,
-        },
-        {
-          prompt:
-            "Would you like to try learning a new instrument or exploring a different music style?",
-          type: "goal_setting" as const,
-          ageAppropriate: age >= 8,
-        },
-        {
-          prompt: "How does music help you express yourself?",
-          type: "reflection" as const,
-          ageAppropriate: age >= 10,
-        },
-      ],
-      Sports: [
-        {
-          prompt:
-            "What physical activities make you feel strong and confident?",
-          type: "exploration" as const,
-          ageAppropriate: age >= 6,
-        },
-        {
-          prompt:
-            "Would you be interested in trying a team sport or individual activity?",
-          type: "goal_setting" as const,
-          ageAppropriate: age >= 8,
-        },
-        {
-          prompt: "How do you feel after being physically active?",
-          type: "reflection" as const,
-          ageAppropriate: age >= 8,
-        },
-      ],
-      Technical: [
-        {
-          prompt:
-            "What kind of problems would you like to solve with technology?",
-          type: "exploration" as const,
-          ageAppropriate: age >= 10,
-        },
-        {
-          prompt:
-            "Would you like to build something cool with code or technology?",
-          type: "goal_setting" as const,
-          ageAppropriate: age >= 12,
-        },
-        {
-          prompt: "How do you think technology can help make the world better?",
-          type: "reflection" as const,
-          ageAppropriate: age >= 12,
-        },
-      ],
-      Creativity: [
-        {
-          prompt: "What creative projects make you lose track of time?",
-          type: "exploration" as const,
-          ageAppropriate: age >= 6,
-        },
-        {
-          prompt: "Would you like to try a new art form or creative medium?",
-          type: "goal_setting" as const,
-          ageAppropriate: age >= 8,
-        },
-        {
-          prompt: "How does creating something make you feel?",
-          type: "reflection" as const,
-          ageAppropriate: age >= 8,
-        },
-      ],
-    };
-
-    return basePrompts[category as keyof typeof basePrompts] || [];
-  };
-
-  const getGeneralExplorationPrompts = (age: number): DiscussionPrompt[] => {
-    const prompts = [
-      {
-        id: "general-curiosity",
-        category: "General",
-        prompt:
-          "What's something you've always been curious about but haven't tried yet?",
-        type: "exploration" as const,
-        ageAppropriate: age >= 8,
-      },
-      {
-        id: "general-strength",
-        category: "General",
-        prompt: "What do you think you're naturally good at?",
-        type: "encouragement" as const,
-        ageAppropriate: age >= 6,
-      },
-      {
-        id: "general-challenge",
-        category: "General",
-        prompt: "What's something challenging you'd like to get better at?",
-        type: "goal_setting" as const,
-        ageAppropriate: age >= 8,
-      },
-      {
-        id: "general-growth",
-        category: "General",
-        prompt: "How have you grown or changed in the past few months?",
-        type: "reflection" as const,
-        ageAppropriate: age >= 10,
-      },
-    ];
-
-    return prompts.filter((prompt) => prompt.ageAppropriate);
-  };
-
-  const getSuggestionsForCategory = (
-    category: string,
-    level: number
-  ): ExplorationSuggestion[] => {
-    const suggestions = {
-      Music: [
-        {
-          id: `music-${level}-1`,
-          title: "Explore New Genres",
-          description:
-            "Listen to different music styles and find what resonates with you",
-          category: "Music",
-          difficulty:
-            level <= 2 ? ("beginner" as const) : ("intermediate" as const),
-          timeCommitment: "15-30 minutes daily",
-          resources: [
-            "Spotify playlists",
-            "YouTube music channels",
-            "Local radio stations",
-          ],
-        },
-        {
-          id: `music-${level}-2`,
-          title: "Try a New Instrument",
-          description:
-            "Experiment with different instruments to find your favorite",
-          category: "Music",
-          difficulty: "beginner" as const,
-          timeCommitment: "30 minutes, 2-3 times per week",
-          resources: [
-            "Local music stores",
-            "Online tutorials",
-            "Music teacher",
-          ],
-        },
-      ],
-      Sports: [
-        {
-          id: `sports-${level}-1`,
-          title: "Try a New Sport",
-          description:
-            "Explore different physical activities to find what you enjoy",
-          category: "Sports",
-          difficulty: "beginner" as const,
-          timeCommitment: "1 hour per week",
-          resources: [
-            "Local sports clubs",
-            "Community centers",
-            "YouTube tutorials",
-          ],
-        },
-        {
-          id: `sports-${level}-2`,
-          title: "Set a Fitness Goal",
-          description: "Work towards a specific physical achievement",
-          category: "Sports",
-          difficulty:
-            level <= 2 ? ("beginner" as const) : ("intermediate" as const),
-          timeCommitment: "30 minutes, 3-4 times per week",
-          resources: ["Fitness apps", "Local gym", "Sports coach"],
-        },
-      ],
-      Technical: [
-        {
-          id: `tech-${level}-1`,
-          title: "Build Your First App",
-          description: "Create a simple application or website",
-          category: "Technical",
-          difficulty:
-            level <= 1 ? ("beginner" as const) : ("intermediate" as const),
-          timeCommitment: "1-2 hours per week",
-          resources: [
-            "Scratch programming",
-            "Code.org",
-            "Local coding classes",
-          ],
-        },
-        {
-          id: `tech-${level}-2`,
-          title: "Learn About AI",
-          description:
-            "Explore how artificial intelligence works and its applications",
-          category: "Technical",
-          difficulty: "intermediate" as const,
-          timeCommitment: "30 minutes per week",
-          resources: [
-            "Educational videos",
-            "AI for kids books",
-            "Interactive demos",
-          ],
-        },
-      ],
-    };
-
-    return suggestions[category as keyof typeof suggestions] || [];
-  };
-
-  const getCrossCategorySuggestions = (
-    interests: Interest[]
-  ): ExplorationSuggestion[] => {
-    if (interests.length < 2) return [];
-
-    return [
-      {
-        id: "cross-creative-tech",
-        title: "Digital Art Project",
-        description:
-          "Combine creativity and technology to create digital artwork",
-        category: "Cross-Category",
-        difficulty: "intermediate" as const,
-        timeCommitment: "1 hour per week",
-        resources: ["Digital art apps", "Online tutorials", "Art communities"],
-      },
-      {
-        id: "cross-music-tech",
-        title: "Music Production",
-        description: "Use technology to create and produce your own music",
-        category: "Cross-Category",
-        difficulty: "intermediate" as const,
-        timeCommitment: "1-2 hours per week",
-        resources: [
-          "GarageBand",
-          "Music production software",
-          "Online courses",
-        ],
-      },
-    ];
-  };
-
-  const getPromptIcon = (type: string) => {
-    switch (type) {
-      case "exploration":
-        return <Compass className="h-4 w-4" />;
-      case "encouragement":
-        return <Heart className="h-4 w-4" />;
-      case "goal_setting":
-        return <Target className="h-4 w-4" />;
-      case "reflection":
-        return <BookOpen className="h-4 w-4" />;
-      default:
-        return <MessageCircle className="h-4 w-4" />;
-    }
-  };
-
-  const getPromptColor = (type: string) => {
-    switch (type) {
-      case "exploration":
-        return "bg-blue-100 text-blue-800";
-      case "encouragement":
-        return "bg-pink-100 text-pink-800";
-      case "goal_setting":
-        return "bg-green-100 text-green-800";
-      case "reflection":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">
-            Generating exploration ideas...
-          </p>
-        </div>
-      </div>
-    );
-  }
+    return suggestions;
+  }, [childInterests]);
 
   return (
     <div className="space-y-6">
@@ -430,7 +397,7 @@ export default function ExplorationInterface({
             Exploration & Discovery
           </CardTitle>
           <CardDescription className="text-purple-700">
-            Ideas and conversation starters to help support your child's growth
+            Ideas and conversation starters to help support your child&apos;s growth
             journey
           </CardDescription>
         </CardHeader>
@@ -458,7 +425,7 @@ export default function ExplorationInterface({
             <CardHeader>
               <CardTitle>Conversation Starters</CardTitle>
               <CardDescription>
-                Questions to help you understand and support your child's
+                Questions to help you understand and support your child&apos;s
                 interests
               </CardDescription>
             </CardHeader>
@@ -567,7 +534,7 @@ export default function ExplorationInterface({
           <SharedGoalSetting
             relationshipId="temp-relationship-id" // This would be passed as a prop
             isParent={true} // This would be determined from user context
-            childInterests={interests.map((i) => i.category)}
+            childInterests={childInterests.map((i) => i.category)}
           />
         </TabsContent>
       </Tabs>

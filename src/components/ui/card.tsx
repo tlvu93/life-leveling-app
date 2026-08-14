@@ -24,34 +24,34 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     const baseClasses = [
-      "rounded-2xl transition-all duration-200",
+      "rounded-xl transition-all duration-200",
       interactive && [
-        "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+        "cursor-pointer hover:scale-[1.01] active:scale-[0.99]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
       ],
-      glowing && "hover:shadow-glow",
+      glowing && "hover:shadow-lg",
     ];
 
     const variantClasses = {
       default: [
-        "bg-white border border-neutral-200 shadow-soft",
-        "dark:bg-neutral-900 dark:border-neutral-800",
-        interactive && "hover:shadow-medium hover:border-neutral-300",
+        "bg-white border-0 shadow-sm",
+        "dark:bg-card dark:border dark:border-border",
+        interactive && "hover:shadow-md transition-shadow duration-200",
       ],
       elevated: [
-        "bg-white shadow-medium",
-        "dark:bg-neutral-900",
-        interactive && "hover:shadow-large",
+        "bg-white shadow-lg border-0",
+        "dark:bg-card dark:shadow-xl",
+        interactive && "hover:shadow-xl transition-shadow duration-200",
       ],
       outlined: [
-        "bg-transparent border-2 border-neutral-200",
-        "dark:border-neutral-700",
-        interactive && "hover:border-primary-300 hover:bg-primary-50/50",
+        "bg-white border border-gray-200",
+        "dark:bg-card dark:border-border",
+        interactive && "hover:border-primary/30 hover:shadow-sm",
       ],
       playful: [
-        "bg-gradient-to-br from-primary-50 to-secondary-50 border border-primary-200",
-        "dark:from-primary-950 dark:to-secondary-950 dark:border-primary-800",
-        interactive && "hover:from-primary-100 hover:to-secondary-100",
+        "bg-white border-0 shadow-sm",
+        "dark:bg-card",
+        interactive && "hover:shadow-md transition-shadow duration-200",
       ],
     };
 
@@ -100,14 +100,10 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
       >
         <div className="flex-1">
           {title && (
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              {title}
-            </h3>
+            <h3 className="text-lg font-medium text-foreground">{title}</h3>
           )}
           {subtitle && (
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-              {subtitle}
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
           {children}
         </div>
@@ -119,15 +115,14 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
 
 CardHeader.displayName = "CardHeader";
 
-export interface CardContentProps
-  extends React.HTMLAttributes<HTMLDivElement> {}
+export type CardContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, ...props }, ref) => {
     return (
       <div
         ref={ref}
-        className={clsx("text-neutral-700 dark:text-neutral-300", className)}
+        className={clsx("text-foreground", className)}
         {...props}
       />
     );
@@ -165,8 +160,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
 
 CardFooter.displayName = "CardFooter";
 
-export interface CardTitleProps
-  extends React.HTMLAttributes<HTMLHeadingElement> {}
+export type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 
 const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, ...props }, ref) => {
@@ -185,8 +179,8 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
 
 CardTitle.displayName = "CardTitle";
 
-export interface CardDescriptionProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {}
+export type CardDescriptionProps =
+  React.HTMLAttributes<HTMLParagraphElement>;
 
 const CardDescription = React.forwardRef<
   HTMLParagraphElement,

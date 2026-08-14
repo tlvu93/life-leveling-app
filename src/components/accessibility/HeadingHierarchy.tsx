@@ -37,7 +37,7 @@ export const HeadingHierarchy: React.FC<HeadingHierarchyProps> = ({
       let previousLevel = 0;
       let hasH1 = false;
 
-      headingElements.forEach((element, index) => {
+      headingElements.forEach((element) => {
         const level = parseInt(element.tagName.charAt(1));
         const text = element.textContent?.trim() || "";
         const elementIssues: string[] = [];

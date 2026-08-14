@@ -4,7 +4,11 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// Create the database connection
+/**
+ * Neon's HTTP driver. Use it as a tagged template (`sql\`SELECT ...\``) so
+ * interpolated values are parameterised; use `sql.query(text, params)` when the
+ * statement itself has to be built at runtime.
+ */
 export const sql = neon(process.env.DATABASE_URL);
 
 // Database connection test function
@@ -16,19 +20,5 @@ export async function testConnection() {
   } catch (error) {
     console.error("Database connection failed:", error);
     return false;
-  }
-}
-
-// Helper function to execute queries with error handling
-export async function executeQuery<T>(
-  query: string,
-  params: any[] = []
-): Promise<T[]> {
-  try {
-    const result = await sql(query, ...params);
-    return result as T[];
-  } catch (error) {
-    console.error("Query execution failed:", error);
-    throw error;
   }
 }

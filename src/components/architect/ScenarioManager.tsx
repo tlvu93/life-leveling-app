@@ -127,6 +127,7 @@ export default function ScenarioManager({
               value={scenarioName}
               onChange={(e) => setScenarioName(e.target.value)}
               placeholder="Enter scenario name..."
+              aria-label="Scenario name"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               onKeyPress={(e) => e.key === "Enter" && handleSave()}
             />
@@ -169,12 +170,20 @@ export default function ScenarioManager({
               {savedScenarios.map((scenario) => (
                 <div
                   key={scenario.id}
+                  role="button"
+                  tabIndex={0}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     currentScenario?.id === scenario.id
                       ? "border-purple-300 bg-purple-50"
                       : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                   onClick={() => onLoadScenario(scenario)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onLoadScenario(scenario);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <h5 className="font-medium text-gray-900">

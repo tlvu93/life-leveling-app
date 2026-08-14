@@ -13,7 +13,7 @@ const privacyPreferencesSchema = z.object({
 });
 
 // GET - Get privacy preferences
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const currentUser = await AuthService.getCurrentUser();
 

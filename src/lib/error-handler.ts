@@ -7,7 +7,7 @@ export interface AppError {
   message: string;
   userMessage: string;
   severity: "low" | "medium" | "high" | "critical";
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -15,7 +15,7 @@ export class LifeLevelingError extends Error {
   public readonly code: string;
   public readonly userMessage: string;
   public readonly severity: "low" | "medium" | "high" | "critical";
-  public readonly context?: Record<string, any>;
+  public readonly context?: Record<string, unknown>;
   public readonly timestamp: Date;
 
   constructor(
@@ -23,7 +23,7 @@ export class LifeLevelingError extends Error {
     message: string,
     userMessage: string,
     severity: "low" | "medium" | "high" | "critical" = "medium",
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message);
     this.name = "LifeLevelingError";
@@ -84,14 +84,20 @@ export const ErrorCodes = {
   SYSTEM_MAINTENANCE: "SYSTEM_MAINTENANCE",
 } as const;
 
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+export type AgeGroup = "child" | "teen" | "adult";
+
 /**
- * Age-appropriate error messages
+ * Age-appropriate error messages. Only a subset of `ErrorCodes` has bespoke
+ * copy; anything else falls back to the UNKNOWN_ERROR wording, hence the
+ * `Partial<Record<...>>` annotation and the lookup guard below.
  */
 export const getAgeAppropriateErrorMessage = (
-  errorCode: string,
-  ageGroup: "child" | "teen" | "adult" = "teen"
+  errorCode: ErrorCode,
+  ageGroup: AgeGroup = "teen"
 ): string => {
-  const messages = {
+  const messages: Partial<Record<ErrorCode, Record<AgeGroup, string>>> = {
     [ErrorCodes.NETWORK_ERROR]: {
       child:
         "Oops! The internet seems to be playing hide and seek. Let's try again! 🌐",
@@ -140,8 +146,8 @@ export const getAgeAppropriateErrorMessage = (
   };
 
   return (
-    messages[errorCode]?.[ageGroup] ||
-    messages[ErrorCodes.UNKNOWN_ERROR][ageGroup]
+    messages[errorCode]?.[ageGroup] ??
+    messages[ErrorCodes.UNKNOWN_ERROR]![ageGroup]
   );
 };
 
@@ -195,7 +201,7 @@ export const getErrorHandlingStrategy = (severity: AppError["severity"]) => {
  */
 export const handleError = (
   error: Error | LifeLevelingError,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): AppError => {
   let appError: AppError;
 
@@ -268,7 +274,7 @@ export const withRetry = async <T>(
 export const createValidationError = (
   field: string,
   message: string,
-  value?: any
+  value?: unknown
 ): LifeLevelingError => {
   return new LifeLevelingError(
     ErrorCodes.VALIDATION_ERROR,

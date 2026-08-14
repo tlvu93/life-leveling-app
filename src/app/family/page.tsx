@@ -2,6 +2,9 @@ import { AuthService } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import FamilyModeInterface from "@/components/family/FamilyModeInterface";
 
+// Reads the auth cookie, so it can never be prerendered.
+export const dynamic = "force-dynamic";
+
 export default async function FamilyPage() {
   const currentUser = await AuthService.getCurrentUser();
 

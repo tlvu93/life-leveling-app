@@ -5,7 +5,7 @@ import {
   completeOnboarding,
   getUserById,
 } from "@/lib/database-operations";
-import { AuthService } from "@/lib/auth";
+import { AuthService, AUTH_COOKIE_NAME, type AuthUser } from "@/lib/auth";
 import { ApiResponse } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -71,18 +71,17 @@ export async function POST(request: NextRequest) {
 
       // Update JWT token with new onboarding status
       const updatedUser = await getUserById(userId);
-      console.log("Updated user from database:", updatedUser);
       if (updatedUser) {
-        // Map database user to AuthUser format
-        const authUser = {
+        // Map database user to AuthUser format. `AuthUser.createdAt` is a
+        // string because it round-trips through the JWT as JSON.
+        const authUser: AuthUser = {
           id: updatedUser.id,
           ageRangeMin: updatedUser.ageRangeMin,
           ageRangeMax: updatedUser.ageRangeMax,
           familyModeEnabled: updatedUser.familyModeEnabled,
           onboardingCompleted: updatedUser.onboardingCompleted,
-          createdAt: updatedUser.createdAt,
+          createdAt: updatedUser.createdAt.toISOString(),
         };
-        console.log("AuthUser for JWT:", authUser);
 
         const newToken = AuthService.generateToken({
           userId: authUser.id,
@@ -100,7 +99,7 @@ export async function POST(request: NextRequest) {
           message: "Onboarding completed successfully",
         });
 
-        response.cookies.set(AuthService.COOKIE_NAME, newToken, {
+        response.cookies.set(AUTH_COOKIE_NAME, newToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",

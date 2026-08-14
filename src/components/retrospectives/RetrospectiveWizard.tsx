@@ -15,7 +15,7 @@ interface RetrospectiveWizardProps {
   userGoals: Goal[];
   onRetrospectiveCreate: (retrospectiveData: {
     type: RetrospectiveType;
-    insights: Record<string, any>;
+    insights: Record<string, string>;
     skillUpdates: Record<string, SkillLevel>;
     goalsReviewed: string[];
   }) => Promise<void>;
@@ -32,7 +32,7 @@ export default function RetrospectiveWizard({
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    insights: {} as Record<string, any>,
+    insights: {} as Record<string, string>,
     skillUpdates: {} as Record<string, SkillLevel>,
     goalsReviewed: [] as string[],
   });
@@ -217,8 +217,8 @@ export default function RetrospectiveWizard({
 // Step Components
 interface ReflectionStepProps {
   type: RetrospectiveType;
-  insights: Record<string, any>;
-  onInsightsUpdate: (insights: Record<string, any>) => void;
+  insights: Record<string, string>;
+  onInsightsUpdate: (insights: Record<string, string>) => void;
 }
 
 function ReflectionStep({
@@ -296,10 +296,14 @@ function ReflectionStep({
       <div className="space-y-6">
         {prompts.map((prompt) => (
           <div key={prompt.key}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor={`retrospective-insight-${prompt.key}`}
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               {prompt.question}
             </label>
             <textarea
+              id={`retrospective-insight-${prompt.key}`}
               value={insights[prompt.key] || ""}
               onChange={(e) =>
                 onInsightsUpdate({
@@ -460,12 +464,21 @@ function GoalReviewStep({
           {activeGoals.map((goal) => (
             <div
               key={goal.id}
+              role="button"
+              tabIndex={0}
+              aria-pressed={goalsReviewed.includes(goal.id)}
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                 goalsReviewed.includes(goal.id)
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-200 hover:border-gray-300"
               }`}
               onClick={() => handleGoalToggle(goal.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleGoalToggle(goal.id);
+                }
+              }}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -482,6 +495,8 @@ function GoalReviewStep({
                 <div className="ml-4">
                   <input
                     type="checkbox"
+                    aria-label={`Mark ${goal.title} as reviewed`}
+                    tabIndex={-1}
                     checked={goalsReviewed.includes(goal.id)}
                     onChange={() => handleGoalToggle(goal.id)}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
@@ -498,7 +513,7 @@ function GoalReviewStep({
 
 interface SummaryStepProps {
   type: RetrospectiveType;
-  insights: Record<string, any>;
+  insights: Record<string, string>;
   skillUpdates: Record<string, SkillLevel>;
   goalsReviewed: string[];
   userInterests: Interest[];
@@ -506,7 +521,6 @@ interface SummaryStepProps {
 }
 
 function SummaryStep({
-  type,
   insights,
   skillUpdates,
   goalsReviewed,

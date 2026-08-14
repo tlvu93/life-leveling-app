@@ -1,14 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Input,
-  Alert,
-} from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, Input } from "@/components/ui";
 import { useSuccessToast, useErrorToast } from "@/components/ui/Toast";
 import { useLoadingState } from "@/hooks/useLoadingState";
 import { cn, getEncouragingMessage } from "@/lib/ui-utils";
@@ -18,8 +11,40 @@ export interface FeedbackData {
   message: string;
   email?: string;
   rating?: number;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
+
+interface StarRatingProps {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const StarRating: React.FC<StarRatingProps> = ({ value, onChange }) => (
+  <div className="flex items-center gap-1">
+    {[1, 2, 3, 4, 5].map((star) => (
+      <button
+        key={star}
+        type="button"
+        onClick={() => onChange(star)}
+        className={cn(
+          "w-8 h-8 rounded-full transition-all duration-200",
+          "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary-500",
+          star <= value
+            ? "text-warning-500 hover:text-warning-600"
+            : "text-neutral-300 hover:text-warning-400"
+        )}
+        aria-label={`Rate ${star} star${star !== 1 ? "s" : ""}`}
+      >
+        <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      </button>
+    ))}
+    <span className="ml-2 text-sm text-neutral-600">
+      {value > 0 ? `${value}/5` : "Rate your experience"}
+    </span>
+  </div>
+);
 
 export interface FeedbackSystemProps {
   onSubmit?: (feedback: FeedbackData) => Promise<void>;
@@ -158,7 +183,7 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({
             setIsOpen(false);
           }
         },
-        onError: (error) => {
+        onError: (_error) => {
           showError(
             ageGroup === "child"
               ? "Oops! We couldn't send your message. Let's try again! 🔄"
@@ -168,40 +193,6 @@ const FeedbackSystem: React.FC<FeedbackSystemProps> = ({
       }
     );
   };
-
-  const StarRating: React.FC<{
-    value: number;
-    onChange: (value: number) => void;
-  }> = ({ value, onChange }) => (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onChange(star)}
-          className={cn(
-            "w-8 h-8 rounded-full transition-all duration-200",
-            "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary-500",
-            star <= value
-              ? "text-warning-500 hover:text-warning-600"
-              : "text-neutral-300 hover:text-warning-400"
-          )}
-          aria-label={`Rate ${star} star${star !== 1 ? "s" : ""}`}
-        >
-          <svg
-            className="w-full h-full"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        </button>
-      ))}
-      <span className="ml-2 text-sm text-neutral-600">
-        {value > 0 ? `${value}/5` : "Rate your experience"}
-      </span>
-    </div>
-  );
 
   const feedbackForm = (
     <form onSubmit={handleSubmit} className="space-y-6">

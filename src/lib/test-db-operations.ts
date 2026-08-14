@@ -174,7 +174,7 @@ export async function testDatabaseOperations() {
 }
 
 // Helper function to clean up test data
-export async function cleanupTestData(testResults: any) {
+export async function cleanupTestData(testResults: { userId?: string }) {
   try {
     if (testResults.userId) {
       // Note: Due to CASCADE DELETE, removing the user will remove all related data

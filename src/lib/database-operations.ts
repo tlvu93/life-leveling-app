@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { getErrorDetails } from "./utils";
 import {
   UserProfile,
   Interest,
@@ -6,7 +7,6 @@ import {
   Retrospective,
   SkillHistoryEntry,
   CohortStats,
-  FamilyRelationship,
   PredefinedPath,
   UserPathProgress,
   SimulationScenario,
@@ -121,12 +121,7 @@ export async function getUserByEmail(
     return getUserById(user.id);
   } catch (error) {
     console.error("Error getting user by email:", error);
-    console.error("Error details:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      severity: error.severity,
-    });
+    console.error("Error details:", getErrorDetails(error));
     throw new Error("Failed to get user by email");
   }
 }
@@ -507,7 +502,7 @@ export async function updateGoal(
 ): Promise<Goal> {
   try {
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (updates.title !== undefined) {
@@ -543,7 +538,10 @@ export async function updateGoal(
       RETURNING *
     `;
 
-    const result = await sql.unsafe(query, values);
+    // `sql.unsafe()` returns an interpolation marker, not a result set — the
+    // previous call here never executed the UPDATE. `sql.query()` runs a
+    // parameterised string, which is what the $1/$2 placeholders above expect.
+    const result = await sql.query(query, values);
 
     if (result.length === 0) {
       throw new Error("Goal not found");
@@ -572,11 +570,14 @@ export async function updateGoal(
 
 export async function deleteGoal(goalId: string): Promise<void> {
   try {
+    // The HTTP driver resolves to a row array, not a result object, so the old
+    // `result.count === 0` check was always false and deleting a non-existent
+    // goal silently "succeeded". RETURNING gives us a row to count.
     const result = await sql`
-      DELETE FROM goals WHERE id = ${goalId}
+      DELETE FROM goals WHERE id = ${goalId} RETURNING id
     `;
 
-    if (result.count === 0) {
+    if (result.length === 0) {
       throw new Error("Goal not found");
     }
   } catch (error) {
@@ -589,8 +590,8 @@ export async function deleteGoal(goalId: string): Promise<void> {
 export async function createRetrospective(retrospectiveData: {
   userId: string;
   type: RetrospectiveType;
-  insights?: Record<string, any>;
-  skillUpdates?: Record<string, any>;
+  insights?: Record<string, unknown>;
+  skillUpdates?: Record<string, unknown>;
   goalsReviewed?: Record<string, unknown>;
 }): Promise<Retrospective> {
   try {

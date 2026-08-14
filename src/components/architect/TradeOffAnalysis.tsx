@@ -1,10 +1,10 @@
 "use client";
 
-import { Interest, getSkillLevelName } from "@/types";
+import { Interest } from "@/types";
+import { SYNERGY_MAP } from "@/lib/simulation";
 
 interface TradeOffAnalysisProps {
   effortAllocation: Record<string, number>;
-  forecastedResults: Record<string, any>;
   interests: Interest[];
 }
 
@@ -22,25 +22,25 @@ interface TradeOff {
 
 export default function TradeOffAnalysis({
   effortAllocation,
-  forecastedResults,
   interests,
 }: TradeOffAnalysisProps) {
   const calculateTradeOffs = (): TradeOff[] => {
     const tradeOffs: TradeOff[] = [];
 
-    // Analyze effort allocation patterns
     const efforts = Object.entries(effortAllocation);
-    const maxEffort = Math.max(...efforts.map(([_, effort]) => effort));
-    const minEffort = Math.min(...efforts.map(([_, effort]) => effort));
-    const avgEffort =
-      efforts.reduce((sum, [_, effort]) => sum + effort, 0) / efforts.length;
+    if (efforts.length === 0) return tradeOffs;
 
     // Check for opportunity costs (high effort on one skill)
     efforts.forEach(([skill, effort]) => {
       if (effort > 40) {
-        const otherSkills = efforts.filter(([s, _]) => s !== skill);
+        const otherSkills = efforts.filter(([s]) => s !== skill);
+        // Guard against the single-interest case, where the mean of an empty
+        // list is NaN and the impact bar renders at width `NaN%`.
         const avgOtherEffort =
-          otherSkills.reduce((sum, [_, e]) => sum + e, 0) / otherSkills.length;
+          otherSkills.length > 0
+            ? otherSkills.reduce((sum, [, e]) => sum + e, 0) /
+              otherSkills.length
+            : 0;
 
         tradeOffs.push({
           type: "opportunity_cost",
@@ -53,9 +53,8 @@ export default function TradeOffAnalysis({
     });
 
     // Check for synergy opportunities
-    const synergies = getSynergyMap();
     interests.forEach((interest) => {
-      const relatedSkills = synergies[interest.category] || {};
+      const relatedSkills = SYNERGY_MAP[interest.category] ?? {};
       Object.entries(relatedSkills).forEach(([relatedSkill, boost]) => {
         const relatedInterest = interests.find(
           (i) => i.category === relatedSkill
@@ -92,9 +91,7 @@ export default function TradeOffAnalysis({
     });
 
     // Check for balanced growth
-    const effortVariance = calculateVariance(
-      efforts.map(([_, effort]) => effort)
-    );
+    const effortVariance = calculateVariance(efforts.map(([, effort]) => effort));
     if (effortVariance < 100) {
       // Low variance indicates balanced allocation
       tradeOffs.push({
@@ -113,26 +110,8 @@ export default function TradeOffAnalysis({
     });
   };
 
-  const getSynergyMap = (): Record<string, Record<string, number>> => {
-    return {
-      Math: { Technical: 0.3, Science: 0.2 },
-      Technical: { Math: 0.3, Creativity: 0.2 },
-      Music: { Math: 0.2, Creativity: 0.3 },
-      Sports: { Health: 0.4, Communication: 0.2 },
-      Communication: { Sports: 0.2, Arts: 0.2 },
-      Creativity: { Arts: 0.3, Music: 0.3, Technical: 0.2 },
-      Arts: { Creativity: 0.3, Communication: 0.2 },
-      Science: { Math: 0.2, Technical: 0.2 },
-      Health: { Sports: 0.4, Cooking: 0.2 },
-      Languages: { Communication: 0.3, Reading: 0.2 },
-      Reading: { Writing: 0.4, Languages: 0.2 },
-      Writing: { Reading: 0.4, Communication: 0.3 },
-      Gaming: { Technical: 0.2 },
-      Cooking: { Health: 0.2, Creativity: 0.2 },
-    };
-  };
-
   const calculateVariance = (values: number[]): number => {
+    if (values.length === 0) return 0;
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
     return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / values.length;

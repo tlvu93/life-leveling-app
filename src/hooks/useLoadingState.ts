@@ -6,7 +6,7 @@ import { useErrorHandler } from "./useErrorHandler";
 export interface LoadingState {
   isLoading: boolean;
   error: Error | null;
-  data: any;
+  data: unknown;
 }
 
 export interface UseLoadingStateOptions {
@@ -20,7 +20,10 @@ export function useLoadingState(options: UseLoadingStateOptions = {}) {
 
   const [isLoading, setIsLoading] = useState(initialLoading);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<any>(null);
+  // `execute` is generic per-call (different callers may resolve different
+  // result types), so the state that backs it can't be tied to one type
+  // parameter here — `unknown` keeps it honest without reintroducing `any`.
+  const [data, setData] = useState<unknown>(null);
 
   const { handleError } = useErrorHandler({
     showToast: showErrorToast,
@@ -245,10 +248,10 @@ export function useMultipleLoadingStates() {
 export function useDebouncedLoadingState(delay: number = 300) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<unknown>(null);
 
   const { handleError } = useErrorHandler();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const execute = useCallback(

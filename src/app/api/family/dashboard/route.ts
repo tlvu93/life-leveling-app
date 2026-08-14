@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/lib/auth";
-import { z } from "zod";
+
+/** Shape of the `goals` rows this route selects. */
+interface SharedGoalRow {
+  id: string;
+  interest_category: string;
+  goal_type: string;
+  title: string;
+  description: string | null;
+  target_level: number | null;
+  timeframe: string;
+  status: string;
+  created_at: string;
+  target_date: string | null;
+}
+
+/** Shape of the joined `skill_history` rows this route selects. */
+interface SkillHistoryRow {
+  category: string;
+  subcategory: string | null;
+  previous_level: number | null;
+  new_level: number;
+  changed_at: string;
+  notes: string | null;
+}
 
 // GET - Get parent dashboard data for viewing child interests and goals
 export async function GET(request: NextRequest) {
@@ -69,29 +92,32 @@ export async function GET(request: NextRequest) {
       ORDER BY category
     `;
 
-    // Get child's goals (only if child allows sharing goals with family)
-    let goalsResult = [];
+    // Get child's goals (only if child allows sharing goals with family).
+    // `sql` returns untyped `Record<string, any>` rows, so the SELECT list is
+    // described once above and asserted at the query boundary; that keeps the
+    // `.map()` callbacks below typed instead of implicitly `any`.
+    let goalsResult: SharedGoalRow[] = [];
     if (childPrivacyPrefs.shareGoalsWithFamily) {
-      goalsResult = await sql`
+      goalsResult = (await sql`
         SELECT id, interest_category, goal_type, title, description, 
                target_level, timeframe, status, created_at, target_date
         FROM goals 
         WHERE user_id = ${childUserId} AND status = 'active'
         ORDER BY created_at DESC
-      `;
+      `) as SharedGoalRow[];
     }
 
     // Get child's recent progress (only if child allows sharing progress with family)
-    let progressResult = [];
+    let progressResult: SkillHistoryRow[] = [];
     if (childPrivacyPrefs.shareProgressWithFamily) {
-      progressResult = await sql`
+      progressResult = (await sql`
         SELECT sh.*, ui.category, ui.subcategory
         FROM skill_history sh
         JOIN user_interests ui ON sh.user_interest_id = ui.id
         WHERE ui.user_id = ${childUserId}
         ORDER BY sh.changed_at DESC
         LIMIT 10
-      `;
+      `) as SkillHistoryRow[];
     }
 
     // Log the family dashboard access for transparency

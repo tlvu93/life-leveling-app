@@ -5,10 +5,8 @@ import { InterestSelectionStep } from "./InterestSelectionStep";
 import { SkillAssessmentStep } from "./SkillAssessmentStep";
 import { CommitmentLevelStep } from "./CommitmentLevelStep";
 import { OnboardingComplete } from "./OnboardingComplete";
-import { ProgressIndicator } from "@/components/ui/ProgressIndicator";
-import { AppLayout, Container } from "@/components/layout/AppLayout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { SkillLevel, CommitmentLevel } from "@/types";
+import { SkillLevel, CommitmentLevel, UserProfile } from "@/types";
 
 export interface OnboardingInterest {
   category: string;
@@ -24,6 +22,8 @@ export interface OnboardingData {
 interface OnboardingWizardProps {
   onComplete: (data: OnboardingData) => Promise<void>;
   isLoading?: boolean;
+  existingProfile?: UserProfile | null; // Existing profile data for editing
+  isEditMode?: boolean; // Whether we're editing an existing profile
 }
 
 const STEPS = [
@@ -48,6 +48,8 @@ const STEPS = [
 export function OnboardingWizard({
   onComplete,
   isLoading = false,
+  existingProfile,
+  isEditMode = false,
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -60,6 +62,37 @@ export function OnboardingWizard({
   const [commitmentLevels, setCommitmentLevels] = useState<
     Record<string, CommitmentLevel>
   >({});
+
+  // Initialize with existing profile data if available. This re-derives the
+  // wizard's local state whenever a *new* `existingProfile` is passed in
+  // (identity change), while preserving in-progress edits across re-renders
+  // in between.
+  const [syncedProfile, setSyncedProfile] = useState(existingProfile);
+  if (existingProfile !== syncedProfile) {
+    setSyncedProfile(existingProfile);
+
+    if (existingProfile && existingProfile.interests) {
+      const interests = existingProfile.interests.map(
+        (interest) => interest.category
+      );
+      const subcategories: Record<string, string> = {};
+      const skills: Record<string, SkillLevel> = {};
+      const commitments: Record<string, CommitmentLevel> = {};
+
+      existingProfile.interests.forEach((interest) => {
+        if (interest.subcategory) {
+          subcategories[interest.category] = interest.subcategory;
+        }
+        skills[interest.category] = interest.currentLevel;
+        commitments[interest.category] = interest.intentLevel;
+      });
+
+      setSelectedInterests(interests);
+      setInterestSubcategories(subcategories);
+      setSkillLevels(skills);
+      setCommitmentLevels(commitments);
+    }
+  }
 
   const handleInterestSelection = (
     interests: string[],
@@ -117,66 +150,102 @@ export function OnboardingWizard({
   };
 
   return (
-    <AppLayout variant="playful">
-      <Container size="lg" className="py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 flex items-center justify-center">
+      <div className="w-full max-w-4xl">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
 
-        {/* Progress Indicator */}
-        <ProgressIndicator
-          currentStep={currentStep}
-          steps={STEPS}
-          variant="playful"
-          showDescriptions={true}
-          className="mb-8"
-        />
+        <div className="shadow-lg border-0 bg-white rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="text-center space-y-4 p-8 pb-6">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-2xl">🎯</span>
+            </div>
+            <div>
+              <h1 className="text-3xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+                {isEditMode ? "Edit Your Profile" : "Welcome to Life Leveling!"}
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {isEditMode
+                  ? "Update your interests, skills, and commitment levels"
+                  : "Let's set up your personal growth journey"}
+              </p>
+            </div>
 
-        {/* Main Content */}
-        <div className="bg-card backdrop-blur-sm rounded-2xl shadow-large p-8 border border-border">
-          {currentStep === 1 && (
-            <InterestSelectionStep
-              onNext={handleInterestSelection}
-              initialSelected={selectedInterests}
-              initialSubcategories={interestSubcategories}
-            />
-          )}
+            {/* Progress Indicator */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  Step {currentStep} of {STEPS.length}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {Math.round((currentStep / STEPS.length) * 100)}% complete
+                </span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-          {currentStep === 2 && (
-            <SkillAssessmentStep
-              interests={selectedInterests}
-              subcategories={interestSubcategories}
-              onNext={handleSkillAssessment}
-              onBack={handleBack}
-              initialLevels={skillLevels}
-            />
-          )}
+          {/* Main Content */}
+          <div className="p-8 pt-0 space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-semibold">
+                {STEPS[currentStep - 1].title}
+              </h2>
+              <p className="text-muted-foreground">
+                {STEPS[currentStep - 1].description}
+              </p>
+            </div>
+            {currentStep === 1 && (
+              <InterestSelectionStep
+                onNext={handleInterestSelection}
+                initialSelected={selectedInterests}
+                initialSubcategories={interestSubcategories}
+              />
+            )}
 
-          {currentStep === 3 && (
-            <CommitmentLevelStep
-              interests={selectedInterests}
-              subcategories={interestSubcategories}
-              skillLevels={skillLevels}
-              onNext={handleCommitmentSelection}
-              onBack={handleBack}
-              initialLevels={commitmentLevels}
-            />
-          )}
+            {currentStep === 2 && (
+              <SkillAssessmentStep
+                interests={selectedInterests}
+                subcategories={interestSubcategories}
+                onNext={handleSkillAssessment}
+                onBack={handleBack}
+                initialLevels={skillLevels}
+              />
+            )}
 
-          {currentStep === 4 && (
-            <OnboardingComplete
-              interests={selectedInterests}
-              subcategories={interestSubcategories}
-              skillLevels={skillLevels}
-              commitmentLevels={commitmentLevels}
-              onComplete={handleComplete}
-              onBack={handleBack}
-              isLoading={isLoading}
-            />
-          )}
+            {currentStep === 3 && (
+              <CommitmentLevelStep
+                interests={selectedInterests}
+                subcategories={interestSubcategories}
+                skillLevels={skillLevels}
+                onNext={handleCommitmentSelection}
+                onBack={handleBack}
+                initialLevels={commitmentLevels}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <OnboardingComplete
+                interests={selectedInterests}
+                subcategories={interestSubcategories}
+                skillLevels={skillLevels}
+                commitmentLevels={commitmentLevels}
+                onComplete={handleComplete}
+                onBack={handleBack}
+                isLoading={isLoading}
+              />
+            )}
+          </div>
         </div>
-      </Container>
-    </AppLayout>
+      </div>
+    </div>
   );
 }

@@ -10,7 +10,6 @@ interface RetrospectivesListProps {
 
 export default function RetrospectivesList({
   retrospectives,
-  onRefresh,
 }: RetrospectivesListProps) {
   const [filter, setFilter] = useState<RetrospectiveType | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -145,7 +144,19 @@ function RetrospectiveCard({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-      <div className="p-6 cursor-pointer" onClick={onToggleExpanded}>
+      <div
+        className="p-6 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onClick={onToggleExpanded}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleExpanded();
+          }
+        }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -197,7 +208,12 @@ function RetrospectiveCard({
           </div>
 
           <div className="ml-4">
-            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
               <svg
                 className={`w-5 h-5 transform transition-transform ${
                   isExpanded ? "rotate-180" : ""

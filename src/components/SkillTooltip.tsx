@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { RadarChartData, SkillLevel } from "@/types";
+import { RadarChartData } from "@/types";
 import { formatSkillLevel, getSkillLevelDescription } from "@/lib/chart-utils";
 
 interface SkillTooltipProps {
@@ -41,8 +41,9 @@ export default function SkillTooltip({
     >
       {/* Close button */}
       <button
+        type="button"
         onClick={onClose}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         aria-label="Close tooltip"
       >
         <svg
@@ -110,10 +111,16 @@ export default function SkillTooltip({
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <button className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors">
+        <button
+          type="button"
+          className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
           Set Goal
         </button>
-        <button className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded hover:bg-muted/80 transition-colors">
+        <button
+          type="button"
+          className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded hover:bg-muted/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
           View History
         </button>
       </div>

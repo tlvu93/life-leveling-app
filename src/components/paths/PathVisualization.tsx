@@ -1,12 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  PredefinedPath,
-  UserPathProgress,
-  PathStage,
-  SkillLevel,
-} from "@/types";
+import React, { useState } from "react";
+import { PredefinedPath, UserPathProgress } from "@/types";
 import { PathMilestone } from "@/lib/path-management";
 
 interface PathVisualizationProps {

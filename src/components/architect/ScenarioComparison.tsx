@@ -103,6 +103,7 @@ export default function ScenarioComparison({
             </h2>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="text-gray-400 hover:text-gray-600 text-2xl"
             >
               ×
@@ -123,12 +124,20 @@ export default function ScenarioComparison({
               {scenarios.map((scenario) => (
                 <div
                   key={scenario.id}
+                  role="button"
+                  tabIndex={0}
                   className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
                     selectedScenarios.includes(scenario.id)
                       ? "border-purple-500 bg-purple-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                   onClick={() => toggleScenario(scenario.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleScenario(scenario.id);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium text-gray-900">

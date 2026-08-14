@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -23,7 +23,6 @@ import {
   Lock,
   Activity,
   CheckCircle,
-  XCircle,
   Info,
 } from "lucide-react";
 
@@ -61,7 +60,7 @@ interface FamilySafetyControlsProps {
 export default function FamilySafetyControls({
   relationshipId,
   isParent,
-  childAge,
+  childAge: _childAge,
 }: FamilySafetyControlsProps) {
   const [safetyAlerts, setSafetyAlerts] = useState<SafetyAlert[]>([]);
   const [safetySettings, setSafetySettings] = useState<SafetySettings>({
@@ -79,11 +78,7 @@ export default function FamilySafetyControls({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    loadSafetyData();
-  }, [relationshipId]);
-
-  const loadSafetyData = async () => {
+  const loadSafetyData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Load safety alerts
@@ -112,7 +107,11 @@ export default function FamilySafetyControls({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [relationshipId]);
+
+  useEffect(() => {
+    loadSafetyData();
+  }, [loadSafetyData]);
 
   const updateSafetySettings = async (newSettings: Partial<SafetySettings>) => {
     setIsSaving(true);
@@ -138,7 +137,7 @@ export default function FamilySafetyControls({
       } else {
         setMessage("Failed to update safety settings");
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage("Network error. Please try again.");
     } finally {
       setIsSaving(false);
@@ -234,7 +233,7 @@ export default function FamilySafetyControls({
         <CardContent>
           <div className="flex items-center gap-4">
             <Badge
-              variant={activeAlerts.length === 0 ? "default" : "destructive"}
+              variant={activeAlerts.length === 0 ? "success" : "error"}
             >
               {activeAlerts.length === 0
                 ? "All Clear"
@@ -391,7 +390,7 @@ export default function FamilySafetyControls({
                       <Button
                         variant={
                           safetySettings.enableActivityAlerts
-                            ? "default"
+                            ? "primary"
                             : "outline"
                         }
                         size="sm"
@@ -421,7 +420,7 @@ export default function FamilySafetyControls({
                       <Button
                         variant={
                           safetySettings.enablePrivacyChangeAlerts
-                            ? "default"
+                            ? "primary"
                             : "outline"
                         }
                         size="sm"
@@ -451,7 +450,7 @@ export default function FamilySafetyControls({
                       <Button
                         variant={
                           safetySettings.enableUnusualActivityDetection
-                            ? "default"
+                            ? "primary"
                             : "outline"
                         }
                         size="sm"
@@ -569,7 +568,7 @@ export default function FamilySafetyControls({
                   </h4>
                   <ul className="text-sm space-y-2 text-muted-foreground">
                     <li>
-                      • Respect your child's privacy choices and boundaries
+                      • Respect your child&apos;s privacy choices and boundaries
                     </li>
                     <li>
                       • Focus on encouragement and exploration rather than

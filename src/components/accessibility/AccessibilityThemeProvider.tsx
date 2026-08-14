@@ -51,32 +51,38 @@ const fontSizeOrder: Array<AccessibilityTheme["fontSize"]> = [
 export const AccessibilityThemeProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [theme, setTheme] = useState<AccessibilityTheme>(defaultTheme);
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("accessibility-theme");
-    if (savedTheme) {
-      try {
-        const parsed = JSON.parse(savedTheme);
-        setTheme((prev) => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.warn("Failed to parse saved accessibility theme:", error);
+  // Read the persisted theme lazily during the initial render (rather than
+  // via setState in an effect) so there is a single render with the right
+  // value instead of a default-then-saved flash.
+  const [theme, setTheme] = useState<AccessibilityTheme>(() => {
+    if (typeof window === "undefined") return defaultTheme;
+    let initial = defaultTheme;
+    try {
+      const savedTheme = localStorage.getItem("accessibility-theme");
+      if (savedTheme) {
+        initial = { ...initial, ...JSON.parse(savedTheme) };
       }
+    } catch (error) {
+      console.warn("Failed to parse saved accessibility theme:", error);
     }
+    // Fold in the current system preferences too, so the very first render
+    // already reflects them (no need to apply them again inside an effect).
+    if (window.matchMedia("(prefers-contrast: high)").matches) {
+      initial = { ...initial, highContrast: true };
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      initial = { ...initial, reducedMotion: true };
+    }
+    return initial;
+  });
 
-    // Check system preferences
+  // Sync with system accessibility preference *changes* (the initial values
+  // are already folded into the lazy useState initializer above).
+  useEffect(() => {
     const highContrastQuery = window.matchMedia("(prefers-contrast: high)");
     const reducedMotionQuery = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     );
-
-    if (highContrastQuery.matches) {
-      setTheme((prev) => ({ ...prev, highContrast: true }));
-    }
-    if (reducedMotionQuery.matches) {
-      setTheme((prev) => ({ ...prev, reducedMotion: true }));
-    }
 
     // Listen for system preference changes
     const handleHighContrastChange = (e: MediaQueryListEvent) => {

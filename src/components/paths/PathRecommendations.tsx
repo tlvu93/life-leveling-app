@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PathRecommendation } from "@/lib/path-management";
-import { getSkillLevelName, getCommitmentLevelName } from "@/types";
+import { getSkillLevelName } from "@/types";
 
 interface PathRecommendationsProps {
   userId: string;
@@ -21,11 +21,7 @@ export default function PathRecommendations({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [userId, limit]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,7 +45,11 @@ export default function PathRecommendations({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, limit]);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
 
   const getRelevanceColor = (score: number) => {
     if (score >= 80) return "bg-green-100 text-green-800 border-green-200";
@@ -151,7 +151,7 @@ export default function PathRecommendations({
       </div>
 
       <div className="space-y-4">
-        {recommendations.map((recommendation, index) => (
+        {recommendations.map((recommendation) => (
           <div
             key={recommendation.path.id}
             className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"

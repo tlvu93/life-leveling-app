@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui-utils";
 import {
@@ -24,480 +24,480 @@ interface AccessibilityTesterProps {
   showDetails?: boolean;
 }
 
+// Static test catalog - lives at module scope (rather than being rebuilt on
+// every render) since it doesn't depend on props or state.
+const INITIAL_TESTS: AccessibilityTest[] = [
+  // Color and Contrast Tests
+  {
+    id: "contrast-text",
+    name: "Text Contrast Ratio",
+    description: "Verify text meets WCAG AA contrast requirements (4.5:1)",
+    category: "color",
+    status: "not-tested",
+  },
+  {
+    id: "contrast-interactive",
+    name: "Interactive Element Contrast",
+    description: "Verify buttons and links have sufficient contrast",
+    category: "color",
+    status: "not-tested",
+  },
+  {
+    id: "color-only-info",
+    name: "Color-Only Information",
+    description: "Check that information is not conveyed by color alone",
+    category: "color",
+    status: "not-tested",
+  },
+
+  // Keyboard Navigation Tests
+  {
+    id: "keyboard-navigation",
+    name: "Keyboard Navigation",
+    description: "All interactive elements accessible via keyboard",
+    category: "keyboard",
+    status: "not-tested",
+  },
+  {
+    id: "focus-indicators",
+    name: "Focus Indicators",
+    description: "Visible focus indicators on all interactive elements",
+    category: "keyboard",
+    status: "not-tested",
+  },
+  {
+    id: "tab-order",
+    name: "Tab Order",
+    description: "Logical tab order through the interface",
+    category: "keyboard",
+    status: "not-tested",
+  },
+
+  // Screen Reader Tests
+  {
+    id: "heading-hierarchy",
+    name: "Heading Hierarchy",
+    description: "Proper heading structure (H1-H6) without skipping levels",
+    category: "screen-reader",
+    status: "not-tested",
+  },
+  {
+    id: "aria-labels",
+    name: "ARIA Labels",
+    description: "Appropriate ARIA labels and descriptions",
+    category: "screen-reader",
+    status: "not-tested",
+  },
+  {
+    id: "alt-text",
+    name: "Alternative Text",
+    description: "Images have appropriate alt text or are marked decorative",
+    category: "screen-reader",
+    status: "not-tested",
+  },
+
+  // Motor Accessibility Tests
+  {
+    id: "touch-targets",
+    name: "Touch Target Size",
+    description: "Interactive elements meet minimum 44x44px size",
+    category: "motor",
+    status: "not-tested",
+  },
+  {
+    id: "gesture-alternatives",
+    name: "Gesture Alternatives",
+    description: "Alternative methods for gesture-based interactions",
+    category: "motor",
+    status: "not-tested",
+  },
+
+  // Cognitive Accessibility Tests
+  {
+    id: "clear-language",
+    name: "Clear Language",
+    description: "Simple, clear language and instructions",
+    category: "cognitive",
+    status: "not-tested",
+  },
+  {
+    id: "consistent-navigation",
+    name: "Consistent Navigation",
+    description: "Navigation patterns are consistent throughout",
+    category: "cognitive",
+    status: "not-tested",
+  },
+  {
+    id: "error-messages",
+    name: "Clear Error Messages",
+    description: "Error messages provide clear guidance",
+    category: "cognitive",
+    status: "not-tested",
+  },
+];
+
+// Individual test implementations. These are pure functions of the live DOM
+// (not of component props/state), so they live at module scope too - this
+// keeps their identity stable and keeps them out of hook dependency arrays.
+function testTextContrast(): Partial<AccessibilityTest> {
+  const textElements = document.querySelectorAll(
+    "p, span, div, h1, h2, h3, h4, h5, h6"
+  );
+  let failCount = 0;
+  let totalCount = 0;
+
+  textElements.forEach((element) => {
+    const styles = window.getComputedStyle(element);
+    const color = styles.color;
+    const backgroundColor = styles.backgroundColor;
+
+    if (
+      color &&
+      backgroundColor &&
+      color !== "rgba(0, 0, 0, 0)" &&
+      backgroundColor !== "rgba(0, 0, 0, 0)"
+    ) {
+      totalCount++;
+      // Simplified contrast check - in production, use a proper contrast library
+      if (!validateContrast(color, backgroundColor)) {
+        failCount++;
+      }
+    }
+  });
+
+  if (failCount === 0) {
+    return {
+      status: "pass",
+      details: `All ${totalCount} text elements have sufficient contrast`,
+    };
+  } else {
+    return {
+      status: "fail",
+      details: `${failCount} of ${totalCount} text elements fail contrast requirements`,
+    };
+  }
+}
+
+function testInteractiveContrast(): Partial<AccessibilityTest> {
+  const interactiveElements = document.querySelectorAll(
+    "button, a, input, select, textarea"
+  );
+  let failCount = 0;
+
+  interactiveElements.forEach((element) => {
+    const styles = window.getComputedStyle(element);
+    const color = styles.color;
+    const backgroundColor = styles.backgroundColor;
+
+    if (!validateContrast(color, backgroundColor)) {
+      failCount++;
+    }
+  });
+
+  return failCount === 0
+    ? {
+        status: "pass",
+        details: "All interactive elements have sufficient contrast",
+      }
+    : {
+        status: "fail",
+        details: `${failCount} interactive elements fail contrast requirements`,
+      };
+}
+
+function testColorOnlyInfo(): Partial<AccessibilityTest> {
+  // This is a simplified check - in practice, you'd need more sophisticated
+  // analysis to detect information conveyed by color alone.
+  return {
+    status: "warning",
+    details: "Manual review required for color-only information",
+  };
+}
+
+function testKeyboardNavigation(): Partial<AccessibilityTest> {
+  const interactiveElements = document.querySelectorAll(
+    "button, a, input, select, textarea, [tabindex]"
+  );
+  let inaccessibleCount = 0;
+
+  interactiveElements.forEach((element) => {
+    const tabIndex = element.getAttribute("tabindex");
+    if (tabIndex === "-1" && element.tagName !== "DIV") {
+      inaccessibleCount++;
+    }
+  });
+
+  return inaccessibleCount === 0
+    ? {
+        status: "pass",
+        details: "All interactive elements are keyboard accessible",
+      }
+    : {
+        status: "fail",
+        details: `${inaccessibleCount} elements are not keyboard accessible`,
+      };
+}
+
+function testFocusIndicators(): Partial<AccessibilityTest> {
+  const interactiveElements = document.querySelectorAll(
+    "button, a, input, select, textarea"
+  );
+  let missingFocusCount = 0;
+
+  interactiveElements.forEach((element) => {
+    const styles = window.getComputedStyle(element, ":focus-visible");
+    const outline = styles.outline;
+    const boxShadow = styles.boxShadow;
+
+    if (outline === "none" && boxShadow === "none") {
+      missingFocusCount++;
+    }
+  });
+
+  return missingFocusCount === 0
+    ? {
+        status: "pass",
+        details: "All interactive elements have focus indicators",
+      }
+    : {
+        status: "warning",
+        details: `${missingFocusCount} elements may lack visible focus indicators`,
+      };
+}
+
+function testTabOrder(): Partial<AccessibilityTest> {
+  const tabbableElements = Array.from(
+    document.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+    )
+  );
+
+  // Check if elements are in logical order (simplified check)
+  let logicalOrder = true;
+  for (let i = 1; i < tabbableElements.length; i++) {
+    const current = tabbableElements[i].getBoundingClientRect();
+    const previous = tabbableElements[i - 1].getBoundingClientRect();
+
+    // Very basic check - elements should generally flow top to bottom, left to right
+    if (
+      current.top < previous.top - 10 &&
+      current.left < previous.left - 10
+    ) {
+      logicalOrder = false;
+      break;
+    }
+  }
+
+  return logicalOrder
+    ? { status: "pass", details: "Tab order appears logical" }
+    : {
+        status: "warning",
+        details: "Tab order may not be logical - manual review recommended",
+      };
+}
+
+function testHeadingHierarchy(): Partial<AccessibilityTest> {
+  const isValid = validateHeadingHierarchy(document.body);
+  return isValid
+    ? { status: "pass", details: "Heading hierarchy is correct" }
+    : {
+        status: "fail",
+        details: "Heading hierarchy has issues - check console for details",
+      };
+}
+
+function testAriaLabels(): Partial<AccessibilityTest> {
+  const elementsNeedingLabels = document.querySelectorAll(
+    "button, input, select, textarea"
+  );
+  let missingLabelsCount = 0;
+
+  elementsNeedingLabels.forEach((element) => {
+    const hasLabel =
+      element.getAttribute("aria-label") ||
+      element.getAttribute("aria-labelledby") ||
+      element.querySelector("label") ||
+      (element as HTMLElement).textContent?.trim();
+
+    if (!hasLabel) {
+      missingLabelsCount++;
+    }
+  });
+
+  return missingLabelsCount === 0
+    ? {
+        status: "pass",
+        details: "All interactive elements have appropriate labels",
+      }
+    : {
+        status: "fail",
+        details: `${missingLabelsCount} elements are missing labels`,
+      };
+}
+
+function testAltText(): Partial<AccessibilityTest> {
+  const images = document.querySelectorAll("img");
+  let missingAltCount = 0;
+
+  images.forEach((img) => {
+    const alt = img.getAttribute("alt");
+    const ariaHidden = img.getAttribute("aria-hidden");
+
+    if (alt === null && ariaHidden !== "true") {
+      missingAltCount++;
+    }
+  });
+
+  return missingAltCount === 0
+    ? { status: "pass", details: "All images have appropriate alt text" }
+    : {
+        status: "fail",
+        details: `${missingAltCount} images are missing alt text`,
+      };
+}
+
+function testTouchTargets(): Partial<AccessibilityTest> {
+  const interactiveElements = document.querySelectorAll(
+    "button, a, input, select, textarea"
+  );
+  let smallTargetsCount = 0;
+
+  interactiveElements.forEach((element) => {
+    if (!validateTouchTarget(element as HTMLElement)) {
+      smallTargetsCount++;
+    }
+  });
+
+  return smallTargetsCount === 0
+    ? {
+        status: "pass",
+        details: "All touch targets meet minimum size requirements",
+      }
+    : {
+        status: "fail",
+        details: `${smallTargetsCount} touch targets are too small`,
+      };
+}
+
+function testGestureAlternatives(): Partial<AccessibilityTest> {
+  // This would require more sophisticated analysis of gesture-based interactions
+  return {
+    status: "warning",
+    details: "Manual review required for gesture alternatives",
+  };
+}
+
+function testClearLanguage(): Partial<AccessibilityTest> {
+  // This would require natural language processing to assess readability
+  return {
+    status: "warning",
+    details: "Manual review required for language clarity",
+  };
+}
+
+function testConsistentNavigation(): Partial<AccessibilityTest> {
+  const navElements = document.querySelectorAll('nav, [role="navigation"]');
+  return navElements.length > 0
+    ? {
+        status: "pass",
+        details: "Navigation elements found - manual review for consistency",
+      }
+    : { status: "warning", details: "No navigation elements found" };
+}
+
+function testErrorMessages(): Partial<AccessibilityTest> {
+  const errorElements = document.querySelectorAll(
+    '[role="alert"], .error, [aria-invalid="true"]'
+  );
+  return {
+    status: "warning",
+    details: `Found ${errorElements.length} error-related elements - manual review for clarity`,
+  };
+}
+
+async function runSingleTest(
+  test: AccessibilityTest
+): Promise<Partial<AccessibilityTest>> {
+  try {
+    switch (test.id) {
+      case "contrast-text":
+        return testTextContrast();
+      case "contrast-interactive":
+        return testInteractiveContrast();
+      case "color-only-info":
+        return testColorOnlyInfo();
+      case "keyboard-navigation":
+        return testKeyboardNavigation();
+      case "focus-indicators":
+        return testFocusIndicators();
+      case "tab-order":
+        return testTabOrder();
+      case "heading-hierarchy":
+        return testHeadingHierarchy();
+      case "aria-labels":
+        return testAriaLabels();
+      case "alt-text":
+        return testAltText();
+      case "touch-targets":
+        return testTouchTargets();
+      case "gesture-alternatives":
+        return testGestureAlternatives();
+      case "clear-language":
+        return testClearLanguage();
+      case "consistent-navigation":
+        return testConsistentNavigation();
+      case "error-messages":
+        return testErrorMessages();
+      default:
+        return { status: "not-tested", details: "Test not implemented" };
+    }
+  } catch (error) {
+    return {
+      status: "fail",
+      details: `Test failed with error: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
+  }
+}
+
 export const AccessibilityTester: React.FC<AccessibilityTesterProps> = ({
   className = "",
   autoRun = false,
   showDetails = true,
 }) => {
-  const [tests, setTests] = useState<AccessibilityTest[]>([]);
+  const [tests, setTests] = useState<AccessibilityTest[]>(INITIAL_TESTS);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-  const initialTests: AccessibilityTest[] = [
-    // Color and Contrast Tests
-    {
-      id: "contrast-text",
-      name: "Text Contrast Ratio",
-      description: "Verify text meets WCAG AA contrast requirements (4.5:1)",
-      category: "color",
-      status: "not-tested",
-    },
-    {
-      id: "contrast-interactive",
-      name: "Interactive Element Contrast",
-      description: "Verify buttons and links have sufficient contrast",
-      category: "color",
-      status: "not-tested",
-    },
-    {
-      id: "color-only-info",
-      name: "Color-Only Information",
-      description: "Check that information is not conveyed by color alone",
-      category: "color",
-      status: "not-tested",
-    },
-
-    // Keyboard Navigation Tests
-    {
-      id: "keyboard-navigation",
-      name: "Keyboard Navigation",
-      description: "All interactive elements accessible via keyboard",
-      category: "keyboard",
-      status: "not-tested",
-    },
-    {
-      id: "focus-indicators",
-      name: "Focus Indicators",
-      description: "Visible focus indicators on all interactive elements",
-      category: "keyboard",
-      status: "not-tested",
-    },
-    {
-      id: "tab-order",
-      name: "Tab Order",
-      description: "Logical tab order through the interface",
-      category: "keyboard",
-      status: "not-tested",
-    },
-
-    // Screen Reader Tests
-    {
-      id: "heading-hierarchy",
-      name: "Heading Hierarchy",
-      description: "Proper heading structure (H1-H6) without skipping levels",
-      category: "screen-reader",
-      status: "not-tested",
-    },
-    {
-      id: "aria-labels",
-      name: "ARIA Labels",
-      description: "Appropriate ARIA labels and descriptions",
-      category: "screen-reader",
-      status: "not-tested",
-    },
-    {
-      id: "alt-text",
-      name: "Alternative Text",
-      description: "Images have appropriate alt text or are marked decorative",
-      category: "screen-reader",
-      status: "not-tested",
-    },
-
-    // Motor Accessibility Tests
-    {
-      id: "touch-targets",
-      name: "Touch Target Size",
-      description: "Interactive elements meet minimum 44x44px size",
-      category: "motor",
-      status: "not-tested",
-    },
-    {
-      id: "gesture-alternatives",
-      name: "Gesture Alternatives",
-      description: "Alternative methods for gesture-based interactions",
-      category: "motor",
-      status: "not-tested",
-    },
-
-    // Cognitive Accessibility Tests
-    {
-      id: "clear-language",
-      name: "Clear Language",
-      description: "Simple, clear language and instructions",
-      category: "cognitive",
-      status: "not-tested",
-    },
-    {
-      id: "consistent-navigation",
-      name: "Consistent Navigation",
-      description: "Navigation patterns are consistent throughout",
-      category: "cognitive",
-      status: "not-tested",
-    },
-    {
-      id: "error-messages",
-      name: "Clear Error Messages",
-      description: "Error messages provide clear guidance",
-      category: "cognitive",
-      status: "not-tested",
-    },
-  ];
-
-  useEffect(() => {
-    setTests(initialTests);
-    if (autoRun) {
-      runAllTests();
-    }
-  }, [autoRun]);
-
-  const runAllTests = async () => {
+  const runAllTests = useCallback(async () => {
     setIsRunning(true);
-    const updatedTests = [...tests];
 
-    for (let i = 0; i < updatedTests.length; i++) {
-      const test = updatedTests[i];
+    for (let i = 0; i < INITIAL_TESTS.length; i++) {
+      const test = INITIAL_TESTS[i];
       const result = await runSingleTest(test);
-      updatedTests[i] = { ...test, ...result };
-      setTests([...updatedTests]);
+      setTests((prev) => {
+        const updated = [...prev];
+        updated[i] = { ...updated[i], ...result };
+        return updated;
+      });
 
       // Small delay to show progress
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     setIsRunning(false);
-  };
+  }, []);
 
-  const runSingleTest = async (
-    test: AccessibilityTest
-  ): Promise<Partial<AccessibilityTest>> => {
-    try {
-      switch (test.id) {
-        case "contrast-text":
-          return testTextContrast();
-        case "contrast-interactive":
-          return testInteractiveContrast();
-        case "color-only-info":
-          return testColorOnlyInfo();
-        case "keyboard-navigation":
-          return testKeyboardNavigation();
-        case "focus-indicators":
-          return testFocusIndicators();
-        case "tab-order":
-          return testTabOrder();
-        case "heading-hierarchy":
-          return testHeadingHierarchy();
-        case "aria-labels":
-          return testAriaLabels();
-        case "alt-text":
-          return testAltText();
-        case "touch-targets":
-          return testTouchTargets();
-        case "gesture-alternatives":
-          return testGestureAlternatives();
-        case "clear-language":
-          return testClearLanguage();
-        case "consistent-navigation":
-          return testConsistentNavigation();
-        case "error-messages":
-          return testErrorMessages();
-        default:
-          return { status: "not-tested", details: "Test not implemented" };
-      }
-    } catch (error) {
-      return {
-        status: "fail",
-        details: `Test failed with error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      };
-    }
-  };
-
-  // Test implementations
-  const testTextContrast = (): Partial<AccessibilityTest> => {
-    const textElements = document.querySelectorAll(
-      "p, span, div, h1, h2, h3, h4, h5, h6"
-    );
-    let failCount = 0;
-    let totalCount = 0;
-
-    textElements.forEach((element) => {
-      const styles = window.getComputedStyle(element);
-      const color = styles.color;
-      const backgroundColor = styles.backgroundColor;
-
-      if (
-        color &&
-        backgroundColor &&
-        color !== "rgba(0, 0, 0, 0)" &&
-        backgroundColor !== "rgba(0, 0, 0, 0)"
-      ) {
-        totalCount++;
-        // Simplified contrast check - in production, use a proper contrast library
-        if (!validateContrast(color, backgroundColor)) {
-          failCount++;
-        }
-      }
-    });
-
-    if (failCount === 0) {
-      return {
-        status: "pass",
-        details: `All ${totalCount} text elements have sufficient contrast`,
-      };
-    } else {
-      return {
-        status: "fail",
-        details: `${failCount} of ${totalCount} text elements fail contrast requirements`,
-      };
-    }
-  };
-
-  const testInteractiveContrast = (): Partial<AccessibilityTest> => {
-    const interactiveElements = document.querySelectorAll(
-      "button, a, input, select, textarea"
-    );
-    let failCount = 0;
-
-    interactiveElements.forEach((element) => {
-      const styles = window.getComputedStyle(element);
-      const color = styles.color;
-      const backgroundColor = styles.backgroundColor;
-
-      if (!validateContrast(color, backgroundColor)) {
-        failCount++;
-      }
-    });
-
-    return failCount === 0
-      ? {
-          status: "pass",
-          details: "All interactive elements have sufficient contrast",
-        }
-      : {
-          status: "fail",
-          details: `${failCount} interactive elements fail contrast requirements`,
-        };
-  };
-
-  const testColorOnlyInfo = (): Partial<AccessibilityTest> => {
-    // Check for common patterns that rely only on color
-    const colorOnlyPatterns = [
-      "color: red",
-      "color: green",
-      "color: blue",
-      "background-color: red",
-      "background-color: green",
-      "background-color: blue",
-    ];
-
-    // This is a simplified check - in practice, you'd need more sophisticated analysis
-    return {
-      status: "warning",
-      details: "Manual review required for color-only information",
-    };
-  };
-
-  const testKeyboardNavigation = (): Partial<AccessibilityTest> => {
-    const interactiveElements = document.querySelectorAll(
-      "button, a, input, select, textarea, [tabindex]"
-    );
-    let inaccessibleCount = 0;
-
-    interactiveElements.forEach((element) => {
-      const tabIndex = element.getAttribute("tabindex");
-      if (tabIndex === "-1" && element.tagName !== "DIV") {
-        inaccessibleCount++;
-      }
-    });
-
-    return inaccessibleCount === 0
-      ? {
-          status: "pass",
-          details: "All interactive elements are keyboard accessible",
-        }
-      : {
-          status: "fail",
-          details: `${inaccessibleCount} elements are not keyboard accessible`,
-        };
-  };
-
-  const testFocusIndicators = (): Partial<AccessibilityTest> => {
-    const interactiveElements = document.querySelectorAll(
-      "button, a, input, select, textarea"
-    );
-    let missingFocusCount = 0;
-
-    interactiveElements.forEach((element) => {
-      const styles = window.getComputedStyle(element, ":focus-visible");
-      const outline = styles.outline;
-      const boxShadow = styles.boxShadow;
-
-      if (outline === "none" && boxShadow === "none") {
-        missingFocusCount++;
-      }
-    });
-
-    return missingFocusCount === 0
-      ? {
-          status: "pass",
-          details: "All interactive elements have focus indicators",
-        }
-      : {
-          status: "warning",
-          details: `${missingFocusCount} elements may lack visible focus indicators`,
-        };
-  };
-
-  const testTabOrder = (): Partial<AccessibilityTest> => {
-    const tabbableElements = Array.from(
-      document.querySelectorAll(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-      )
-    );
-
-    // Check if elements are in logical order (simplified check)
-    let logicalOrder = true;
-    for (let i = 1; i < tabbableElements.length; i++) {
-      const current = tabbableElements[i].getBoundingClientRect();
-      const previous = tabbableElements[i - 1].getBoundingClientRect();
-
-      // Very basic check - elements should generally flow top to bottom, left to right
-      if (
-        current.top < previous.top - 10 &&
-        current.left < previous.left - 10
-      ) {
-        logicalOrder = false;
-        break;
-      }
-    }
-
-    return logicalOrder
-      ? { status: "pass", details: "Tab order appears logical" }
-      : {
-          status: "warning",
-          details: "Tab order may not be logical - manual review recommended",
-        };
-  };
-
-  const testHeadingHierarchy = (): Partial<AccessibilityTest> => {
-    const isValid = validateHeadingHierarchy(document.body);
-    return isValid
-      ? { status: "pass", details: "Heading hierarchy is correct" }
-      : {
-          status: "fail",
-          details: "Heading hierarchy has issues - check console for details",
-        };
-  };
-
-  const testAriaLabels = (): Partial<AccessibilityTest> => {
-    const elementsNeedingLabels = document.querySelectorAll(
-      "button, input, select, textarea"
-    );
-    let missingLabelsCount = 0;
-
-    elementsNeedingLabels.forEach((element) => {
-      const hasLabel =
-        element.getAttribute("aria-label") ||
-        element.getAttribute("aria-labelledby") ||
-        element.querySelector("label") ||
-        (element as HTMLElement).textContent?.trim();
-
-      if (!hasLabel) {
-        missingLabelsCount++;
-      }
-    });
-
-    return missingLabelsCount === 0
-      ? {
-          status: "pass",
-          details: "All interactive elements have appropriate labels",
-        }
-      : {
-          status: "fail",
-          details: `${missingLabelsCount} elements are missing labels`,
-        };
-  };
-
-  const testAltText = (): Partial<AccessibilityTest> => {
-    const images = document.querySelectorAll("img");
-    let missingAltCount = 0;
-
-    images.forEach((img) => {
-      const alt = img.getAttribute("alt");
-      const ariaHidden = img.getAttribute("aria-hidden");
-
-      if (alt === null && ariaHidden !== "true") {
-        missingAltCount++;
-      }
-    });
-
-    return missingAltCount === 0
-      ? { status: "pass", details: "All images have appropriate alt text" }
-      : {
-          status: "fail",
-          details: `${missingAltCount} images are missing alt text`,
-        };
-  };
-
-  const testTouchTargets = (): Partial<AccessibilityTest> => {
-    const interactiveElements = document.querySelectorAll(
-      "button, a, input, select, textarea"
-    );
-    let smallTargetsCount = 0;
-
-    interactiveElements.forEach((element) => {
-      if (!validateTouchTarget(element as HTMLElement)) {
-        smallTargetsCount++;
-      }
-    });
-
-    return smallTargetsCount === 0
-      ? {
-          status: "pass",
-          details: "All touch targets meet minimum size requirements",
-        }
-      : {
-          status: "fail",
-          details: `${smallTargetsCount} touch targets are too small`,
-        };
-  };
-
-  const testGestureAlternatives = (): Partial<AccessibilityTest> => {
-    // This would require more sophisticated analysis of gesture-based interactions
-    return {
-      status: "warning",
-      details: "Manual review required for gesture alternatives",
-    };
-  };
-
-  const testClearLanguage = (): Partial<AccessibilityTest> => {
-    // This would require natural language processing to assess readability
-    return {
-      status: "warning",
-      details: "Manual review required for language clarity",
-    };
-  };
-
-  const testConsistentNavigation = (): Partial<AccessibilityTest> => {
-    const navElements = document.querySelectorAll('nav, [role="navigation"]');
-    return navElements.length > 0
-      ? {
-          status: "pass",
-          details: "Navigation elements found - manual review for consistency",
-        }
-      : { status: "warning", details: "No navigation elements found" };
-  };
-
-  const testErrorMessages = (): Partial<AccessibilityTest> => {
-    const errorElements = document.querySelectorAll(
-      '[role="alert"], .error, [aria-invalid="true"]'
-    );
-    return {
-      status: "warning",
-      details: `Found ${errorElements.length} error-related elements - manual review for clarity`,
-    };
-  };
+  useEffect(() => {
+    if (!autoRun) return;
+    // Defer to a callback (rather than calling the async, setState-touching
+    // runAllTests directly) so nothing runs synchronously within the effect.
+    const id = setTimeout(() => {
+      runAllTests();
+    }, 0);
+    return () => clearTimeout(id);
+  }, [autoRun, runAllTests]);
 
   const filteredTests =
     selectedCategory === "all"
@@ -579,7 +579,11 @@ export const AccessibilityTester: React.FC<AccessibilityTesterProps> = ({
 
       {/* Category Filter */}
       <div className="mb-4">
+        <label htmlFor="accessibility-test-category" className="sr-only">
+          Filter tests by category
+        </label>
         <select
+          id="accessibility-test-category"
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700"

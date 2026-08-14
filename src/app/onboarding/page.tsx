@@ -1,29 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   OnboardingWizard,
   OnboardingData,
 } from "@/components/onboarding/OnboardingWizard";
 import { UserProfile } from "@/types";
 
-export default function OnboardingPage() {
+function OnboardingFlow() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // Check if we're in demo mode
+        const isDemoMode =
+          localStorage.getItem("lifeleveling-demo-mode") === "true";
+        const demoUserId = localStorage.getItem("lifeleveling-demo-user-id");
+
+        if (isDemoMode && demoUserId) {
+          // Create a mock user for demo mode
+          let demoUser: UserProfile = {
+            id: demoUserId,
+            email: "demo@example.com",
+            ageRangeMin: 22,
+            ageRangeMax: 29,
+            interests: [],
+            familyModeEnabled: false,
+            onboardingCompleted: false,
+            createdAt: new Date(),
+            lastActive: new Date(),
+          };
+
+          // If editing, load existing demo profile
+          if (isEditMode) {
+            const existingProfile = localStorage.getItem(
+              "lifeleveling-demo-profile"
+            );
+            if (existingProfile) {
+              demoUser = JSON.parse(existingProfile);
+            }
+          }
+
+          setUser(demoUser);
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch("/api/auth/me");
         const data = await response.json();
 
         if (data.success) {
           setUser(data.data);
-          // If user has already completed onboarding, redirect to dashboard
-          if (data.data.onboardingCompleted) {
+          // If user has already completed onboarding and not in edit mode, redirect to dashboard
+          if (data.data.onboardingCompleted && !isEditMode) {
             router.push("/dashboard");
           }
         } else {
@@ -38,12 +74,32 @@ export default function OnboardingPage() {
       }
     };
 
-    fetchUser();
-  }, [router]);
+    void fetchUser();
+  }, [router, isEditMode]);
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
     setIsSubmitting(true);
     try {
+      const isDemoMode =
+        localStorage.getItem("lifeleveling-demo-mode") === "true";
+
+      if (isDemoMode) {
+        // Handle demo mode completion
+        const demoProfile = {
+          ...user,
+          interests: data.interests,
+          onboardingCompleted: true,
+          updatedAt: new Date(),
+        };
+
+        localStorage.setItem(
+          "lifeleveling-demo-profile",
+          JSON.stringify(demoProfile)
+        );
+        router.push("/dashboard");
+        return;
+      }
+
       const response = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: {
@@ -80,14 +136,7 @@ export default function OnboardingPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <OnboardingLoading />;
   }
 
   if (!user) {
@@ -115,6 +164,42 @@ export default function OnboardingPage() {
     <OnboardingWizard
       onComplete={handleOnboardingComplete}
       isLoading={isSubmitting}
+      existingProfile={user}
+      isEditMode={isEditMode}
     />
+  );
+}
+
+function OnboardingLoading() {
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 flex items-center justify-center"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="text-center space-y-4">
+        <div
+          className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto"
+          aria-hidden="true"
+        >
+          <span className="text-2xl">🎯</span>
+        </div>
+        <p className="text-muted-foreground">
+          Loading your Life Leveling journey...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * `useSearchParams()` (used for `?edit=true`) needs a Suspense boundary above
+ * it or the production build cannot prerender this route.
+ */
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingLoading />}>
+      <OnboardingFlow />
+    </Suspense>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui-utils";
+import { useReducedMotion } from "./AccessibilityHelpers";
 
 // Simple language helper component
 interface SimplifiedTextProps {
@@ -250,20 +251,7 @@ export const AnimationControl: React.FC<AnimationControlProps> = ({
   className = "",
 }) => {
   const [isPaused, setIsPaused] = useState(false);
-  const [userPrefersReducedMotion, setUserPrefersReducedMotion] =
-    useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setUserPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setUserPrefersReducedMotion(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+  const userPrefersReducedMotion = useReducedMotion();
 
   const shouldPauseAnimations =
     isPaused || reducedMotion || userPrefersReducedMotion;
@@ -460,7 +448,7 @@ export const ClearErrorMessage: React.FC<ClearErrorMessageProps> = ({
   );
 };
 
-export default {
+const CognitiveAccessibilityComponents = {
   SimplifiedText,
   CognitiveProgress,
   CognitiveBreadcrumbs,
@@ -469,3 +457,5 @@ export default {
   HelpTooltip,
   ClearErrorMessage,
 };
+
+export default CognitiveAccessibilityComponents;

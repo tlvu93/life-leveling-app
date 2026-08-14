@@ -5,7 +5,7 @@ import {
   updateUserInterestLevel,
   getUserInterests,
 } from "@/lib/database-operations";
-import { SkillLevel, Interest } from "@/types";
+import { SkillLevel } from "@/types";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
@@ -56,10 +56,7 @@ export async function updateSkillLevel(params: UpdateSkillLevelParams) {
     const previousLevel = currentInterest.currentLevel;
 
     // Update the interest level (this function already creates skill history)
-    const updatedInterest = await updateUserInterestLevel(
-      params.interestId,
-      params.newLevel
-    );
+    await updateUserInterestLevel(params.interestId, params.newLevel);
 
     // Revalidate relevant pages
     revalidatePath("/dashboard");
@@ -132,10 +129,7 @@ export async function bulkUpdateSkills(params: BulkUpdateSkillsParams) {
         }
 
         // Update the interest level (this function already creates skill history)
-        const updatedInterest = await updateUserInterestLevel(
-          update.interestId,
-          update.newLevel
-        );
+        await updateUserInterestLevel(update.interestId, update.newLevel);
 
         results.push({
           interestId: update.interestId,

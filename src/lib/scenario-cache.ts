@@ -1,5 +1,6 @@
 import { kv } from "@vercel/kv";
-import { SimulationScenario } from "@/types";
+import { SimulationScenario, type ForecastedResults } from "@/types";
+import { parseForecastedResults } from "@/lib/simulation";
 
 const CACHE_PREFIX = "scenario:";
 const USER_SCENARIOS_PREFIX = "user_scenarios:";
@@ -162,7 +163,7 @@ export class ScenarioCache {
   static async cacheSimulationResults(
     userId: string,
     effortAllocation: Record<string, number>,
-    results: Record<string, any>
+    results: ForecastedResults
   ): Promise<void> {
     try {
       const key = `simulation:${userId}:${this.hashEffortAllocation(
@@ -178,7 +179,7 @@ export class ScenarioCache {
   static async getCachedSimulationResults(
     userId: string,
     effortAllocation: Record<string, number>
-  ): Promise<Record<string, any> | null> {
+  ): Promise<ForecastedResults | null> {
     try {
       const key = `simulation:${userId}:${this.hashEffortAllocation(
         effortAllocation
@@ -186,7 +187,9 @@ export class ScenarioCache {
       const cached = await kv.get(key);
 
       if (cached && typeof cached === "string") {
-        return JSON.parse(cached);
+        // The cache holds whatever an older build wrote; validate before use.
+        const parsed = parseForecastedResults(JSON.parse(cached));
+        return Object.keys(parsed).length > 0 ? parsed : null;
       }
 
       return null;

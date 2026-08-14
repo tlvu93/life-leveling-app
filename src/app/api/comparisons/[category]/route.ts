@@ -7,12 +7,12 @@ import { ApiResponse } from "@/types";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { category: string } }
+  { params }: { params: Promise<{ category: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    const { category } = params;
+    const { category } = await params;
 
     if (!userId) {
       return NextResponse.json(

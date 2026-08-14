@@ -142,8 +142,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Upsert safety settings
-    const settingsResult = await sql`
+    // Upsert safety settings (row isn't read back; the response below
+    // returns the already-known `settings` payload instead).
+    await sql`
       INSERT INTO family_safety_settings (
         relationship_id,
         enable_activity_alerts,

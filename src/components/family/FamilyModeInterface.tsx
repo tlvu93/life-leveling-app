@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -49,11 +49,7 @@ export default function FamilyModeInterface({
 
   const isMinor = currentUser.ageRangeMin < 18;
 
-  useEffect(() => {
-    loadFamilyRelationships();
-  }, []);
-
-  const loadFamilyRelationships = async () => {
+  const loadFamilyRelationships = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -77,12 +73,16 @@ export default function FamilyModeInterface({
       } else {
         setError(result.error || "Failed to load family relationships");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isMinor]);
+
+  useEffect(() => {
+    loadFamilyRelationships();
+  }, [loadFamilyRelationships]);
 
   const activeRelationships = relationships.filter((r) => r.childConsentGiven);
   const pendingRelationships = relationships.filter(
@@ -187,7 +187,7 @@ export default function FamilyModeInterface({
                               key={relationship.id}
                               variant={
                                 selectedChildId === relationship.childUserId
-                                  ? "default"
+                                  ? "primary"
                                   : "outline"
                               }
                               size="sm"
@@ -274,7 +274,7 @@ export default function FamilyModeInterface({
                   <CardHeader>
                     <CardTitle>Active Connections</CardTitle>
                     <CardDescription>
-                      Family members you're currently connected with
+                      Family members you&apos;re currently connected with
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

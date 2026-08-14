@@ -1,7 +1,12 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-// import { SessionManager } from "./kv"; // Temporarily disabled for development
+
+/**
+ * Name of the HTTP-only cookie holding the session JWT. Exported so route
+ * handlers can set/clear it without reaching into `AuthService`'s privates.
+ */
+export const AUTH_COOKIE_NAME = "auth-token";
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is not set");
@@ -27,7 +32,7 @@ export interface JWTPayload {
 export class AuthService {
   private static readonly JWT_SECRET = process.env.JWT_SECRET!;
   private static readonly JWT_EXPIRY = "7d";
-  private static readonly COOKIE_NAME = "auth-token";
+  private static readonly COOKIE_NAME = AUTH_COOKIE_NAME;
 
   // Hash password
   static async hashPassword(password: string): Promise<string> {
@@ -99,7 +104,9 @@ export class AuthService {
         return null;
       }
 
-      const payload = jwt.verify(token, this.JWT_SECRET) as any;
+      // jwt.verify's return type is `string | JwtPayload`; this app always
+      // signs its own `JWTPayload` shape, so narrow to that at the boundary.
+      const payload = jwt.verify(token, this.JWT_SECRET) as JWTPayload;
       if (!payload || !payload.user) {
         return null;
       }
@@ -151,8 +158,8 @@ export class AuthService {
         return null;
       }
 
-      const payload = jwt.verify(token, this.JWT_SECRET) as unknown;
-      if (!payload || !payload.user) {
+      const payload = jwt.verify(token, this.JWT_SECRET) as JWTPayload;
+      if (!payload?.user) {
         return null;
       }
 

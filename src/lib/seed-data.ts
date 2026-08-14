@@ -580,10 +580,10 @@ export async function generateCohortStats() {
       "Health",
     ];
     const intentLevels: CommitmentLevel[] = [
-      "casual",
-      "average",
-      "invested",
-      "competitive",
+      CommitmentLevel.CASUAL,
+      CommitmentLevel.AVERAGE,
+      CommitmentLevel.INVESTED,
+      CommitmentLevel.COMPETITIVE,
     ];
     const ageRanges = [
       { min: 6, max: 12 },

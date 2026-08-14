@@ -6,7 +6,6 @@ import {
   Card,
   CardHeader,
   CardContent,
-  CardFooter,
   Input,
   Badge,
   Alert,
@@ -19,11 +18,6 @@ import {
   useErrorToast,
 } from "@/components/ui";
 import FeedbackSystem from "@/components/feedback/FeedbackSystem";
-import { useLoadingState } from "@/hooks/useLoadingState";
-import {
-  useFormValidation,
-  commonValidationRules,
-} from "@/hooks/useFormValidation";
 import { LifeLevelingError, ErrorCodes } from "@/lib/error-handler";
 import {
   AppLayout,

@@ -89,7 +89,7 @@ export default function ResponsiveLifeStatMatrix({
             Skills Summary (Accessible View)
           </summary>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-            {data.current.map((skill, index) => (
+            {data.current.map((skill) => (
               <div
                 key={skill.skill}
                 className="flex justify-between items-center p-2 bg-card rounded border border-border"

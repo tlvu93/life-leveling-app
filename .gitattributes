@@ -1,0 +1,18 @@
+# Normalize line endings: LF in the repository and in working trees.
+# Without this, core.autocrlf=true on Windows makes every source file show up
+# as modified in `git status` even when the content is unchanged.
+* text=auto eol=lf
+
+# Binary assets must never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Lockfiles are generated; collapse them in diffs and reviews.
+package-lock.json linguist-generated=true -diff
