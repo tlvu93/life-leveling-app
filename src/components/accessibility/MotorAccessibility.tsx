@@ -471,8 +471,8 @@ export const DwellClick: React.FC<DwellClickProps> = ({
 }) => {
   const [isDwelling, setIsDwelling] = useState(false);
   const [progress, setProgress] = useState(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startDwell = () => {
     setIsDwelling(true);

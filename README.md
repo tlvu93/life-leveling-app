@@ -1,12 +1,57 @@
-# Life Leveling App
+# Life Leveling
 
-A playful, game-like application designed to help kids, teens, and adults set life goals, simulate possible growth paths, and compare themselves with peers in a healthy, non-pressured environment.
+Life Leveling is an Android-first exploration app for discovering possible roads through interests, skills, real-world experiments, and community-validated Guides. Its central surface is a zoomable Atlas rather than a score dashboard.
+
+## Repository Layout
+
+This repository intentionally contains two applications during the V2 migration:
+
+```text
+apps/mobile/  Current Expo V2 client for Android, iOS, and web
+src/          Legacy Next.js application and API routes
+prisma/       Legacy database schema and migrations
+docs/v2/      Current product, interaction, and migration specifications
+```
+
+Use the explicit `mobile:*` or `legacy:*` scripts when switching between them. The unprefixed root scripts remain aliases for the legacy Next.js application until its backend responsibilities have been migrated.
+
+## V2 Universal Prototype
+
+The current product direction lives in [`apps/mobile`](apps/mobile). It uses Expo and React Native for Android, iOS, and web, with a React Native Skia Atlas.
+
+```bash
+npm --prefix apps/mobile install
+npm run mobile:web
+```
+
+The Expo terminal displays the development URL. `npm run mobile:start` uses port `8085`; press `w` in that terminal to open the web target.
+
+Product and interaction specifications live in [`docs/v2`](docs/v2). The architecture and migration boundary are described in [`docs/v2/mobile-architecture.md`](docs/v2/mobile-architecture.md).
+
+### Android development
+
+Install Android Studio with Android SDK 36 and a Java 17 JDK. Set `JAVA_HOME` and `ANDROID_HOME`, then run:
+
+```powershell
+npm --prefix apps/mobile install
+cd apps/mobile
+npx expo prebuild --platform android
+npm run android
+```
+
+The Expo config plugin at `apps/mobile/plugins/with-android-build-setup.js` keeps Gradle on Java 17 and moves native CMake intermediates to a short path on Windows. This avoids the Windows 260-character object-file limit after future `expo prebuild --clean` runs. Set `LIFE_LEVELING_CXX_DIR` to override that build location.
+
+Android Studio can open `apps/mobile/android` directly. `android/local.properties` is machine-local and must point `sdk.dir` to the installed Android SDK.
+
+## Legacy Web Application
+
+The Next.js application at the repository root is the earlier implementation. It remains available as a backend and data-model reference while V2 is developed. New product UI work belongs in `apps/mobile`; do not add V2 screens to the root `src/app` tree.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 20+ (developed against Node 24)
+- Node.js 22.13+ (developed against Node 24)
 - npm
 - A Neon (PostgreSQL) database
 - A Vercel KV (Redis) store — used to cache Architect-mode scenarios
@@ -75,6 +120,13 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 | `npm run dev`          | Next.js dev server                              |
 | `npm run build`        | Production build (runs a full type check)       |
 | `npm start`            | Serve the production build                      |
+| `npm run legacy:verify`| Verify the legacy app                            |
+| `npm run mobile:start` | Start Expo on port 8085                          |
+| `npm run mobile:web`   | Start the Expo web target                       |
+| `npm run mobile:android` | Build and run the Android target              |
+| `npm run mobile:verify` | Test, type-check, lint, and diagnose V2         |
+| `npm run mobile:test:e2e` | Run the V2 browser interaction suite          |
+| `npm run verify`       | Verify both applications                        |
 | `npm run lint`         | ESLint over the whole repo                      |
 | `npm run lint:fix`     | ESLint with `--fix`                             |
 | `npm run type-check`   | `tsc --noEmit`                                  |
@@ -155,14 +207,13 @@ src/
 ## 🧪 Testing
 
 ```bash
-npm run type-check   # tsc --noEmit
-npm run lint         # ESLint
-npm test             # Vitest
-npm run build        # Production build (also type-checks)
+npm run mobile:verify    # V2 unit tests, types, lint, Expo Doctor
+npm run mobile:test:e2e  # V2 browser interaction suite
+npm run legacy:verify    # Legacy tests, types, lint, production build
+npm run verify           # Both non-E2E verification suites
 ```
 
-Unit tests live next to the code they cover as `*.test.ts`. The Architect-mode
-forecast maths (`src/lib/simulation.ts`) is the main covered surface.
+V2 unit tests live beside the platform-neutral domain code in `apps/mobile/src/domain`. Playwright tests live in `apps/mobile/e2e` and cover the Atlas at phone, tablet, and desktop sizes. Legacy unit tests live next to the code they cover as `*.test.ts`.
 
 ## 📊 Database Schema
 

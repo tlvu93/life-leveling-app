@@ -251,7 +251,7 @@ export function useDebouncedLoadingState(delay: number = 300) {
   const [data, setData] = useState<unknown>(null);
 
   const { handleError } = useErrorHandler();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const execute = useCallback(
