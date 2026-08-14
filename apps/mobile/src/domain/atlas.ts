@@ -273,6 +273,35 @@ export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?
     && (edge.kind !== 'guide' || showGuide));
 }
 
+const showcaseCompletedNodeIds = new Set(['production', 'sound-design', 'creative-coding', 'generative', 'choose-track-stage', 'reactive-visuals-stage']);
+
+/**
+ * Showcase mode (dev-only, `?showcase=1`): the full graph with no zoom or
+ * progress gating, used by the visual-verification screenshot harness so the
+ * atlas renders at mock-like density. A few nodes are forced `completed` to
+ * exercise the completed-badge visuals; the active path reads as attempted.
+ */
+export function atlasShowcaseNodes(): AtlasGraphNode[] {
+  return atlasGraphNodes.map((node) => {
+    if (showcaseCompletedNodeIds.has(node.id)) return { ...node, status: 'completed' as const };
+    if (node.id === 'live-av') return { ...node, status: 'attempted' as const };
+    return node;
+  });
+}
+
+/**
+ * All edges for showcase mode. Overview-only duplicates (edges capped below
+ * zoom 2) are dropped, and personal chains of non-active routes render as
+ * dashed navigator routes (`guide` kind) keyed by their own routeId.
+ */
+export function atlasShowcaseEdges(): AtlasGraphEdge[] {
+  return atlasGraphEdges
+    .filter((edge) => edge.maxZoom === undefined || edge.maxZoom >= 2)
+    .map((edge) => edge.kind === 'personal' && edge.routeId && edge.routeId !== 'live-av'
+      ? { ...edge, kind: 'guide' as const }
+      : edge);
+}
+
 export function atlasEdgePath(edge: AtlasGraphEdge) {
   const from = atlasNodeIndex.get(edge.from);
   const to = atlasNodeIndex.get(edge.to);
@@ -289,6 +318,20 @@ export function fitWorldCamera(viewportWidth: number, viewportHeight: number, pa
     scale,
     x: (viewportWidth - ATLAS_WORLD.width * scale) / 2,
     y: (viewportHeight - ATLAS_WORLD.height * scale) / 2,
+  };
+}
+
+/**
+ * Cover-fit: scales the world so it fills the viewport edge-to-edge (small
+ * overflow is cropped). Used by showcase captures to match the mock's framing.
+ */
+export function fillWorldCamera(viewportWidth: number, viewportHeight: number, topInset = 0) {
+  const usableHeight = Math.max(1, viewportHeight - topInset);
+  const scale = clamp(Math.max(viewportWidth / ATLAS_WORLD.width, usableHeight / ATLAS_WORLD.height), ATLAS_MIN_SCALE, ATLAS_MAX_SCALE);
+  return {
+    scale,
+    x: (viewportWidth - ATLAS_WORLD.width * scale) / 2,
+    y: topInset + (usableHeight - ATLAS_WORLD.height * scale) / 2,
   };
 }
 

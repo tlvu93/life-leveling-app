@@ -8,6 +8,7 @@ import {
   ATLAS_WORLD,
   atlasNodeIndex,
   clamp,
+  fillWorldCamera,
   fitWorldCamera,
   focusedCamera,
   semanticZoomForScale,
@@ -46,7 +47,7 @@ function focusedCameraForViewport(node: Parameters<typeof focusedCamera>[0], wid
   };
 }
 
-export function useAtlasCamera(width: number, height: number, onSemanticZoom: (zoom: AtlasZoom) => void, initialNodeId = 'live-av'): AtlasCamera {
+export function useAtlasCamera(width: number, height: number, onSemanticZoom: (zoom: AtlasZoom) => void, initialNodeId = 'live-av', initialView: 'focus' | 'fit' | 'fill' = 'focus'): AtlasCamera {
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const scale = useSharedValue(0.82);
@@ -63,11 +64,17 @@ export function useAtlasCamera(width: number, height: number, onSemanticZoom: (z
   useEffect(() => {
     if (!width || !height) return;
     if (!initialized.current) {
-      const initialScale = width < 600 ? 0.82 : width < 1000 ? 0.78 : 0.86;
-      applyCamera(focusedCameraForViewport(atlasNodeIndex.get(initialNodeId) ?? atlasNodeIndex.get('live-av')!, width, height, initialScale), false);
+      if (initialView === 'fill') {
+        applyCamera(fillWorldCamera(width, height, 64), false);
+      } else if (initialView === 'fit') {
+        applyCamera(fitWorldCamera(width, height, 36), false);
+      } else {
+        const initialScale = width < 600 ? 0.82 : width < 1000 ? 0.78 : 0.86;
+        applyCamera(focusedCameraForViewport(atlasNodeIndex.get(initialNodeId) ?? atlasNodeIndex.get('live-av')!, width, height, initialScale), false);
+      }
       initialized.current = true;
     }
-  }, [applyCamera, height, initialNodeId, width]);
+  }, [applyCamera, height, initialNodeId, initialView, width]);
 
   const fitWorld = useCallback(() => applyCamera(fitWorldCamera(width, height, width < 600 ? 10 : 36)), [applyCamera, height, width]);
 

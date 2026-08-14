@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { ArrowRight, Check, Sparkles } from 'lucide-react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ImageBackground, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
@@ -11,6 +11,7 @@ import AtlasScene from '@/components/atlas/AtlasScene';
 import { useAtlasCamera } from '@/components/atlas/use-atlas-camera';
 import { atlasNodesForProgress, type AtlasGraphNode, type AtlasProgress, type AtlasZoom } from '@/domain/atlas';
 import { getPathExperience } from '@/domain/path-experiences';
+import { parseAtlasDevFlags } from '@/lib/atlas-dev-flags';
 import { useJourney } from '@/state/journey-context';
 import { useLifeTheme } from '@/state/theme-context';
 import atlasBackground from '@/assets/images/atlas-celestial-bg.png';
@@ -19,9 +20,15 @@ function AtlasExperience() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { state } = useJourney();
-  const { reveal } = useLocalSearchParams<{ reveal?: string }>();
+  const params = useLocalSearchParams<{ reveal?: string; showcase?: string; static?: string; theme?: string }>();
+  const reveal = params.reveal;
+  const devFlags = useMemo(() => parseAtlasDevFlags(params), [params]);
   const router = useRouter();
-  const { theme } = useLifeTheme();
+  const { theme, setMode } = useLifeTheme();
+
+  useEffect(() => {
+    if (devFlags.themeOverride) setMode(devFlags.themeOverride);
+  }, [devFlags.themeOverride, setMode]);
   const recommendation = state.branchRecommendation;
   const activePathId = state.selectedPathId ?? 'live-av';
   const firstQuestNodeId = state.selectedPathId ? getPathExperience(state.selectedPathId).quest.nodeId : 'make-track-visible';
@@ -33,7 +40,7 @@ function AtlasExperience() {
   const [showGuide, setShowGuide] = useState(true);
   const [panelOpen, setPanelOpen] = useState(true);
   const [revealOpen, setRevealOpen] = useState(reveal === '1' && resolved);
-  const camera = useAtlasCamera(viewport.width, viewport.height, setSemanticZoom, activePathId);
+  const camera = useAtlasCamera(viewport.width, viewport.height, setSemanticZoom, activePathId, devFlags.showcase ? 'fill' : 'focus');
   const progress = useMemo<AtlasProgress>(() => ({
     pathStarted: state.selectedPathId !== null,
     activePathId: state.selectedPathId,
@@ -65,9 +72,10 @@ function AtlasExperience() {
           camera={camera}
           semanticZoom={semanticZoom}
           selectedId={selectedId}
-          showGuide={showGuide}
+          showGuide={devFlags.showcase || showGuide}
           theme={theme}
           progress={progress}
+          devFlags={devFlags}
           onNodePress={selectNode}
         />
       )}

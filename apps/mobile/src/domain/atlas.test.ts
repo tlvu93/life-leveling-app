@@ -7,6 +7,8 @@ import {
   atlasGraphEdges,
   atlasGraphNodes,
   atlasNodeIndex,
+  atlasShowcaseEdges,
+  atlasShowcaseNodes,
   cameraTranslationForAnchor,
   fitWorldCamera,
   focusedCamera,
@@ -69,6 +71,35 @@ describe('Atlas graph', () => {
     expect(visibleAtlasNodes(2, stopped).find((node) => node.id === 'visual-storyboard')?.status).toBe('discovered');
     expect(visibleAtlasNodes(2, completed).find((node) => node.id === 'projection-sketch')?.status).toBe('discovered');
     expect(visibleAtlasNodes(2, completed).length).toBeGreaterThan(visibleAtlasNodes(2, active).length);
+  });
+});
+
+describe('Atlas showcase mode', () => {
+  it('shows the entire graph without gating', () => {
+    const nodes = atlasShowcaseNodes();
+    expect(nodes.length).toBe(atlasGraphNodes.length);
+    expect(nodes.some((node) => node.id === 'make-track-visible')).toBe(true);
+    expect(nodes.some((node) => node.id === 'mini-set')).toBe(true);
+  });
+
+  it('marks a handful of nodes completed for badge variety', () => {
+    const nodes = atlasShowcaseNodes();
+    expect(nodes.filter((node) => node.status === 'completed').length).toBeGreaterThanOrEqual(4);
+    expect(nodes.find((node) => node.id === 'live-av')?.status).toBe('attempted');
+  });
+
+  it('keeps only detail-zoom edges with valid endpoints and recolors other routes as navigator routes', () => {
+    const edges = atlasShowcaseEdges();
+    const ids = new Set(atlasShowcaseNodes().map((node) => node.id));
+    for (const edge of edges) {
+      expect(ids.has(edge.from), `${edge.id} has a missing source`).toBe(true);
+      expect(ids.has(edge.to), `${edge.id} has a missing destination`).toBe(true);
+      expect(edge.maxZoom === undefined || edge.maxZoom >= 2).toBe(true);
+    }
+    expect(edges.some((edge) => edge.kind === 'personal' && edge.routeId === 'live-av')).toBe(true);
+    expect(edges.some((edge) => edge.kind === 'personal' && edge.routeId && edge.routeId !== 'live-av')).toBe(false);
+    const navigatorRouteIds = new Set(edges.filter((edge) => edge.kind === 'guide').map((edge) => edge.routeId));
+    expect(navigatorRouteIds.size).toBeGreaterThanOrEqual(3);
   });
 });
 

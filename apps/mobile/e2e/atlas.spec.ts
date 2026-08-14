@@ -1,42 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-const STORAGE_KEY = 'life-leveling.alpha-1.journey.v2';
-const LEGACY_STORAGE_KEY = 'life-leveling.alpha-1.journey.v1';
+import journeyStates from './fixtures/journey-states.json';
 
-const onboardedJourney = {
-  version: 2,
-  profile: {
-    completed: true,
-    interests: ['music', 'technology', 'visual'],
-    skills: ['starting-fresh'],
-    availableTime: '2-hours',
-    explorations: ['creative-hobby'],
-  },
-  selectedPathId: null,
-  pathStartedAt: null,
-  quest: {
-    status: 'not-started',
-    outcome: null,
-    evidenceKind: 'note',
-    evidence: '',
-    artifact: null,
-    reflection: '',
-    difficulty: null,
-    enjoyment: null,
-    pulledIn: null,
-    resolvedAt: null,
-  },
-  branchRecommendation: null,
-  unlockedNodeIds: [],
-};
-
-const activeJourney = {
-  ...onboardedJourney,
-  selectedPathId: 'live-av',
-  pathStartedAt: '2026-08-11T12:00:00.000Z',
-  quest: { ...onboardedJourney.quest, status: 'active' },
-  unlockedNodeIds: ['make-track-visible'],
-};
+const STORAGE_KEY = journeyStates.storageKey;
+const LEGACY_STORAGE_KEY = journeyStates.legacyStorageKey;
+const onboardedJourney = journeyStates.onboarded;
+const activeJourney = journeyStates.active;
 
 async function seedJourney(page: Page, state: unknown = onboardedJourney) {
   await page.addInitScript(({ key, value }) => {

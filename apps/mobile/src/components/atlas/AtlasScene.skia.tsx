@@ -33,6 +33,8 @@ import {
   atlasDust,
   atlasEdgePath,
   atlasRegions,
+  atlasShowcaseEdges,
+  atlasShowcaseNodes,
   cameraTranslationForAnchor,
   visibleAtlasEdges,
   visibleAtlasNodes,
@@ -40,6 +42,7 @@ import {
   type AtlasGraphNode,
   type AtlasZoom,
 } from '@/domain/atlas';
+import { defaultAtlasDevFlags, type AtlasDevFlags } from '@/lib/atlas-dev-flags';
 import { clusterColors, type AppTheme } from '@/theme/tokens';
 import type { AtlasCamera } from './use-atlas-camera';
 
@@ -51,6 +54,7 @@ export type AtlasSceneProps = {
   theme: AppTheme;
   onNodePress: (node: AtlasGraphNode) => void;
   progress: AtlasProgress;
+  devFlags?: AtlasDevFlags;
 };
 
 type AtlasFonts = {
@@ -276,7 +280,7 @@ function NodeHitTarget({ node, camera, onPress }: { node: AtlasGraphNode; camera
   );
 }
 
-export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide, theme, onNodePress, progress }: AtlasSceneProps) {
+export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide, theme, onNodePress, progress, devFlags = defaultAtlasDevFlags }: AtlasSceneProps) {
   const labelFont = useFont(Inter_600SemiBold, 10);
   const smallFont = useFont(Inter_600SemiBold, 8);
   const hubFont = useFont(Inter_800ExtraBold, 14);
@@ -285,8 +289,9 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const fonts = useMemo(() => labelFont && smallFont && hubFont && regionFont && stepFont
     ? { label: labelFont, small: smallFont, hub: hubFont, region: regionFont, step: stepFont }
     : null, [hubFont, labelFont, regionFont, smallFont, stepFont]);
-  const visibleNodes = useMemo(() => visibleAtlasNodes(semanticZoom, progress), [progress, semanticZoom]);
-  const edges = useMemo(() => visibleAtlasEdges(semanticZoom, showGuide, progress), [progress, semanticZoom, showGuide]);
+  const { showcase, freeze } = devFlags;
+  const visibleNodes = useMemo(() => showcase ? atlasShowcaseNodes() : visibleAtlasNodes(semanticZoom, progress), [progress, semanticZoom, showcase]);
+  const edges = useMemo(() => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress), [progress, semanticZoom, showcase, showGuide]);
   const cameraTransform = useDerivedValue(() => [
     { translateX: camera.x.value },
     { translateY: camera.y.value },
@@ -305,9 +310,15 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const pinchWorldY = useSharedValue(0);
 
   useEffect(() => {
+    if (freeze) {
+      // Deterministic capture mode: pin the loops mid-phase so screenshots are reproducible.
+      pulse.value = 0.55;
+      routeProgress.value = 0.35;
+      return;
+    }
     pulse.value = withRepeat(withTiming(1, { duration: 1500 }), -1, true);
     routeProgress.value = withRepeat(withTiming(1, { duration: 3600 }), -1, false);
-  }, [pulse, routeProgress]);
+  }, [freeze, pulse, routeProgress]);
 
   const panGesture = Gesture.Pan()
     .maxPointers(1)
