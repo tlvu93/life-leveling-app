@@ -48,12 +48,14 @@ export default function QuestScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { theme } = useLifeTheme();
-  const { hydrated, state, updateQuest, resolveQuest } = useJourney();
+  const { flushJourney, hydrated, state, updateQuest, resolveQuest } = useJourney();
   const router = useRouter();
   const { quest } = state;
   const [evidenceBusy, setEvidenceBusy] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [pendingOutcome, setPendingOutcome] = useState<QuestOutcome | null>(null);
+  const [resolutionBusy, setResolutionBusy] = useState(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const checkedPendingMedia = useRef(false);
 
   const attachEvidence = useCallback(async (input: EvidenceAssetInput) => {
@@ -157,16 +159,27 @@ export default function QuestScreen() {
       return;
     }
     if (!ready) return;
+    setResolutionError(null);
     setPendingOutcome(outcome);
   };
 
-  const confirmResolution = () => {
-    if (!pendingOutcome || !resolveQuest(pendingOutcome)) return;
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(
-      pendingOutcome === 'completed' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning,
-    );
-    setPendingOutcome(null);
-    router.replace({ pathname: '/', params: { reveal: '1' } });
+  const confirmResolution = async () => {
+    if (!pendingOutcome || resolutionBusy) return;
+    if (!done && !resolveQuest(pendingOutcome)) return;
+    setResolutionBusy(true);
+    setResolutionError(null);
+    try {
+      await flushJourney();
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(
+        pendingOutcome === 'completed' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning,
+      );
+      setPendingOutcome(null);
+      router.replace({ pathname: '/', params: { reveal: '1' } });
+    } catch (error) {
+      setResolutionError(error instanceof Error ? error.message : 'This Quest outcome could not be saved. Please try again.');
+    } finally {
+      setResolutionBusy(false);
+    }
   };
 
   return (
@@ -349,21 +362,22 @@ export default function QuestScreen() {
         )}
       </View>
 
-      <Modal animationType={Platform.OS === 'web' ? 'none' : 'fade'} onRequestClose={() => setPendingOutcome(null)} transparent visible={pendingOutcome !== null}>
+      <Modal animationType={Platform.OS === 'web' ? 'none' : 'fade'} onRequestClose={() => { if (!resolutionBusy) setPendingOutcome(null); }} transparent visible={pendingOutcome !== null}>
         <View style={styles.modalRoot}>
-          <Pressable accessibilityLabel="Cancel Quest resolution" onPress={() => setPendingOutcome(null)} style={StyleSheet.absoluteFill} />
+          <Pressable accessibilityLabel="Cancel Quest resolution" disabled={resolutionBusy} onPress={() => setPendingOutcome(null)} style={StyleSheet.absoluteFill} />
           <View accessibilityRole="alert" testID="quest-resolution-dialog" style={[styles.resolutionDialog, { borderColor: theme.borderSoft, backgroundColor: theme.surfaceStrong }]}>
             <Text style={[styles.resolutionEyebrow, { color: pendingOutcome === 'stopped' ? theme.coral : theme.green }]}>{pendingOutcome === 'stopped' ? 'RECORD AN ATTEMPT' : 'RECORD COMPLETION'}</Text>
             <Text style={[styles.resolutionTitle, { color: theme.ink }]}>{pendingOutcome === 'stopped' ? 'Stop this Quest after your attempt?' : 'Complete this Quest?'}</Text>
             <Text style={[styles.resolutionText, { color: theme.inkSecondary }]}>{pendingOutcome === 'stopped'
               ? 'The Quest will be marked attempted, not completed. Your reflection will redirect the Atlas toward an adjacent experiment.'
               : 'The Quest will be marked completed. Your reflection will deepen or advance the route.'}</Text>
+            {resolutionError && <Text accessibilityRole="alert" style={[styles.resolutionError, { color: theme.coral }]}>{resolutionError}</Text>}
             <View style={styles.resolutionActions}>
-              <Pressable accessibilityRole="button" onPress={() => setPendingOutcome(null)} style={({ pressed }) => [styles.cancelButton, { borderColor: theme.borderSoft }, pressed && styles.pressed]}>
+              <Pressable accessibilityRole="button" disabled={resolutionBusy} onPress={() => setPendingOutcome(null)} style={({ pressed }) => [styles.cancelButton, { borderColor: theme.borderSoft }, pressed && !resolutionBusy && styles.pressed]}>
                 <Text style={[styles.cancelText, { color: theme.ink }]}>GO BACK</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={confirmResolution} style={({ pressed }) => [styles.confirmButton, { backgroundColor: pendingOutcome === 'stopped' ? theme.coral : theme.green }, pressed && styles.pressed]}>
-                <Text style={styles.confirmText}>{pendingOutcome === 'stopped' ? 'RECORD AS ATTEMPTED' : 'CONFIRM COMPLETION'}</Text>
+              <Pressable accessibilityRole="button" disabled={resolutionBusy} onPress={() => void confirmResolution()} style={({ pressed }) => [styles.confirmButton, { backgroundColor: pendingOutcome === 'stopped' ? theme.coral : theme.green }, pressed && !resolutionBusy && styles.pressed]}>
+                {resolutionBusy ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.confirmText}>{pendingOutcome === 'stopped' ? 'RECORD AS ATTEMPTED' : 'CONFIRM COMPLETION'}</Text>}
               </Pressable>
             </View>
           </View>
@@ -396,12 +410,13 @@ export default function QuestScreen() {
     return (
       <View testID="quest-artifact" style={[styles.artifact, { borderColor: theme.green, backgroundColor: `${theme.green}0A` }]}>
         {artifact.kind === 'image' && Platform.OS !== 'web'
+          && artifact.uri
           ? <Image accessibilityLabel="Attached Quest evidence preview" source={{ uri: artifact.uri }} style={styles.artifactImage} />
           : <View style={[styles.artifactIcon, { backgroundColor: `${theme.green}14` }]}><ArtifactIcon color={theme.green} size={22} /></View>}
         <View style={styles.artifactCopy}>
           <Text style={[styles.artifactLabel, { color: theme.green }]}>ATTACHED {artifact.kind.toUpperCase()}</Text>
           <Text numberOfLines={1} style={[styles.artifactName, { color: theme.ink }]}>{artifact.name}</Text>
-          <Text style={[styles.artifactMeta, { color: theme.inkSecondary }]}>{formatFileSize(artifact.size)} · {Platform.OS === 'web' ? 'stored in this browser' : 'stored in app documents'}</Text>
+          <Text style={[styles.artifactMeta, { color: theme.inkSecondary }]}>{formatFileSize(artifact.size)} · {artifact.uri ? Platform.OS === 'web' ? 'stored in this browser' : 'stored in app documents' : 'metadata synced; file remains on its original device'}</Text>
         </View>
         {!disabled && (
           <Pressable accessibilityLabel="Remove attached evidence" accessibilityRole="button" hitSlop={8} onPress={onRemove} style={({ pressed }) => [styles.removeArtifact, { borderColor: theme.borderSoft }, pressed && styles.pressed]}>
@@ -501,6 +516,7 @@ const styles = StyleSheet.create({
   resolutionEyebrow: { fontSize: 8, fontWeight: '900' },
   resolutionTitle: { marginTop: 9, fontSize: 22, fontWeight: '900' },
   resolutionText: { marginTop: 8, fontSize: 11, lineHeight: 17 },
+  resolutionError: { marginTop: 10, fontSize: 9, lineHeight: 14 },
   resolutionActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, marginTop: 20 },
   cancelButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 5, paddingHorizontal: 15 },
   cancelText: { fontSize: 8, fontWeight: '900' },

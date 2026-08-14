@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, Check, Clock3, GitBranch, Laptop, Route, ShieldCheck, Star, Zap } from 'lucide-react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { ScreenScaffold } from '@/components/ScreenScaffold';
@@ -26,9 +27,11 @@ export default function PathScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { theme } = useLifeTheme();
-  const { hydrated, state, startPath } = useJourney();
+  const { flushJourney, hydrated, state, startPath } = useJourney();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
+  const [journeyBusy, setJourneyBusy] = useState(false);
+  const [journeyError, setJourneyError] = useState<string | null>(null);
 
   if (!hydrated) return <View style={[styles.loading, { backgroundColor: theme.surfaceStrong }]}><ActivityIndicator color={theme.green} /></View>;
   if (!state.profile.completed) return <Redirect href="/onboarding" />;
@@ -48,13 +51,23 @@ export default function PathScreen() {
   const fitTitle = recommendation.rank === 1
     ? `${fitName} personal fit`
     : `${fitName} personal fit · playable bridge`;
-  const primaryAction = () => {
+  const primaryAction = async () => {
+    if (journeyBusy) return;
     if (resolved) {
       router.push('/');
       return;
     }
+    setJourneyBusy(true);
+    setJourneyError(null);
     if (!started) startPath(pathId);
-    router.push('/quest');
+    try {
+      await flushJourney();
+      router.push('/quest');
+    } catch (error) {
+      setJourneyError(error instanceof Error ? error.message : 'This Path could not be saved. Please try again.');
+    } finally {
+      setJourneyBusy(false);
+    }
   };
 
   return (
@@ -137,10 +150,11 @@ export default function PathScreen() {
         <View style={styles.startCopy}>
           <Text style={[styles.startLabel, { color: stopped ? theme.coral : tone }]}>{completed ? 'FIRST QUEST COMPLETE' : stopped ? 'FIRST QUEST ATTEMPTED' : started ? 'PRIVATE BUILD IN PROGRESS' : 'READY TO TEST, NOT COMMIT'}</Text>
           <Text style={[styles.startText, { color: theme.ink }]}>{resolved ? 'Your reflection changed the Atlas and opened a next direction.' : `Start with one ${recommendation.firstQuestMinutes}-minute experiment. Stopping after a real attempt is meaningful progression.`}</Text>
+          {journeyError && <Text accessibilityRole="alert" style={[styles.journeyError, { color: theme.coral }]}>{journeyError}</Text>}
         </View>
-        <Pressable accessibilityRole="button" onPress={primaryAction} style={({ pressed }) => [styles.primaryButton, { backgroundColor: tone }, pressed && styles.pressed]}>
-          <Text style={styles.primaryText}>{resolved ? 'SEE ATLAS GROWTH' : started ? 'CONTINUE FIRST QUEST' : 'START THIS PATH'}</Text>
-          <ArrowRight color="#FFFFFF" size={17} />
+        <Pressable accessibilityRole="button" disabled={journeyBusy} onPress={() => void primaryAction()} style={({ pressed }) => [styles.primaryButton, { backgroundColor: tone }, pressed && !journeyBusy && styles.pressed]}>
+          {journeyBusy ? <ActivityIndicator color="#FFFFFF" size="small" /> : <ArrowRight color="#FFFFFF" size={17} />}
+          <Text style={styles.primaryText}>{journeyBusy ? 'SAVING PATH...' : resolved ? 'SEE ATLAS GROWTH' : started ? 'CONTINUE FIRST QUEST' : 'START THIS PATH'}</Text>
         </Pressable>
       </View>
     </ScreenScaffold>
@@ -228,6 +242,7 @@ const styles = StyleSheet.create({
   startCopy: { minWidth: 220, flex: 1 },
   startLabel: { fontSize: 8, fontWeight: '900' },
   startText: { marginTop: 5, fontSize: 11, lineHeight: 16 },
+  journeyError: { marginTop: 5, fontSize: 9, lineHeight: 13 },
   primaryButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 5, paddingHorizontal: 18 },
   primaryText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
   pressed: { opacity: 0.72 },

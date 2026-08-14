@@ -60,12 +60,14 @@ function OnboardingForm({ initial }: { initial: JourneyProfile }) {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { theme } = useLifeTheme();
-  const { completeOnboarding } = useJourney();
+  const { completeOnboarding, flushJourney } = useJourney();
   const router = useRouter();
   const [interests, setInterests] = useState(initial.interests);
   const [skills, setSkills] = useState(initial.skills);
   const [availableTime, setAvailableTime] = useState(initial.availableTime);
   const [explorations, setExplorations] = useState(initial.explorations);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const ready = skills.length >= 1 && explorations.length >= 1;
 
   const toggleSkill = (id: SkillId) => {
@@ -92,10 +94,19 @@ function OnboardingForm({ initial }: { initial: JourneyProfile }) {
     });
   };
 
-  const continueToRecommendations = () => {
-    if (!ready) return;
+  const continueToRecommendations = async () => {
+    if (!ready || saving) return;
+    setSaving(true);
+    setSaveError(null);
     completeOnboarding({ interests, skills, availableTime, explorations });
-    router.replace('/discover');
+    try {
+      await flushJourney();
+      router.replace('/discover');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Your starting point could not be saved. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -187,14 +198,15 @@ function OnboardingForm({ initial }: { initial: JourneyProfile }) {
         <View>
           <Text style={[styles.footerLabel, { color: ready ? theme.green : theme.coral }]}>{ready ? interests.length ? 'SIGNALS READY' : 'READY TO DISCOVER SIGNALS' : 'CHOOSE WHAT YOU WANT TO EXPLORE'}</Text>
           <Text style={[styles.footerDetail, { color: theme.inkSecondary }]}>Saved only on this device.</Text>
+          {saveError && <Text accessibilityRole="alert" style={[styles.saveError, { color: theme.coral }]}>{saveError}</Text>}
         </View>
         <Pressable
           accessibilityRole="button"
-          disabled={!ready}
-          onPress={continueToRecommendations}
-          style={({ pressed }) => [styles.primaryButton, { backgroundColor: ready ? theme.green : theme.border }, pressed && ready && styles.pressed]}>
-          <Text style={styles.primaryButtonText}>{initial.completed ? 'UPDATE MY PATHS' : 'REVEAL MY PATHS'}</Text>
-          <ArrowRight color="#FFFFFF" size={17} />
+          disabled={!ready || saving}
+          onPress={() => void continueToRecommendations()}
+          style={({ pressed }) => [styles.primaryButton, { backgroundColor: ready ? theme.green : theme.border }, pressed && ready && !saving && styles.pressed]}>
+          {saving ? <ActivityIndicator color="#FFFFFF" size="small" /> : <ArrowRight color="#FFFFFF" size={17} />}
+          <Text style={styles.primaryButtonText}>{saving ? 'SAVING...' : initial.completed ? 'UPDATE MY PATHS' : 'REVEAL MY PATHS'}</Text>
         </Pressable>
       </View>
     </ScreenScaffold>
@@ -251,6 +263,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginTop: 22 },
   footerLabel: { fontSize: 9, fontWeight: '900' },
   footerDetail: { marginTop: 4, fontSize: 9 },
+  saveError: { maxWidth: 500, marginTop: 5, fontSize: 9, lineHeight: 13 },
   primaryButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 6, paddingHorizontal: 20 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   pressed: { opacity: 0.72 },

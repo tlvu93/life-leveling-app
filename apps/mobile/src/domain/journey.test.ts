@@ -29,6 +29,34 @@ function activeState(overrides: Partial<JourneyState['quest']> = {}, profile: Pa
 }
 
 describe('journey version 3', () => {
+  it('normalizes unsupported profile, rating, pull, and artifact values from storage', () => {
+    const migrated = migrateJourneyState({
+      version: 3,
+      profile: {
+        completed: true,
+        interests: ['music', 'invented-interest'],
+        skills: ['coding', 'invented-skill'],
+        availableTime: 'all-week',
+        explorations: ['side-project', 'invented-goal'],
+      },
+      quest: {
+        status: 'active',
+        artifact: { id: 'bad-artifact', kind: 'executable', name: 'bad.exe', createdAt: 'now' },
+        difficulty: 9,
+        enjoyment: 4.5,
+        pulledIn: 'invented-pull',
+      },
+    });
+
+    expect(migrated.profile).toMatchObject({
+      interests: ['music'],
+      skills: ['coding'],
+      availableTime: '2-hours',
+      explorations: ['side-project'],
+    });
+    expect(migrated.quest).toMatchObject({ artifact: null, difficulty: null, enjoyment: null, pulledIn: null });
+  });
+
   it('migrates version 1 completion and artifact data without loss', () => {
     const artifact = {
       id: 'artifact-1', kind: 'file' as const, mimeType: 'text/plain', name: 'attempt.txt', size: 12,

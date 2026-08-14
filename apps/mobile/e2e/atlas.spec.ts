@@ -148,6 +148,45 @@ test('first-run journey completes a Quest and persists Atlas growth', async ({ p
   await expect(page).toHaveURL(/reveal=1/);
   await expect(page.getByTestId('atlas-reveal')).toBeVisible();
   await expect(page.getByTestId('atlas-reveal').getByText('Build a projection sketch', { exact: true })).toBeVisible();
+  const persistedJourney = await page.evaluate((key) => {
+    const stored = JSON.parse(localStorage.getItem(key) ?? '{}');
+    return {
+      version: stored.version,
+      profile: stored.profile,
+      selectedPathId: stored.selectedPathId,
+      quest: {
+        status: stored.quest?.status,
+        outcome: stored.quest?.outcome,
+        evidence: stored.quest?.evidence,
+        reflection: stored.quest?.reflection,
+        difficulty: stored.quest?.difficulty,
+        enjoyment: stored.quest?.enjoyment,
+        pulledIn: stored.quest?.pulledIn,
+      },
+      hasCamera: Object.prototype.hasOwnProperty.call(stored, 'camera'),
+    };
+  }, STORAGE_KEY);
+  expect(persistedJourney).toEqual({
+    version: 3,
+    profile: {
+      completed: true,
+      interests: ['music', 'technology', 'visual'],
+      skills: ['starting-fresh'],
+      availableTime: '2-hours',
+      explorations: ['creative-hobby'],
+    },
+    selectedPathId: 'live-av',
+    quest: {
+      status: 'completed',
+      outcome: 'completed',
+      evidence: 'Saved a 20-second clip named first-reactive-pass.mp4.',
+      reflection: 'The color transitions felt exciting; setup took longer than expected.',
+      difficulty: 3,
+      enjoyment: 5,
+      pulledIn: 'visual-design',
+    },
+    hasCamera: false,
+  });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length)).toBeGreaterThan(1_000);
   await page.screenshot({ path: testInfo.outputPath('atlas-growth.png') });

@@ -1,9 +1,18 @@
 import {
+  explorationLabels,
   getPostQuestRecommendation,
+  interestLabels,
+  pullLabels,
+  skillLabels,
+  timeLabels,
+  type AvailableTime,
+  type ExplorationId,
+  type InterestId,
   type JourneyProfile,
   type PostQuestRecommendation,
   type QuestOutcome,
   type QuestPull,
+  type SkillId,
 } from './recommendations';
 import { getPathExperience, isPlayablePathId, type PlayablePathId } from './path-experiences';
 import type { GuideDecision, UserGuide } from './guides';
@@ -102,16 +111,47 @@ function parseStored(value: unknown) {
   }
 }
 
+function hasOwn<T extends string>(record: Record<T, unknown>, value: unknown): value is T {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(record, value);
+}
+
+function enumArray<T extends string>(value: unknown, record: Record<T, unknown>, fallback: T[]) {
+  if (!Array.isArray(value)) return [...fallback];
+  return Array.from(new Set(value.filter((candidate): candidate is T => hasOwn(record, candidate))));
+}
+
 function profileFrom(value: unknown): JourneyProfile {
   const record = asRecord(value);
   const fallback = defaultJourneyState.profile;
   return {
     completed: typeof record?.completed === 'boolean' ? record.completed : fallback.completed,
-    interests: Array.isArray(record?.interests) ? record.interests as JourneyProfile['interests'] : [...fallback.interests],
-    skills: Array.isArray(record?.skills) ? record.skills as JourneyProfile['skills'] : [...fallback.skills],
-    availableTime: typeof record?.availableTime === 'string' ? record.availableTime as JourneyProfile['availableTime'] : fallback.availableTime,
-    explorations: Array.isArray(record?.explorations) ? record.explorations as JourneyProfile['explorations'] : [...fallback.explorations],
+    interests: enumArray<InterestId>(record?.interests, interestLabels, fallback.interests),
+    skills: enumArray<SkillId>(record?.skills, skillLabels, fallback.skills),
+    availableTime: hasOwn<AvailableTime>(timeLabels, record?.availableTime) ? record.availableTime : fallback.availableTime,
+    explorations: enumArray<ExplorationId>(record?.explorations, explorationLabels, fallback.explorations),
   };
+}
+
+function artifactFrom(value: unknown): QuestArtifact | null {
+  const record = asRecord(value);
+  if (!record
+    || typeof record.id !== 'string'
+    || (record.kind !== 'image' && record.kind !== 'video' && record.kind !== 'file')
+    || typeof record.name !== 'string'
+    || typeof record.createdAt !== 'string') return null;
+  return {
+    id: record.id.slice(0, 120),
+    kind: record.kind,
+    mimeType: typeof record.mimeType === 'string' ? record.mimeType.slice(0, 160) : null,
+    name: record.name.trim().slice(0, 180) || 'Quest evidence',
+    size: typeof record.size === 'number' && Number.isFinite(record.size) && record.size >= 0 ? record.size : null,
+    uri: typeof record.uri === 'string' ? record.uri : '',
+    createdAt: record.createdAt,
+  };
+}
+
+function ratingFrom(value: unknown) {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5 ? value : null;
 }
 
 function questFrom(value: unknown, version: 1 | 2 | 3): QuestDraft {
@@ -129,11 +169,11 @@ function questFrom(value: unknown, version: 1 | 2 | 3): QuestDraft {
     outcome,
     evidenceKind: record?.evidenceKind === 'link' ? 'link' : 'note',
     evidence: typeof record?.evidence === 'string' ? record.evidence : '',
-    artifact: asRecord(record?.artifact) ? record?.artifact as QuestArtifact : null,
+    artifact: artifactFrom(record?.artifact),
     reflection: typeof record?.reflection === 'string' ? record.reflection : '',
-    difficulty: typeof record?.difficulty === 'number' ? record.difficulty : null,
-    enjoyment: typeof record?.enjoyment === 'number' ? record.enjoyment : null,
-    pulledIn: typeof record?.pulledIn === 'string' ? record.pulledIn as QuestPull : null,
+    difficulty: ratingFrom(record?.difficulty),
+    enjoyment: ratingFrom(record?.enjoyment),
+    pulledIn: hasOwn<QuestPull>(pullLabels, record?.pulledIn) ? record.pulledIn : null,
     resolvedAt: version === 1
       ? typeof record?.completedAt === 'string' ? record.completedAt : null
       : typeof record?.resolvedAt === 'string' ? record.resolvedAt : null,

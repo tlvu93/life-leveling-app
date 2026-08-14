@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { JourneyRepository } from '@/data/journey-repository';
+import { localJourneyRepository } from '@/data/local-journey-repository';
 import {
-  defaultJourneyState,
   migrateJourneyState,
   resolveJourneyQuest,
   startPathInJourney,
@@ -27,11 +27,9 @@ export type { GuideDecision, UserGuide } from '@/domain/guides';
 export type { PlayablePathId } from '@/domain/path-experiences';
 export { defaultJourneyState } from '@/domain/journey';
 
-export const JOURNEY_STORAGE_KEY = 'life-leveling.alpha-1.journey.v2';
-export const LEGACY_JOURNEY_STORAGE_KEY = 'life-leveling.alpha-1.journey.v1';
-
 type JourneyContextValue = {
   hydrated: boolean;
+  persistenceError: string | null;
   state: JourneyState;
   completeOnboarding: (profile: Omit<JourneyProfile, 'completed'>) => void;
   startPath: (pathId: PlayablePathId) => void;
@@ -41,42 +39,85 @@ type JourneyContextValue = {
   adoptGuide: (guideId: string) => void;
   addUserGuide: (guide: UserGuide) => void;
   setUserGuideVisibility: (guideId: string, visibility: UserGuide['visibility']) => void;
+  flushJourney: () => Promise<void>;
   resetJourney: () => Promise<void>;
 };
 
 const JourneyContext = createContext<JourneyContextValue | null>(null);
 
-export function JourneyProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<JourneyState>(defaultJourneyState);
+function persistenceMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'The journey could not be saved.';
+}
+
+export function JourneyProvider({
+  children,
+  repository = localJourneyRepository,
+}: {
+  children: ReactNode;
+  repository?: JourneyRepository;
+}) {
+  const initialState = useMemo(() => migrateJourneyState(null), []);
+  const [state, setState] = useState<JourneyState>(initialState);
   const [hydrated, setHydrated] = useState(false);
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const repositoryRef = useRef(repository);
+  const stateRef = useRef(initialState);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
+  const lastWriteError = useRef<Error | null>(null);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const enqueueSave = useCallback((nextState: JourneyState) => {
+    writeQueue.current = writeQueue.current
+      .catch(() => undefined)
+      .then(() => repositoryRef.current.save(nextState))
+      .then(() => {
+        lastWriteError.current = null;
+        if (mounted.current) setPersistenceError(null);
+      })
+      .catch((error: unknown) => {
+        const normalized = error instanceof Error ? error : new Error(persistenceMessage(error));
+        lastWriteError.current = normalized;
+        if (mounted.current) setPersistenceError(normalized.message);
+      });
+    return writeQueue.current;
+  }, []);
+
+  const commitState = useCallback((update: (current: JourneyState) => JourneyState) => {
+    const current = stateRef.current;
+    const next = update(current);
+    if (next === current) return current;
+    stateRef.current = next;
+    setState(next);
+    void enqueueSave(next);
+    return next;
+  }, [enqueueSave]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      AsyncStorage.getItem(JOURNEY_STORAGE_KEY),
-      AsyncStorage.getItem(LEGACY_JOURNEY_STORAGE_KEY),
-    ])
-      .then(([current, legacy]) => {
-        if (active && (current || legacy)) setState(migrateJourneyState(current ?? legacy));
+    repositoryRef.current.load()
+      .then((loaded) => {
+        if (!active) return;
+        stateRef.current = loaded;
+        setState(loaded);
+        setPersistenceError(null);
+        setHydrated(true);
+        void enqueueSave(loaded);
       })
-      .catch(() => undefined)
-      .finally(() => {
-        if (active) setHydrated(true);
+      .catch((error: unknown) => {
+        if (!active) return;
+        setPersistenceError(persistenceMessage(error));
+        setHydrated(true);
       });
     return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const serialized = JSON.stringify(state);
-    writeQueue.current = writeQueue.current
-      .catch(() => undefined)
-      .then(() => AsyncStorage.setItem(JOURNEY_STORAGE_KEY, serialized));
-  }, [hydrated, state]);
+  }, [enqueueSave]);
 
   const completeOnboarding = useCallback((profile: Omit<JourneyProfile, 'completed'>) => {
-    setState((current) => {
+    commitState((current) => {
       const completedProfile = { ...profile, completed: true };
       const branchRecommendation = current.quest.outcome && current.selectedPathId
         ? getPostQuestRecommendation(completedProfile, current.quest, current.selectedPathId)
@@ -91,60 +132,71 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
         ])),
       };
     });
-  }, []);
+  }, [commitState]);
 
   const startPath = useCallback((pathId: PlayablePathId) => {
-    setState((current) => startPathInJourney(current, pathId));
-  }, []);
+    commitState((current) => startPathInJourney(current, pathId));
+  }, [commitState]);
 
   const updateQuest = useCallback((updates: Partial<Omit<QuestDraft, 'status' | 'outcome' | 'resolvedAt'>>) => {
-    setState((current) => {
+    commitState((current) => {
       if (current.quest.status === 'completed' || current.quest.status === 'stopped') return current;
       return { ...current, quest: { ...current.quest, ...updates } };
     });
-  }, []);
+  }, [commitState]);
 
   const resolveQuest = useCallback((outcome: QuestOutcome) => {
-    const resolved = resolveJourneyQuest(state, outcome);
+    const resolved = resolveJourneyQuest(stateRef.current, outcome);
     if (!resolved) return false;
-    setState(resolved);
+    commitState(() => resolved);
     return true;
-  }, [state]);
+  }, [commitState]);
 
   const setGuideDecision = useCallback((guideId: string, decision: GuideDecision) => {
-    setState((current) => ({ ...current, guideDecisions: { ...current.guideDecisions, [guideId]: decision } }));
-  }, []);
+    commitState((current) => ({ ...current, guideDecisions: { ...current.guideDecisions, [guideId]: decision } }));
+  }, [commitState]);
 
   const adoptGuide = useCallback((guideId: string) => {
-    setState((current) => ({
+    commitState((current) => ({
       ...current,
       activeGuideId: guideId,
       guideDecisions: { ...current.guideDecisions, [guideId]: 'saved' },
     }));
-  }, []);
+  }, [commitState]);
 
   const addUserGuide = useCallback((guide: UserGuide) => {
-    setState((current) => ({
+    commitState((current) => ({
       ...current,
       userGuides: [guide, ...current.userGuides.filter((candidate) => candidate.id !== guide.id)],
     }));
-  }, []);
+  }, [commitState]);
 
   const setUserGuideVisibility = useCallback((guideId: string, visibility: UserGuide['visibility']) => {
-    setState((current) => ({
+    commitState((current) => ({
       ...current,
       userGuides: current.userGuides.map((guide) => guide.id === guideId ? { ...guide, visibility } : guide),
     }));
-  }, []);
+  }, [commitState]);
+
+  const flushJourney = useCallback(async () => {
+    await writeQueue.current;
+    if (lastWriteError.current) await enqueueSave(stateRef.current);
+    if (lastWriteError.current) throw lastWriteError.current;
+  }, [enqueueSave]);
 
   const resetJourney = useCallback(async () => {
-    await writeQueue.current.catch(() => undefined);
-    await AsyncStorage.multiRemove([JOURNEY_STORAGE_KEY, LEGACY_JOURNEY_STORAGE_KEY]);
-    setState(migrateJourneyState(null));
+    await writeQueue.current;
+    await repositoryRef.current.clear();
+    const reset = migrateJourneyState(null);
+    stateRef.current = reset;
+    lastWriteError.current = null;
+    setPersistenceError(null);
+    setState(reset);
   }, []);
 
   const value = useMemo<JourneyContextValue>(() => ({
     hydrated,
+    persistenceError,
     state,
     completeOnboarding,
     startPath,
@@ -154,8 +206,9 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     adoptGuide,
     addUserGuide,
     setUserGuideVisibility,
+    flushJourney,
     resetJourney,
-  }), [addUserGuide, adoptGuide, completeOnboarding, hydrated, resetJourney, resolveQuest, setGuideDecision, setUserGuideVisibility, startPath, state, updateQuest]);
+  }), [addUserGuide, adoptGuide, completeOnboarding, flushJourney, hydrated, persistenceError, resetJourney, resolveQuest, setGuideDecision, setUserGuideVisibility, startPath, state, updateQuest]);
 
   return <JourneyContext.Provider value={value}>{children}</JourneyContext.Provider>;
 }

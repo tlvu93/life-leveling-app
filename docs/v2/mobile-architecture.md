@@ -51,15 +51,21 @@ Supporting screens use a scrollable content region between the fixed header and 
 
 ### State
 
-Theme, selection, camera, guide visibility, and the supporting-screen interactions are local prototype state. Authentication, persistence, community publishing, moderation, and offline synchronization are not yet connected.
+`src/domain/journey.ts` owns the versioned, platform-neutral discovery state. `src/data/journey-repository.ts` defines the persistence boundary and its local, in-memory, and HTTP implementations. The application provider depends on that interface; it does not call AsyncStorage or an API directly.
 
-When persistence is added, keep remote state behind domain services. Do not make the Skia scene call API routes directly.
+The default adapter persists the complete onboarding → Path → Quest → reflection journey in AsyncStorage. Onboarding completion, Path start, and Quest resolution wait for the repository write before navigating. Draft edits are queued immediately, and an interrupted write can be retried at the next milestone. Stored data is migrated and normalized to journey version 3 when loaded.
+
+The HTTP adapter is implemented but not enabled. Activating it requires authenticated V2 sessions and a server endpoint with the contract in `journey-persistence.md`. It deliberately removes device-local artifact URIs from remote documents while retaining evidence metadata. Camera position and selection remain local UI state. The Skia scene never calls storage or API routes directly.
+
+Theme, Atlas camera/selection, and pending picker state remain local UI state. Authentication, community publishing, moderation, remote evidence upload, conflict resolution, and offline synchronization are not yet connected.
 
 ## Verification
 
 The current checks cover:
 
 - graph identifier and edge integrity;
+- local, in-memory, and HTTP journey repository contracts;
+- complete onboarding, Path, Quest, reflection, and evidence-metadata persistence;
 - semantic zoom and camera helpers;
 - TypeScript and Expo lint;
 - Expo Doctor compatibility;
@@ -77,8 +83,8 @@ The native project has been regenerated with Expo, assembled with Java 17 and An
 
 ## Next migration slice
 
-1. Define a typed repository interface for Atlas discovery state and Guide routes.
-2. Connect the smallest useful API slice: interests, selected Path, Quest completion, and private reflection.
-3. Persist camera-independent user state; camera position remains local UI state.
-4. Measure Atlas frame time on a representative mid-range physical Android device and establish a performance budget.
+1. Add V2 authentication and implement the authenticated journey endpoint before enabling the HTTP adapter.
+2. Decide the evidence-upload and cross-device conflict policy; never treat a device-local file URI as remotely usable.
+3. Measure Atlas frame time on a representative mid-range physical Android device and establish a performance budget.
+4. Run the first five-person alpha using the persisted onboarding → Path → Quest → reflection loop.
 5. Replace scaffold app icons and splash art after the visual identity is approved.

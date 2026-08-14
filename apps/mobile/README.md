@@ -47,8 +47,10 @@ The browser suite exports and serves the production web build at `http://127.0.0
 - `src/screens`: Atlas, Discover, Quest, and Community screens.
 - `src/components/atlas`: Skia scene, gesture camera, and responsive HUD.
 - `src/domain/atlas.ts`: platform-neutral typed graph data and camera helpers.
+- `src/domain/journey.ts`: versioned onboarding, Path, Quest, reflection, and Guide state.
+- `src/data`: typed local, memory, and HTTP journey repository adapters.
 - `src/theme`: Living Atlas and Night Atlas design tokens.
 - `public/canvaskit.wasm`: generated after install from Skia's CanvasKit dependency and loaded only by the web renderer.
 - `e2e`: viewport, interaction, and navigation checks.
 
-See `../../docs/v2/mobile-architecture.md` for the migration boundary and implementation decisions.
+See `../../docs/v2/mobile-architecture.md` for the migration boundary and implementation decisions, and `../../docs/v2/journey-persistence.md` for the repository and remote API contract.

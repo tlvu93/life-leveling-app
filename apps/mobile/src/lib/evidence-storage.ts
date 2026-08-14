@@ -88,6 +88,8 @@ export async function persistEvidenceAsset(input: EvidenceAssetInput): Promise<Q
 }
 
 export async function deleteEvidenceArtifact(artifact: QuestArtifact) {
+  if (!artifact.uri) return;
+
   if (Platform.OS === 'web') {
     if (typeof indexedDB !== 'undefined') await withWebStore('readwrite', (store) => store.delete(artifact.id));
     return;
