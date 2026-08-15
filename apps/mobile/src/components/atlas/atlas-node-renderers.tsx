@@ -217,8 +217,13 @@ function SelectionRing({ node, visual, pulseOpacity }: { node: AtlasGraphNode; v
   );
 }
 
-/** Shared glowing polygon badge: halo, gradient body, rim, all round-joined. */
-function GlowBadge({ x, y, sides, radius, domain, glowBlur, glowOpacity, rimWidth, rotationRad }: {
+/**
+ * Shared glowing polygon badge: halo, gradient body, rim, all round-joined.
+ * `active` nodes (discovered / attempted / completed / selected) get the
+ * mock's "shining" treatment: a white-hot rim that blooms outward over the
+ * domain-colored halo. Inactive ("nearby") nodes stay subdued/dormant.
+ */
+function GlowBadge({ x, y, sides, radius, domain, glowBlur, glowOpacity, rimWidth, active, rotationRad }: {
   x: number;
   y: number;
   sides: number;
@@ -227,21 +232,31 @@ function GlowBadge({ x, y, sides, radius, domain, glowBlur, glowOpacity, rimWidt
   glowBlur: number;
   glowOpacity: number;
   rimWidth: number;
+  active: boolean;
   rotationRad?: number;
 }) {
   const shape = regularPolygonPath(x, y, sides, radius, rotationRad);
+  const bodyGradient = <RadialGradient c={vec(x, y - radius * 0.45)} r={radius * 1.9} colors={[domain.bright, domain.core]} />;
   return (
     <Group>
-      <Path path={shape} color={domain.glow} opacity={glowOpacity}>
-        <BlurMask blur={glowBlur} style="normal" />
+      <Path path={shape} color={domain.glow} opacity={active ? glowOpacity : glowOpacity * 0.4}>
+        <BlurMask blur={active ? glowBlur * 1.15 : glowBlur * 0.65} style="normal" />
       </Path>
-      <Path path={shape} strokeJoin="round" style="stroke" strokeWidth={radius * 0.3} color={domain.core} />
-      <Path path={shape}>
-        <RadialGradient c={vec(x, y - radius * 0.6)} r={radius * 2.1} colors={[domain.bright, domain.core]} />
-      </Path>
-      <Path path={shape} style="stroke" strokeWidth={rimWidth} color={domain.bright} strokeJoin="round" />
+      {active && (
+        <Path path={shape} style="stroke" strokeWidth={rimWidth * 2.4} color="#FFFFFF" opacity={0.85} strokeJoin="round">
+          <BlurMask blur={6} style="solid" />
+        </Path>
+      )}
+      <Path path={shape} strokeJoin="round" style="stroke" strokeWidth={radius * 0.3}>{bodyGradient}</Path>
+      <Path path={shape}>{bodyGradient}</Path>
+      <Path path={shape} style="stroke" strokeWidth={active ? rimWidth + 0.5 : rimWidth} color={active ? '#FFFFFF' : domain.bright} strokeJoin="round" />
     </Group>
   );
+}
+
+/** A node counts as activated once it is part of the person's lived world. */
+function isActiveStatus(node: AtlasGraphNode): boolean {
+  return node.status === 'discovered' || node.status === 'attempted' || node.status === 'completed';
 }
 
 export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpacity, thinLabels = false }: NodeProps) {
@@ -252,13 +267,14 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   const busyStep = node.kind === 'quest' && node.step ? /[R+]/.test(node.step) : false;
   const label = thinLabels && busyStep ? null : <MarkerLabel node={node} theme={theme} visual={visual} fonts={fonts} />;
   const ring = selected ? <SelectionRing node={node} visual={visual} pulseOpacity={pulseOpacity} /> : null;
+  const active = selected || isActiveStatus(node);
 
   if (node.kind === 'interest') {
     return (
       <Group>
         {ring}
-        <Circle cx={node.x} cy={node.y} r={radius * 1.75} color="#FFFFFF" opacity={0.16} style="stroke" strokeWidth={1} />
-        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={domain} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} />
+        <Circle cx={node.x} cy={node.y} r={radius * 1.75} color="#FFFFFF" opacity={active ? 0.22 : 0.12} style="stroke" strokeWidth={1} />
+        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={domain} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
         <InterestGlyph node={node} color="#FFFFFF" />
         {label}
       </Group>
@@ -266,11 +282,11 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   }
 
   if (node.kind === 'path') {
-    const preview = node.status === 'nearby';
+    const preview = node.status === 'nearby' && !selected;
     return (
       <Group opacity={preview ? 0.62 : 1}>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={preview ? 0.4 : geometry.glowOpacity} rimWidth={geometry.rimWidth} />
+        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={preview ? 0.4 : geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
         <Path
           path={`M ${node.x - 5} ${node.y - 12} L ${node.x + 2} ${node.y - 2} L ${node.x - 2} ${node.y - 2} L ${node.x + 6} ${node.y + 12} L ${node.x - 7} ${node.y + 1} L ${node.x - 1} ${node.y + 1} Z`}
           color="#FFFFFF"
@@ -284,7 +300,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} />
+        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
         <Path path={starPath(node.x, node.y, 5, radius * 0.52, radius * 0.22)} color="#FFFFFF" />
         {label}
       </Group>
@@ -295,7 +311,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} />
+        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
         <SkiaText
           x={node.x - fonts.step.getTextWidth(node.step ?? '') / 2}
           y={node.y + 4}
@@ -314,9 +330,14 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   return (
     <Group opacity={dashed ? 0.78 : 1}>
       {ring}
-      <Circle cx={node.x} cy={node.y} r={radius + 2} color={domain.glow} opacity={geometry.glowOpacity}>
-        <BlurMask blur={geometry.glowBlur} style="normal" />
+      <Circle cx={node.x} cy={node.y} r={radius + 2} color={domain.glow} opacity={active ? geometry.glowOpacity : geometry.glowOpacity * 0.45}>
+        <BlurMask blur={active ? geometry.glowBlur * 1.4 : geometry.glowBlur * 0.7} style="normal" />
       </Circle>
+      {active && (
+        <Circle cx={node.x} cy={node.y} r={radius + 0.5} color="#FFFFFF" opacity={0.9} style="stroke" strokeWidth={2}>
+          <BlurMask blur={3.5} style="solid" />
+        </Circle>
+      )}
       <Circle cx={node.x} cy={node.y} r={radius} color={visual.markerFill} />
       <Circle cx={node.x} cy={node.y} r={radius} color={domain.bright} style="stroke" strokeWidth={geometry.rimWidth}>
         {dashed && <DashPathEffect intervals={[4, 4]} />}
