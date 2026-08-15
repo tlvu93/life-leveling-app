@@ -185,14 +185,38 @@ export const atlasRegions: AtlasRegion[] = [
 export const atlasNodeIndex = new Map(atlasGraphNodes.map((node) => [node.id, node]));
 export const atlasZoomLabels = ['Regions', 'Paths', 'Details'] as const;
 
-export const atlasDust = Array.from({ length: 96 }, (_, index) => ({
-  x: 24 + ((index * 137) % 1152),
-  y: 18 + ((index * 83) % 604),
-  radius: index % 11 === 0 ? 2.2 : index % 4 === 0 ? 1.4 : 0.8,
-  opacity: 0.18 + ((index * 17) % 44) / 100,
-}));
+export type AtlasStar = { x: number; y: number; radius: number; opacity: number };
+
+// Deterministic pseudo-random (no Math.random so captures stay reproducible).
+const starFract = (seed: number) => {
+  const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+// Stars extend past the world bounds so overscrolled edges stay populated.
+const STAR_FIELD = { x: -80, y: -60, width: 1360, height: 770 };
+
+function makeStars(count: number, seedBase: number, radiusMin: number, radiusMax: number, opacityMin: number, opacityMax: number): AtlasStar[] {
+  return Array.from({ length: count }, (_, index) => {
+    const seed = seedBase + index * 7.13;
+    return {
+      x: STAR_FIELD.x + starFract(seed) * STAR_FIELD.width,
+      y: STAR_FIELD.y + starFract(seed + 1.7) * STAR_FIELD.height,
+      radius: radiusMin + starFract(seed + 3.1) * (radiusMax - radiusMin),
+      opacity: opacityMin + starFract(seed + 5.9) * (opacityMax - opacityMin),
+    };
+  });
+}
+
+// Three tiers: dense points, soft medium stars, and large 4-arm flare stars.
+export const atlasStars = {
+  tiny: makeStars(320, 1, 0.5, 1.1, 0.35, 0.8),
+  medium: makeStars(64, 500, 1.2, 2.4, 0.5, 0.95),
+  flare: makeStars(12, 900, 6, 14, 0.5, 0.9),
+};
 
 export function clamp(value: number, min: number, max: number) {
+  'worklet';
   return Math.min(max, Math.max(min, value));
 }
 
@@ -202,6 +226,7 @@ export function cameraTranslationForAnchor(worldX: number, worldY: number, focal
 }
 
 export function semanticZoomForScale(scale: number): AtlasZoom {
+  'worklet';
   return scale < 0.72 ? 0 : scale < 1.18 ? 1 : 2;
 }
 
@@ -262,8 +287,10 @@ export function visibleAtlasNodes(zoom: AtlasZoom, progress?: AtlasProgress) {
   return atlasNodesForProgress(progress).filter((node) => node.minZoom <= zoom);
 }
 
-export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?: AtlasProgress) {
-  const visibleIds = new Set(visibleAtlasNodes(zoom, progress).map((node) => node.id));
+export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?: AtlasProgress, precomputedIds?: ReadonlySet<string>) {
+  // Callers that already hold the visible node list pass its ids to avoid a
+  // second full atlasNodesForProgress pass (audit: node pass ran 2-3x per change).
+  const visibleIds = precomputedIds ?? new Set(visibleAtlasNodes(zoom, progress).map((node) => node.id));
   const activeRouteId = progress?.activePathId ?? 'live-av';
   return atlasGraphEdges.filter((edge) => edge.minZoom <= zoom
     && (edge.maxZoom === undefined || zoom <= edge.maxZoom)
@@ -271,6 +298,48 @@ export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?
     && visibleIds.has(edge.to)
     && (!edge.routeId || edge.routeId === activeRouteId)
     && (edge.kind !== 'guide' || showGuide));
+}
+
+const showcaseCompletedNodeIds = new Set(['production', 'sound-design', 'creative-coding', 'generative', 'choose-track-stage', 'reactive-visuals-stage']);
+
+/**
+ * Showcase mode (dev-only, `?showcase=1`): the full graph with no zoom or
+ * progress gating, used by the visual-verification screenshot harness so the
+ * atlas renders at mock-like density. A few nodes are forced `completed` to
+ * exercise the completed-badge visuals; the active path reads as attempted.
+ */
+export function atlasShowcaseNodes(): AtlasGraphNode[] {
+  return atlasGraphNodes.map((node) => {
+    if (showcaseCompletedNodeIds.has(node.id)) return { ...node, status: 'completed' as const };
+    if (node.id === 'live-av') return { ...node, status: 'attempted' as const };
+    return node;
+  });
+}
+
+// The one bright journey the showcase renders as the glowing white route;
+// remaining personal branches demote to constellation web lines so the map
+// reads like the mock (one ribbon, many faint links).
+const showcaseRouteSpine = new Set([
+  'route-music', 'route-production', 'route-sound',
+  'route-stage-1', 'route-stage-2', 'route-q1',
+  'route-live', 'route-live-goal',
+]);
+
+/**
+ * All edges for showcase mode. Overview-only duplicates (edges capped below
+ * zoom 2) are dropped, personal chains of non-active routes render as dashed
+ * navigator routes (`guide` kind) keyed by their own routeId, and live-av
+ * personal edges off the spine become plain relations.
+ */
+export function atlasShowcaseEdges(): AtlasGraphEdge[] {
+  return atlasGraphEdges
+    .filter((edge) => edge.maxZoom === undefined || edge.maxZoom >= 2)
+    .map((edge) => {
+      if (edge.kind !== 'personal') return edge;
+      if (edge.routeId && edge.routeId !== 'live-av') return { ...edge, kind: 'guide' as const };
+      if (!showcaseRouteSpine.has(edge.id)) return { ...edge, kind: 'relation' as const };
+      return edge;
+    });
 }
 
 export function atlasEdgePath(edge: AtlasGraphEdge) {
@@ -289,6 +358,20 @@ export function fitWorldCamera(viewportWidth: number, viewportHeight: number, pa
     scale,
     x: (viewportWidth - ATLAS_WORLD.width * scale) / 2,
     y: (viewportHeight - ATLAS_WORLD.height * scale) / 2,
+  };
+}
+
+/**
+ * Cover-fit: scales the world so it fills the viewport edge-to-edge (small
+ * overflow is cropped). Used by showcase captures to match the mock's framing.
+ */
+export function fillWorldCamera(viewportWidth: number, viewportHeight: number, topInset = 0) {
+  const usableHeight = Math.max(1, viewportHeight - topInset);
+  const scale = clamp(Math.max(viewportWidth / ATLAS_WORLD.width, usableHeight / ATLAS_WORLD.height), ATLAS_MIN_SCALE, ATLAS_MAX_SCALE);
+  return {
+    scale,
+    x: (viewportWidth - ATLAS_WORLD.width * scale) / 2,
+    y: topInset + (usableHeight - ATLAS_WORLD.height * scale) / 2,
   };
 }
 

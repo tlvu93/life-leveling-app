@@ -1,27 +1,41 @@
 import * as Haptics from 'expo-haptics';
 import { ArrowRight, Check, Sparkles } from 'lucide-react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ImageBackground, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
 import { BottomNav } from '@/components/BottomNav';
+import { AtlasFpsHud } from '@/components/atlas/AtlasFpsHud';
 import { AtlasHud } from '@/components/atlas/AtlasHud';
 import AtlasScene from '@/components/atlas/AtlasScene';
 import { useAtlasCamera } from '@/components/atlas/use-atlas-camera';
 import { atlasNodesForProgress, type AtlasGraphNode, type AtlasProgress, type AtlasZoom } from '@/domain/atlas';
 import { getPathExperience } from '@/domain/path-experiences';
+import { parseAtlasDevFlags } from '@/lib/atlas-dev-flags';
 import { useJourney } from '@/state/journey-context';
 import { useLifeTheme } from '@/state/theme-context';
-import atlasBackground from '@/assets/images/atlas-celestial-bg.png';
+import atlasBackground from '@/assets/images/atlas-universe-bg.png';
 
 function AtlasExperience() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { state } = useJourney();
-  const { reveal } = useLocalSearchParams<{ reveal?: string }>();
+  const params = useLocalSearchParams<{ reveal?: string; showcase?: string; static?: string; theme?: string; fps?: string }>();
+  const reveal = params.reveal;
+  // Key on the primitive values: useLocalSearchParams returns a fresh object
+  // every render, and an unstable devFlags identity defeats memoization all
+  // the way down the scene tree.
+  const devFlags = useMemo(
+    () => parseAtlasDevFlags({ showcase: params.showcase, static: params.static, theme: params.theme, fps: params.fps }),
+    [params.fps, params.showcase, params.static, params.theme],
+  );
   const router = useRouter();
-  const { theme } = useLifeTheme();
+  const { theme, setMode } = useLifeTheme();
+
+  useEffect(() => {
+    if (devFlags.themeOverride) setMode(devFlags.themeOverride);
+  }, [devFlags.themeOverride, setMode]);
   const recommendation = state.branchRecommendation;
   const activePathId = state.selectedPathId ?? 'live-av';
   const firstQuestNodeId = state.selectedPathId ? getPathExperience(state.selectedPathId).quest.nodeId : 'make-track-visible';
@@ -33,7 +47,7 @@ function AtlasExperience() {
   const [showGuide, setShowGuide] = useState(true);
   const [panelOpen, setPanelOpen] = useState(true);
   const [revealOpen, setRevealOpen] = useState(reveal === '1' && resolved);
-  const camera = useAtlasCamera(viewport.width, viewport.height, setSemanticZoom, activePathId);
+  const camera = useAtlasCamera(viewport.width, viewport.height, setSemanticZoom, activePathId, devFlags.showcase ? 'fill' : 'focus');
   const progress = useMemo<AtlasProgress>(() => ({
     pathStarted: state.selectedPathId !== null,
     activePathId: state.selectedPathId,
@@ -57,7 +71,9 @@ function AtlasExperience() {
 
   return (
     <View onLayout={onLayout} style={styles.root} testID="atlas-screen">
-      <ImageBackground source={atlasBackground} resizeMode="cover" style={StyleSheet.absoluteFill}>
+      {/* imageStyle must force 100% size: react-native-web otherwise renders the
+          inner image at its intrinsic 1672x941, leaving larger windows blank. */}
+      <ImageBackground source={atlasBackground} resizeMode="cover" style={StyleSheet.absoluteFill} imageStyle={styles.backgroundImage}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.canvasScrim }]} />
       </ImageBackground>
       {viewport.width > 0 && (
@@ -65,13 +81,15 @@ function AtlasExperience() {
           camera={camera}
           semanticZoom={semanticZoom}
           selectedId={selectedId}
-          showGuide={showGuide}
+          showGuide={devFlags.showcase || showGuide}
           theme={theme}
           progress={progress}
+          devFlags={devFlags}
           onNodePress={selectNode}
         />
       )}
       <AppHeader transparent />
+      {devFlags.fps && <AtlasFpsHud />}
       <AtlasHud
         camera={camera}
         selectedNode={selectedNode}
@@ -124,6 +142,7 @@ export default function AtlasScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
+  backgroundImage: { width: '100%', height: '100%' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   reveal: { position: 'absolute', zIndex: 55, right: 24, bottom: 92, left: 24, maxWidth: 820, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 15, borderWidth: 1, borderRadius: 8, padding: 17, shadowColor: '#1E2B23', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
   revealCompact: { right: 10, bottom: 78, left: 10, alignItems: 'stretch', flexDirection: 'column', gap: 10, padding: 14 },

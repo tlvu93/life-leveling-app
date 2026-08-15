@@ -19,6 +19,8 @@ const shared = {
   pink: '#C94E91',
   radiusSmall: 6,
   radiusMedium: 8,
+  radiusLarge: 14,
+  radiusPill: 999,
   touchTarget: 44,
 };
 
@@ -35,13 +37,17 @@ export const themes = {
     borderSoft: 'rgba(94, 113, 101, 0.28)',
     nav: 'rgba(250, 250, 252, 0.96)',
     navInk: '#202B53',
-    canvasScrim: 'rgba(238, 245, 240, 0.14)',
+    canvasScrim: 'rgba(46, 34, 96, 0.10)',
     route: '#2F7D59',
     routeGlow: 'rgba(47, 125, 89, 0.24)',
     relation: 'rgba(52, 80, 68, 0.28)',
     guide: '#615FBE',
     focus: '#6246CE',
     success: '#3B8C61',
+    accent: '#6C4FE0',
+    accentSoft: 'rgba(108, 79, 224, 0.12)',
+    panel: 'rgba(255, 255, 255, 0.96)',
+    panelBorder: 'rgba(212, 210, 238, 0.9)',
   },
   night: {
     ...shared,
@@ -62,6 +68,10 @@ export const themes = {
     guide: '#8487F0',
     focus: '#C7F05A',
     success: '#74D887',
+    accent: '#8F76F0',
+    accentSoft: 'rgba(143, 118, 240, 0.18)',
+    panel: 'rgba(14, 18, 38, 0.92)',
+    panelBorder: 'rgba(80, 84, 120, 0.5)',
   },
 } as const;
 

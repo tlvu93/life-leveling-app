@@ -1,42 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-const STORAGE_KEY = 'life-leveling.alpha-1.journey.v2';
-const LEGACY_STORAGE_KEY = 'life-leveling.alpha-1.journey.v1';
+import journeyStates from './fixtures/journey-states.json';
 
-const onboardedJourney = {
-  version: 2,
-  profile: {
-    completed: true,
-    interests: ['music', 'technology', 'visual'],
-    skills: ['starting-fresh'],
-    availableTime: '2-hours',
-    explorations: ['creative-hobby'],
-  },
-  selectedPathId: null,
-  pathStartedAt: null,
-  quest: {
-    status: 'not-started',
-    outcome: null,
-    evidenceKind: 'note',
-    evidence: '',
-    artifact: null,
-    reflection: '',
-    difficulty: null,
-    enjoyment: null,
-    pulledIn: null,
-    resolvedAt: null,
-  },
-  branchRecommendation: null,
-  unlockedNodeIds: [],
-};
-
-const activeJourney = {
-  ...onboardedJourney,
-  selectedPathId: 'live-av',
-  pathStartedAt: '2026-08-11T12:00:00.000Z',
-  quest: { ...onboardedJourney.quest, status: 'active' },
-  unlockedNodeIds: ['make-track-visible'],
-};
+const STORAGE_KEY = journeyStates.storageKey;
+const LEGACY_STORAGE_KEY = journeyStates.legacyStorageKey;
+const onboardedJourney = journeyStates.onboarded;
+const activeJourney = journeyStates.active;
 
 async function seedJourney(page: Page, state: unknown = onboardedJourney) {
   await page.addInitScript(({ key, value }) => {
@@ -79,8 +48,9 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('atlas-scene')).toBeVisible();
-    await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
-    const canvasDataLength = await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length);
+    // Two canvases by design: the baked world canvas plus the animation overlay.
+    await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+    const canvasDataLength = await page.locator('canvas').first().evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length);
     expect(canvasDataLength).toBeGreaterThan(1_000);
 
     const header = await bounds(page.getByTestId('app-header'));
@@ -98,6 +68,21 @@ for (const viewport of viewports) {
     expect(intersects(header, inspector)).toBe(false);
     expect(intersects(inspector, nav)).toBe(false);
     expect(intersects(tools, inspector)).toBe(false);
+
+    if (viewport.width >= 1100 && viewport.height >= 820) {
+      const legend = await bounds(page.getByTestId('atlas-legend'));
+      const navigatorCard = await bounds(page.getByTestId('atlas-navigator-routes'));
+      for (const box of [legend, navigatorCard]) {
+        expect(box.x).toBeGreaterThanOrEqual(-1);
+        expect(box.y).toBeGreaterThanOrEqual(-1);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+      }
+      expect(intersects(legend, tools)).toBe(false);
+      expect(intersects(legend, nav)).toBe(false);
+      expect(intersects(navigatorCard, inspector)).toBe(false);
+      expect(intersects(navigatorCard, header)).toBe(false);
+    }
 
     const documentSize = await page.evaluate(() => ({
       height: document.documentElement.scrollHeight,
@@ -187,8 +172,8 @@ test('first-run journey completes a Quest and persists Atlas growth', async ({ p
     },
     hasCamera: false,
   });
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
-  await expect.poll(() => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length)).toBeGreaterThan(1_000);
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.locator('canvas').first().evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length)).toBeGreaterThan(1_000);
   await page.screenshot({ path: testInfo.outputPath('atlas-growth.png') });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -203,7 +188,7 @@ test('Atlas controls and primary navigation work', async ({ page }) => {
   await seedJourney(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
 
   await page.getByLabel('Zoom in', { exact: true }).click();
   await page.getByLabel('Hide community route', { exact: true }).click();
