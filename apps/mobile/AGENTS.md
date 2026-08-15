@@ -23,6 +23,16 @@ regression entirely (2026-08 audit, `docs/superpowers/plans/2026-08-15-atlas-per
 Protocol:
 1. Build + install: `npm run android:release` (kill Metro first; the release
    buildType is pre-signed with the debug keystore).
+   Known issue on this Windows machine (verified 2026-08-15, present with and
+   without the R8 flag): the release native variant fails in
+   react-native-skia/worklets CMake configure with `ninja: manifest
+   'build.ninja' still dirty after 100 tries` - a CMake 3.22.1 + ninja
+   timestamp bug. First aid: check the system clock, delete the libraries'
+   `android/.cxx` dirs, retry; or install a newer CMake via Android Studio's
+   SDK Manager. Until fixed, `npx expo run:android --variant debugOptimized`
+   is the measurement fallback: optimized JS bundle with the (working) debug
+   native variant - close enough for before/after comparisons, though absolute
+   numbers still read slightly worse than true release.
 2. Open the Atlas, wait ~5 s for warm-up, then run the scripted pan benchmark:
    `powershell -File scripts/perf-pan.ps1 -Label before` — it resets
    `dumpsys gfxinfo`, drives identical `adb shell input swipe` pans, and saves
