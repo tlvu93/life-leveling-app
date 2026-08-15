@@ -7,12 +7,15 @@ export type AtlasDevFlags = {
   freeze: boolean;
   /** Force a theme on mount instead of the default. */
   themeOverride: ThemeMode | null;
+  /** Show the frame-time HUD (UI-thread fps + dropped frames). */
+  fps: boolean;
 };
 
 export const defaultAtlasDevFlags: AtlasDevFlags = {
   showcase: false,
   freeze: false,
   themeOverride: null,
+  fps: false,
 };
 
 function firstValue(value: string | string[] | undefined): string | null {
@@ -31,5 +34,6 @@ export function parseAtlasDevFlags(params: Record<string, string | string[] | un
     showcase: firstValue(params.showcase) === '1',
     freeze: firstValue(params.static) === '1',
     themeOverride: theme === 'living' || theme === 'night' ? theme : null,
+    fps: firstValue(params.fps) === '1',
   };
 }

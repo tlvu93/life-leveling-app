@@ -12,7 +12,13 @@ describe('atlas dev flags', () => {
       showcase: true,
       freeze: true,
       themeOverride: 'night',
+      fps: false,
     });
+  });
+
+  it('parses the fps HUD toggle', () => {
+    expect(parseAtlasDevFlags({ fps: '1' })).toMatchObject({ fps: true });
+    expect(parseAtlasDevFlags({ fps: '0' })).toMatchObject({ fps: false });
   });
 
   it('ignores unknown theme values and non-"1" toggles', () => {

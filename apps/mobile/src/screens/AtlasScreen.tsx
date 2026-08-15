@@ -6,6 +6,7 @@ import { ActivityIndicator, ImageBackground, Platform, Pressable, StyleSheet, Te
 
 import { AppHeader } from '@/components/AppHeader';
 import { BottomNav } from '@/components/BottomNav';
+import { AtlasFpsHud } from '@/components/atlas/AtlasFpsHud';
 import { AtlasHud } from '@/components/atlas/AtlasHud';
 import AtlasScene from '@/components/atlas/AtlasScene';
 import { useAtlasCamera } from '@/components/atlas/use-atlas-camera';
@@ -20,14 +21,14 @@ function AtlasExperience() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { state } = useJourney();
-  const params = useLocalSearchParams<{ reveal?: string; showcase?: string; static?: string; theme?: string }>();
+  const params = useLocalSearchParams<{ reveal?: string; showcase?: string; static?: string; theme?: string; fps?: string }>();
   const reveal = params.reveal;
   // Key on the primitive values: useLocalSearchParams returns a fresh object
   // every render, and an unstable devFlags identity defeats memoization all
   // the way down the scene tree.
   const devFlags = useMemo(
-    () => parseAtlasDevFlags({ showcase: params.showcase, static: params.static, theme: params.theme }),
-    [params.showcase, params.static, params.theme],
+    () => parseAtlasDevFlags({ showcase: params.showcase, static: params.static, theme: params.theme, fps: params.fps }),
+    [params.fps, params.showcase, params.static, params.theme],
   );
   const router = useRouter();
   const { theme, setMode } = useLifeTheme();
@@ -88,6 +89,7 @@ function AtlasExperience() {
         />
       )}
       <AppHeader transparent />
+      {devFlags.fps && <AtlasFpsHud />}
       <AtlasHud
         camera={camera}
         selectedNode={selectedNode}
