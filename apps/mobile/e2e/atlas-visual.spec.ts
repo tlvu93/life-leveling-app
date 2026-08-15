@@ -14,7 +14,8 @@ async function openShowcase(page: Page, theme: 'living' | 'night') {
   await page.setViewportSize(VIEWPORT);
   await page.goto(`/?showcase=1&static=1&theme=${theme}`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('atlas-scene')).toBeVisible();
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
+  // Two canvases by design: the baked world canvas plus the animation overlay.
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(() => {
     const canvas = document.querySelector('canvas');
     return Boolean(canvas && canvas.toDataURL().length > 20_000);

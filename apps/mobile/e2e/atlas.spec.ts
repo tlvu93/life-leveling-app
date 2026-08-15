@@ -48,8 +48,9 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('atlas-scene')).toBeVisible();
-    await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
-    const canvasDataLength = await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length);
+    // Two canvases by design: the baked world canvas plus the animation overlay.
+    await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+    const canvasDataLength = await page.locator('canvas').first().evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length);
     expect(canvasDataLength).toBeGreaterThan(1_000);
 
     const header = await bounds(page.getByTestId('app-header'));
@@ -171,8 +172,8 @@ test('first-run journey completes a Quest and persists Atlas growth', async ({ p
     },
     hasCamera: false,
   });
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
-  await expect.poll(() => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length)).toBeGreaterThan(1_000);
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.locator('canvas').first().evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL().length)).toBeGreaterThan(1_000);
   await page.screenshot({ path: testInfo.outputPath('atlas-growth.png') });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -187,7 +188,7 @@ test('Atlas controls and primary navigation work', async ({ page }) => {
   await seedJourney(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
 
   await page.getByLabel('Zoom in', { exact: true }).click();
   await page.getByLabel('Hide community route', { exact: true }).click();
