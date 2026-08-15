@@ -185,12 +185,35 @@ export const atlasRegions: AtlasRegion[] = [
 export const atlasNodeIndex = new Map(atlasGraphNodes.map((node) => [node.id, node]));
 export const atlasZoomLabels = ['Regions', 'Paths', 'Details'] as const;
 
-export const atlasDust = Array.from({ length: 96 }, (_, index) => ({
-  x: 24 + ((index * 137) % 1152),
-  y: 18 + ((index * 83) % 604),
-  radius: index % 11 === 0 ? 2.2 : index % 4 === 0 ? 1.4 : 0.8,
-  opacity: 0.18 + ((index * 17) % 44) / 100,
-}));
+export type AtlasStar = { x: number; y: number; radius: number; opacity: number };
+
+// Deterministic pseudo-random (no Math.random so captures stay reproducible).
+const starFract = (seed: number) => {
+  const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+// Stars extend past the world bounds so overscrolled edges stay populated.
+const STAR_FIELD = { x: -80, y: -60, width: 1360, height: 770 };
+
+function makeStars(count: number, seedBase: number, radiusMin: number, radiusMax: number, opacityMin: number, opacityMax: number): AtlasStar[] {
+  return Array.from({ length: count }, (_, index) => {
+    const seed = seedBase + index * 7.13;
+    return {
+      x: STAR_FIELD.x + starFract(seed) * STAR_FIELD.width,
+      y: STAR_FIELD.y + starFract(seed + 1.7) * STAR_FIELD.height,
+      radius: radiusMin + starFract(seed + 3.1) * (radiusMax - radiusMin),
+      opacity: opacityMin + starFract(seed + 5.9) * (opacityMax - opacityMin),
+    };
+  });
+}
+
+// Three tiers: dense points, soft medium stars, and large 4-arm flare stars.
+export const atlasStars = {
+  tiny: makeStars(210, 1, 0.5, 1.1, 0.35, 0.8),
+  medium: makeStars(46, 500, 1.2, 2.4, 0.5, 0.95),
+  flare: makeStars(12, 900, 6, 14, 0.5, 0.9),
+};
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));

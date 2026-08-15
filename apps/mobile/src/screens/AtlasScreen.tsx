@@ -14,7 +14,7 @@ import { getPathExperience } from '@/domain/path-experiences';
 import { parseAtlasDevFlags } from '@/lib/atlas-dev-flags';
 import { useJourney } from '@/state/journey-context';
 import { useLifeTheme } from '@/state/theme-context';
-import atlasBackground from '@/assets/images/atlas-celestial-bg.png';
+import atlasBackground from '@/assets/images/atlas-universe-bg.png';
 
 function AtlasExperience() {
   const { width } = useWindowDimensions();

@@ -6,6 +6,7 @@ import {
   Group,
   Line,
   Path,
+  Points,
   RoundedRect,
   Text as SkiaText,
   useFont,
@@ -30,11 +31,11 @@ import Animated, {
 import {
   ATLAS_MAX_SCALE,
   ATLAS_MIN_SCALE,
-  atlasDust,
   atlasEdgePath,
   atlasRegions,
   atlasShowcaseEdges,
   atlasShowcaseNodes,
+  atlasStars,
   cameraTranslationForAnchor,
   visibleAtlasEdges,
   visibleAtlasNodes,
@@ -43,7 +44,9 @@ import {
   type AtlasZoom,
 } from '@/domain/atlas';
 import { defaultAtlasDevFlags, type AtlasDevFlags } from '@/lib/atlas-dev-flags';
+import { atlasVisual } from '@/theme/atlas-style';
 import { clusterColors, type AppTheme } from '@/theme/tokens';
+import { sparklePath } from './atlas-geometry';
 import type { AtlasCamera } from './use-atlas-camera';
 
 export type AtlasSceneProps = {
@@ -290,6 +293,8 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
     ? { label: labelFont, small: smallFont, hub: hubFont, region: regionFont, step: stepFont }
     : null, [hubFont, labelFont, regionFont, smallFont, stepFont]);
   const { showcase, freeze } = devFlags;
+  const visual = atlasVisual[theme.mode];
+  const tinyStarPoints = useMemo(() => atlasStars.tiny.map((star) => vec(star.x, star.y)), []);
   const visibleNodes = useMemo(() => showcase ? atlasShowcaseNodes() : visibleAtlasNodes(semanticZoom, progress), [progress, semanticZoom, showcase]);
   const edges = useMemo(() => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress), [progress, semanticZoom, showcase, showGuide]);
   const cameraTransform = useDerivedValue(() => [
@@ -358,8 +363,19 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
         <Canvas accessibilityLabel="Interactive Life Atlas" style={StyleSheet.absoluteFill}>
           <Group transform={cameraTransform}>
             <Group opacity={dustOpacity}>
-              {atlasDust.map((point, index) => (
-                <Circle key={`dust-${index}`} cx={point.x} cy={point.y} r={point.radius} color={theme.mode === 'night' ? '#C7F05A' : '#FFFFFF'} opacity={point.opacity} />
+              <Points points={tinyStarPoints} mode="points" strokeWidth={1.3} strokeCap="round" color={visual.starTiny} />
+              {atlasStars.medium.map((star, index) => (
+                <Group key={`star-m-${index}`} opacity={star.opacity}>
+                  <Circle cx={star.x} cy={star.y} r={star.radius * 2.4} color={visual.starMedium} opacity={0.22} />
+                  <Circle cx={star.x} cy={star.y} r={star.radius} color={visual.starMedium} />
+                </Group>
+              ))}
+              {atlasStars.flare.map((star, index) => (
+                <Group key={`star-f-${index}`} opacity={star.opacity}>
+                  <Circle cx={star.x} cy={star.y} r={star.radius * 0.45} color={visual.starFlare} opacity={0.28} />
+                  <Path path={sparklePath(star.x, star.y, star.radius, 0.08)} color={visual.starFlare} />
+                  <Circle cx={star.x} cy={star.y} r={Math.max(1.1, star.radius * 0.14)} color={visual.starFlare} />
+                </Group>
               ))}
             </Group>
 
