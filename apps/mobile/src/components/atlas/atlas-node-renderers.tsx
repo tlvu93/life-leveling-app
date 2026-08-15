@@ -329,11 +329,11 @@ const RAY_COUNT = 16;
  * coming from the environment - a starburst of fading rays, radar rings, and
  * sparkle dots. All glow comes from gradient fills and stacked strokes.
  */
-function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number }) {
+function HubNode({ node, domain, active, radius, detailed }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number; detailed: boolean }) {
   const { x, y } = node;
   const seedBase = x * 7.3 + y * 13.7;
   const rays: { x1: number; y1: number; x2: number; y2: number; width: number; opacity: number; bright: boolean }[] = [];
-  if (active) {
+  if (active && detailed) {
     for (let index = 0; index < RAY_COUNT; index += 1) {
       const angle = (index * 2 * Math.PI) / RAY_COUNT + (frac(seedBase + index) - 0.5) * 0.28;
       const inner = radius * 1.08;
@@ -364,11 +364,12 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
           <Circle cx={ray.x2} cy={ray.y2} r={2.6} color="#FFFFFF" opacity={0.35} />
         </Group>
       ))}
-      {/* radar rings + short radial ticks between them */}
-      <Circle cx={x} cy={y} r={radius * 1.5} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.22 : 0.1} />
-      <Circle cx={x} cy={y} r={radius * 1.95} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.13 : 0.06} />
-      {active && <Circle cx={x} cy={y} r={radius * 2.45} style="stroke" strokeWidth={0.5} color="#FFFFFF" opacity={0.08} />}
-      {active && Array.from({ length: 12 }, (_, index) => {
+      {/* radar rings + short radial ticks between them; sub-pixel at the
+          zoomed-out tier, so gated on `detailed` (semantic zoom >= 1) */}
+      {detailed && <Circle cx={x} cy={y} r={radius * 1.5} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.22 : 0.1} />}
+      {detailed && <Circle cx={x} cy={y} r={radius * 1.95} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.13 : 0.06} />}
+      {active && detailed && <Circle cx={x} cy={y} r={radius * 2.45} style="stroke" strokeWidth={0.5} color="#FFFFFF" opacity={0.08} />}
+      {active && detailed && Array.from({ length: 12 }, (_, index) => {
         const angle = (index * 2 * Math.PI) / 12 + 0.26;
         return (
           <Line
@@ -398,7 +399,7 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
   );
 }
 
-export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels = false }: NodeProps) {
+export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels = false, semanticZoom = 1 }: NodeProps) {
   const domain = domainVisuals[node.cluster];
   const violet = domainVisuals.crossroads;
   const radius = nodeRadius(node);
@@ -408,11 +409,14 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels
   // The pulsing selection ring is animated, so it renders on the overlay
   // canvas (AtlasScene) instead of inside the baked world picture.
   const active = selected || isActiveStatus(node);
+  // LOD: at the zoomed-out Regions tier (scale 0.34-0.72) starburst rays,
+  // radar ticks, and mini-environments render at under a pixel wide - skip them.
+  const detailed = semanticZoom >= 1;
 
   if (node.kind === 'interest') {
     return (
       <Group>
-        <HubNode node={node} domain={domain} active={active} radius={radius} />
+        <HubNode node={node} domain={domain} active={active} radius={radius} detailed={detailed} />
         {label}
       </Group>
     );
@@ -422,7 +426,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels
     const preview = node.status === 'nearby' && !selected;
     return (
       <Group opacity={preview ? 0.62 : 1}>
-        {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={1} />}
+        {active && detailed && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={1} />}
         <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path
           path={`M ${node.x - 5} ${node.y - 12} L ${node.x + 2} ${node.y - 2} L ${node.x - 2} ${node.y - 2} L ${node.x + 6} ${node.y + 12} L ${node.x - 7} ${node.y + 1} L ${node.x - 1} ${node.y + 1} Z`}
@@ -436,7 +440,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels
   if (node.kind === 'milestone') {
     return (
       <Group>
-        {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={2} />}
+        {active && detailed && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={2} />}
         <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path path={starPath(node.x, node.y, 5, radius * 0.52, radius * 0.22)} color="#FFFFFF" />
         {label}
