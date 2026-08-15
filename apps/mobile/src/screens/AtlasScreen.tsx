@@ -22,7 +22,13 @@ function AtlasExperience() {
   const { state } = useJourney();
   const params = useLocalSearchParams<{ reveal?: string; showcase?: string; static?: string; theme?: string }>();
   const reveal = params.reveal;
-  const devFlags = useMemo(() => parseAtlasDevFlags(params), [params]);
+  // Key on the primitive values: useLocalSearchParams returns a fresh object
+  // every render, and an unstable devFlags identity defeats memoization all
+  // the way down the scene tree.
+  const devFlags = useMemo(
+    () => parseAtlasDevFlags({ showcase: params.showcase, static: params.static, theme: params.theme }),
+    [params.showcase, params.static, params.theme],
+  );
   const router = useRouter();
   const { theme, setMode } = useLifeTheme();
 

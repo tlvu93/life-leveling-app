@@ -46,6 +46,18 @@ describe('Atlas graph', () => {
     expect(withoutGuide.some((edge) => edge.kind === 'personal')).toBe(true);
   });
 
+  it('honors a precomputed visible-node id set instead of re-deriving nodes', () => {
+    const active = { pathStarted: true, questStatus: 'active' as const, unlockedNodeIds: ['make-track-visible'] };
+    const derivedIds = new Set(visibleAtlasNodes(2, active).map((node) => node.id));
+    expect(visibleAtlasEdges(2, true, active, derivedIds)).toEqual(visibleAtlasEdges(2, true, active));
+
+    const restrictedIds = new Set(['music', 'live-av']);
+    const restricted = visibleAtlasEdges(0, true, undefined, restrictedIds);
+    expect(restricted.length).toBeGreaterThan(0);
+    expect(restricted.every((edge) => restrictedIds.has(edge.from) && restrictedIds.has(edge.to))).toBe(true);
+    expect(restricted.length).toBeLessThan(visibleAtlasEdges(0, true).length);
+  });
+
   it('reveals quest territory only after real journey progress', () => {
     const beforeStart = { pathStarted: false, questStatus: 'not-started' as const, unlockedNodeIds: [] };
     const active = { pathStarted: true, questStatus: 'active' as const, unlockedNodeIds: ['make-track-visible'] };

@@ -216,6 +216,7 @@ export const atlasStars = {
 };
 
 export function clamp(value: number, min: number, max: number) {
+  'worklet';
   return Math.min(max, Math.max(min, value));
 }
 
@@ -225,6 +226,7 @@ export function cameraTranslationForAnchor(worldX: number, worldY: number, focal
 }
 
 export function semanticZoomForScale(scale: number): AtlasZoom {
+  'worklet';
   return scale < 0.72 ? 0 : scale < 1.18 ? 1 : 2;
 }
 
@@ -285,8 +287,10 @@ export function visibleAtlasNodes(zoom: AtlasZoom, progress?: AtlasProgress) {
   return atlasNodesForProgress(progress).filter((node) => node.minZoom <= zoom);
 }
 
-export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?: AtlasProgress) {
-  const visibleIds = new Set(visibleAtlasNodes(zoom, progress).map((node) => node.id));
+export function visibleAtlasEdges(zoom: AtlasZoom, showGuide: boolean, progress?: AtlasProgress, precomputedIds?: ReadonlySet<string>) {
+  // Callers that already hold the visible node list pass its ids to avoid a
+  // second full atlasNodesForProgress pass (audit: node pass ran 2-3x per change).
+  const visibleIds = precomputedIds ?? new Set(visibleAtlasNodes(zoom, progress).map((node) => node.id));
   const activeRouteId = progress?.activePathId ?? 'live-av';
   return atlasGraphEdges.filter((edge) => edge.minZoom <= zoom
     && (edge.maxZoom === undefined || zoom <= edge.maxZoom)

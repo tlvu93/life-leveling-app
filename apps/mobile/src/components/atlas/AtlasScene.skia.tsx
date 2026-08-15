@@ -16,7 +16,6 @@ import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -42,7 +41,7 @@ import {
   type AtlasZoom,
 } from '@/domain/atlas';
 import { defaultAtlasDevFlags, type AtlasDevFlags } from '@/lib/atlas-dev-flags';
-import { atlasVisual, domainVisuals, GLOW, nodeRadius, withAlpha } from '@/theme/atlas-style';
+import { atlasVisual, domainVisuals, nodeRadius, withAlpha } from '@/theme/atlas-style';
 import { type AppTheme } from '@/theme/tokens';
 import { concatEdgePaths, pointOnEdge, sparklePath, starPath } from './atlas-geometry';
 import { AtlasNodeView, SpacedText, type AtlasFonts } from './atlas-node-renderers';
@@ -96,7 +95,11 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const visual = atlasVisual[theme.mode];
   const tinyStarPoints = useMemo(() => atlasStars.tiny.map((star) => vec(star.x, star.y)), []);
   const visibleNodes = useMemo(() => showcase ? atlasShowcaseNodes() : visibleAtlasNodes(semanticZoom, progress), [progress, semanticZoom, showcase]);
-  const edges = useMemo(() => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress), [progress, semanticZoom, showcase, showGuide]);
+  const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
+  const edges = useMemo(
+    () => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress, visibleNodeIds),
+    [progress, semanticZoom, showcase, showGuide, visibleNodeIds],
+  );
 
   // Constellation webs: one concatenated path per cluster keeps glow passes cheap.
   const relationWebs = useMemo(() => {
@@ -191,7 +194,7 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
       camera.x.value = panStartX.value + event.translationX;
       camera.y.value = panStartY.value + event.translationY;
     })
-    .onEnd(() => runOnJS(camera.settle)());
+    .onEnd(() => camera.settle());
 
   const pinchGesture = Gesture.Pinch()
     .onStart((event) => {
@@ -206,7 +209,7 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
       camera.x.value = nextTranslation.x;
       camera.y.value = nextTranslation.y;
     })
-    .onEnd(() => runOnJS(camera.settle)());
+    .onEnd(() => camera.settle());
 
   const gesture = Gesture.Simultaneous(panGesture, pinchGesture);
 
