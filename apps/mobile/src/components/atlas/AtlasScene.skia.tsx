@@ -12,7 +12,7 @@ import {
 } from '@shopify/react-native-skia';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
-import { useEffect, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -61,26 +61,52 @@ export type AtlasSceneProps = {
   devFlags?: AtlasDevFlags;
 };
 
-function NodeHitTarget({ node, camera, onPress }: { node: AtlasGraphNode; camera: AtlasCamera; onPress: () => void }) {
-  const hitSize = Math.max(48, nodeRadius(node) * 2);
+/**
+ * All node hit targets under ONE animated view. The zero-size root sits at the
+ * scene origin, so RN's scale-about-center equals scale-about-world-(0,0) and
+ * `[translateX, translateY, scale]` maps children placed at world coordinates
+ * to their on-screen node positions. One useAnimatedStyle worklet runs per
+ * camera frame instead of one per node (audit: 33-63 worklets + native
+ * transform commits per pan frame).
+ */
+const NodeHitTargets = memo(function NodeHitTargets({ nodes, camera, onNodePress }: {
+  nodes: AtlasGraphNode[];
+  camera: AtlasCamera;
+  onNodePress: (node: AtlasGraphNode) => void;
+}) {
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: camera.x.value + node.x * camera.scale.value - hitSize / 2 },
-      { translateY: camera.y.value + node.y * camera.scale.value - hitSize / 2 },
+      { translateX: camera.x.value },
+      { translateY: camera.y.value },
+      { scale: camera.scale.value },
     ],
   }));
 
   return (
-    <Animated.View style={[styles.hitTarget, { width: hitSize, height: hitSize }, animatedStyle]}>
-      <Pressable
-        accessibilityLabel={`${node.label.replace('|', ' ')}, ${node.kind}${node.status ? `, ${node.status}` : ''}`}
-        accessibilityRole="button"
-        onPress={onPress}
-        style={StyleSheet.absoluteFill}
-      />
+    <Animated.View pointerEvents="box-none" style={[styles.hitOrigin, animatedStyle]}>
+      {nodes.map((node) => {
+        // World-unit hit boxes (they scale with the camera). The floor keeps
+        // small skill dots tappable at the zoom tiers where they exist.
+        const hitSize = Math.max(52, nodeRadius(node) * 2 + 16);
+        return (
+          <Pressable
+            key={node.id}
+            accessibilityLabel={`${node.label.replace('|', ' ')}, ${node.kind}${node.status ? `, ${node.status}` : ''}`}
+            accessibilityRole="button"
+            onPress={() => onNodePress(node)}
+            style={{
+              position: 'absolute',
+              left: node.x - hitSize / 2,
+              top: node.y - hitSize / 2,
+              width: hitSize,
+              height: hitSize,
+            }}
+          />
+        );
+      })}
     </Animated.View>
   );
-}
+});
 
 export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide, theme, onNodePress, progress, devFlags = defaultAtlasDevFlags }: AtlasSceneProps) {
   const labelFont = useFont(Inter_600SemiBold, 11);
@@ -317,9 +343,7 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
         </Canvas>
 
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-          {visibleNodes.map((node) => (
-            <NodeHitTarget key={node.id} node={node} camera={camera} onPress={() => onNodePress(node)} />
-          ))}
+          <NodeHitTargets nodes={visibleNodes} camera={camera} onNodePress={onNodePress} />
         </View>
       </View>
     </GestureDetector>
@@ -328,5 +352,5 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
 
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
-  hitTarget: { position: 'absolute', left: 0, top: 0 },
+  hitOrigin: { position: 'absolute', left: 0, top: 0, width: 0, height: 0, overflow: 'visible' },
 });
