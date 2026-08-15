@@ -1,11 +1,16 @@
 # Atlas Interaction Specification
 
-- **Status:** Prototype direction
+- **Status:** Implemented renderer direction; roadmap-state migration pending
 - **Scope:** Shared knowledge graph, personal discovery state, and community Guide routes
 
 ## Product role
 
-The Atlas is the spatial model behind Life Leveling, not a decorative progress screen. It connects interests, practices, Paths, Quests, and milestones into a shared world while showing each person only the portion relevant to their exploration.
+The Atlas is the spatial model behind Life Leveling, not a decorative progress screen. It connects interests, Paths, reusable Nodes, Guides, personal Builds, and Galaxies into a shared world while showing each person only the portion relevant to their exploration.
+
+Canonical meanings come from
+[`../product/vocabulary.md`](../product/vocabulary.md). Publishing and graph
+change rules come from
+[`../product/path-and-guide-governance.md`](../product/path-and-guide-governance.md).
 
 The public graph can grow continuously. The personal Atlas remains understandable through stable geography, semantic zoom, filtering, and progressive discovery.
 
@@ -16,7 +21,7 @@ The public graph can grow continuously. The personal Atlas remains understandabl
 3. **One bright route.** The active personal route is visually dominant. Alternative and community routes remain available without competing for attention.
 4. **Meaning before scale.** Node and edge types are explicit. Proximity alone must not imply a prerequisite or recommendation.
 5. **Growth adds depth.** New content increases regional richness, but semantic zoom prevents the screen from becoming a wall of nodes.
-6. **Evidence changes the map.** Completing and reflecting on a Quest changes node state, route emphasis, and nearby recommendations.
+6. **Meaningful progress changes the map.** Interest, trying, practice, demonstrated outcomes, pauses, and deliberate route changes can alter personal emphasis without changing global geography.
 7. **The Atlas is a place, not a page.** The world owns the viewport. Navigation, tools, route context, and node details appear as compact HUD layers without introducing document scrolling.
 
 ## Graph objects
@@ -24,12 +29,14 @@ The public graph can grow continuously. The personal Atlas remains understandabl
 | Object | Meaning | Typical appearance |
 | --- | --- | --- |
 | Interest | Broad area that attracts a person, such as Music | Large regional hub |
-| Skill | Reusable capability, such as Sound Design | Small circular node |
+| Node | Reusable foundation, skill, experience, project, milestone, or material resource | Type-specific marker |
 | Path | Possible practice or direction, such as Live Audiovisual Performer | Prominent diamond or framed node |
-| Quest | Small real-world attempt | Numbered or status-marked node |
+| Guide | Official or community-authored roadmap through shared Nodes | Named route overlay with trust state |
+| Build | Explorer-owned adoption or remix of one or more Guides | Dominant personal route |
+| Galaxy | Curated view across related Paths, Guides, and Nodes | Named region or subgraph overlay |
+| Quest | Optional bounded real-world action attached to a Step | Numbered or status-marked node |
 | Milestone | Observable outcome | Flag or destination node |
-| Guide | Community-authored route through nodes | Named line overlay with trust state |
-| Artifact | Evidence attached to a completed Quest | Badge on the relevant Quest node |
+| Artifact | Optional evidence or memory attached to progress | Badge on the relevant Node or Step |
 
 ## Edge types
 
@@ -80,7 +87,10 @@ Keyboard focus follows the same visual behavior. Nodes use meaningful accessible
 
 ### Personal route
 
-The active Build determines the primary route. Completed segments use verified-evidence styling, the next Quest is emphasized, and later segments remain visible but subdued.
+The active Build determines the primary route. Tried, practicing, demonstrated,
+paused, and not-for-me states remain visually distinct. A suggested next Step
+may be emphasized, but it never appears overdue or mandatory unless a genuine
+safety or outcome dependency exists.
 
 ### Community Guide route
 
@@ -97,12 +107,13 @@ Multiple Guides are compared in a dedicated route comparison view, not drawn sim
 
 ## Contribution lifecycle
 
-1. **Draft:** visible only to the author and collaborators.
-2. **Proposed:** submitted with audience, prerequisites, cost, time, equipment, and intended outcome.
-3. **Community tested:** enough verified attempts exist to show aggregate outcomes.
-4. **Editorially verified:** node use, claims, safety, duplication, and disclosures have been reviewed.
-5. **Needs review:** evidence is stale, assumptions changed, or credible reports challenge the route.
-6. **Archived:** retained for history but excluded from default discovery.
+1. **Private draft:** visible only to the author and collaborators.
+2. **Unlisted:** accessible through a deliberate link without public discovery.
+3. **Proposed:** submitted with audience, route roles, cost, time, equipment, safety context, and intended outcome.
+4. **Community tested:** enough credible attempts exist to show aggregate outcomes.
+5. **Editorially verified:** node use, claims, safety, duplication, and disclosures have been reviewed.
+6. **Needs review:** evidence is stale, assumptions changed, or credible reports challenge the route.
+7. **Archived:** retained for history but excluded from default discovery.
 
 A Guide proposal may also contain node or edge proposals. Reviewers can attach the Guide to an existing node, merge duplicate concepts, approve a new concept, request revision, or reject the proposal. Votes inform review but never modify the canonical graph automatically.
 
@@ -121,19 +132,21 @@ A Guide proposal may also contain node or edge proposals. Reviewers can attach t
 
 ## Personal state
 
-The canonical graph and personal state remain separate. Personal state records:
+The canonical graph, source Guides, personal Builds, and share configuration
+remain separate. Personal state records:
 
-- discovered, saved, attempted, completed, or paused status;
-- active Build and selected Guide;
+- interest, tried, practicing, demonstrated, paused, skipped, or not-for-me
+  progress where appropriate;
+- personal Build structure and source Guide provenance;
 - attached Artifacts;
-- private reflections and energy signals;
+- private notes and reflections;
 - intentionally hidden or deprioritized Paths.
 
 The Atlas must not imply that undiscovered territory is failure or that graph coverage is a life-completion score.
 
-## Prototype scope
+## Implemented renderer prototype scope
 
-The first interactive prototype includes:
+The current Atlas renderer includes:
 
 - five Interest regions;
 - one cross-region Path;
@@ -160,7 +173,7 @@ The first interactive prototype includes:
 
 1. Can a new user identify the major Interest regions within five seconds?
 2. Can they explain the difference between the personal route and a community Guide?
-3. Can they find the next real-world action without reading the whole graph?
+3. Can they find a useful next Step without interpreting it as an assignment?
 4. Does zoom reveal meaningfully different information rather than only enlarging shapes?
 5. Does the map remain inviting to non-gamers while retaining the pleasure of exploring a complex build space?
-6. Can users understand why Live Audiovisual Performer belongs between Music, Technology, and Visual Creativity?
+6. Can users understand how DJ/VJ belongs between Music, Technology, Visual Creativity, and Performance?

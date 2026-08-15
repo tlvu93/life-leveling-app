@@ -4,6 +4,11 @@
 - **State schema:** `JourneyState` version 3
 - **Default store:** AsyncStorage on Android/iOS and its local-storage implementation on web
 
+> `JourneyState` version 3 is the implemented experiment-first Alpha schema.
+> The roadmap model in [`../product/vocabulary.md`](../product/vocabulary.md)
+> is not implemented yet and will require a new versioned migration rather than
+> silently reinterpreting existing fields.
+
 ## Persisted journey
 
 The repository stores the user-owned discovery journey:
@@ -56,3 +61,21 @@ Non-success responses may return `{ "error": string }` or `{ "message": string }
 Loads accept storage versions 1, 2, and 3, normalize supported enum values, rebuild derived recommendations, and return version 3. Local reset clears both the current key (`life-leveling.alpha-1.journey.v2`) and the legacy version-1 key.
 
 Any future schema change must add a migration test before increasing the state version.
+
+## Roadmap migration boundary
+
+The next product state must represent canonical references and user-owned data
+separately:
+
+- stable Path and Node identifiers come from the shared Atlas;
+- Guide identifiers, versions, authorship, and provenance describe source
+  routes;
+- a personal Build is an independent, user-owned snapshot or remix;
+- Step roles and progress states follow
+  [`../product/progress-principles.md`](../product/progress-principles.md);
+- selective-sharing configuration is separate from private progress and
+  Artifacts;
+- a source Guide update never overwrites a personal Build automatically.
+
+Do not enable the existing HTTP adapter merely to sync version-3 state before
+the roadmap schema, ownership rules, and conflict policy are defined.

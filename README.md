@@ -1,6 +1,10 @@
 # Life Leveling
 
-Life Leveling is an Android-first exploration app for discovering possible roads through interests, skills, real-world experiments, and community-validated Guides. Its central surface is a zoomable Atlas rather than a score dashboard.
+Life Leveling is an Android-first, community-powered roadmap app for exploring
+hobbies, skills, creative practices, and possible careers. People can discover
+Paths, compare practitioner-created Guides, remix them into personal Builds,
+and selectively record or share progress. Its central surface is a zoomable
+Atlas rather than a score dashboard or obligation list.
 
 ## Repository Layout
 
@@ -10,14 +14,16 @@ This repository intentionally contains two applications during the V2 migration:
 apps/mobile/  Current Expo V2 client for Android, iOS, and web
 src/          Legacy Next.js application and API routes
 prisma/       Legacy database schema and migrations
-docs/v2/      Current product, interaction, and migration specifications
+docs/product/ Canonical product direction and next prototype plan
+docs/v2/      Current mobile, persistence, and Atlas technical specifications
+docs/archive/ Superseded briefs, research, and implementation history
 ```
 
 Use the explicit `mobile:*` or `legacy:*` scripts when switching between them. The unprefixed root scripts remain aliases for the legacy Next.js application until its backend responsibilities have been migrated.
 
 ## V2 Universal Prototype
 
-The current product direction lives in [`apps/mobile`](apps/mobile). It uses Expo and React Native for Android, iOS, and web, with a React Native Skia Atlas.
+The current client lives in [`apps/mobile`](apps/mobile). It uses Expo and React Native for Android, iOS, and web, with a React Native Skia Atlas. The current UI still contains parts of the earlier experiment-first Alpha and will migrate incrementally toward the roadmap-centered model.
 
 ```bash
 npm --prefix apps/mobile install
@@ -26,7 +32,10 @@ npm run mobile:web
 
 The Expo terminal displays the development URL. `npm run mobile:start` uses port `8085`; press `w` in that terminal to open the web target.
 
-Product and interaction specifications live in [`docs/v2`](docs/v2). The architecture and migration boundary are described in [`docs/v2/mobile-architecture.md`](docs/v2/mobile-architecture.md).
+Start with the [`documentation index`](docs/README.md). Canonical product
+direction lives in [`docs/product`](docs/product), while the implemented
+architecture and migration boundary are described in
+[`docs/v2/mobile-architecture.md`](docs/v2/mobile-architecture.md).
 
 ### Android development
 
@@ -47,7 +56,12 @@ Android Studio can open `apps/mobile/android` directly. `android/local.propertie
 
 The Next.js application at the repository root is the earlier implementation. It remains available as a backend and data-model reference while V2 is developed. New product UI work belongs in `apps/mobile`; do not add V2 screens to the root `src/app` tree.
 
-## 🚀 Getting Started
+> The setup, architecture, feature, security, database, and deployment sections
+> below describe this legacy Next.js application unless they explicitly mention
+> `mobile:*` or `apps/mobile`. They are retained as an implementation reference,
+> not as the current product roadmap.
+
+## 🚀 Legacy Web: Getting Started
 
 ### Prerequisites
 
@@ -140,7 +154,7 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 | `npm run db:seed`      | POST `/api/seed-db` with `{"action":"seed"}`    |
 | `npm run db:health`    | GET `/api/health`                               |
 
-## 🏗️ Architecture
+## 🏗️ Legacy Web Architecture
 
 ### Tech Stack
 
@@ -160,7 +174,10 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 > from `middleware` to `proxy`; that is why routing/auth interception lives in
 > `src/proxy.ts`.
 
-### Key Features
+### Legacy Feature Reference
+
+These features belong to the earlier dashboard-centered application and are not
+current roadmap-product commitments.
 
 - **LifeStat Matrix**: Dynamic radar chart visualization of user skills
 - **Adventure Mode**: Real-world goal setting and retrospective reflection
@@ -169,7 +186,7 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 - **Family Mode**: Parent-child interaction with privacy controls
 - **Path System**: Predefined and user-created growth paths
 
-## 📁 Project Structure
+## 📁 Legacy Web Project Structure
 
 ```
 prisma/
@@ -197,7 +214,7 @@ src/
 └── proxy.ts                # Route protection (formerly middleware.ts)
 ```
 
-## 🔒 Security & Privacy
+## 🔒 Legacy Web Security & Privacy
 
 - **Child Privacy**: COPPA and GDPR oriented data handling
 - **Anonymous Comparisons**: No personally identifiable information in peer data
@@ -215,7 +232,7 @@ npm run verify           # Both non-E2E verification suites
 
 V2 unit tests live beside the platform-neutral domain code in `apps/mobile/src/domain`. Playwright tests live in `apps/mobile/e2e` and cover the Atlas at phone, tablet, and desktop sizes. Legacy unit tests live next to the code they cover as `*.test.ts`.
 
-## 📊 Database Schema
+## 📊 Legacy Web Database Schema
 
 The application uses PostgreSQL with the following main tables:
 
@@ -228,7 +245,7 @@ The application uses PostgreSQL with the following main tables:
 - `family_relationships` - Parent-child connections
 - `simulation_scenarios` - Saved Architect-mode scenarios
 
-## 🚀 Deployment
+## 🚀 Legacy Web Deployment
 
 The app is designed to deploy on Vercel with:
 

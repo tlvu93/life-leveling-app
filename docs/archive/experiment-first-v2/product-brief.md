@@ -1,5 +1,8 @@
 # Life Leveling V2: Product Brief
 
+> **ARCHIVED 2026-08-15.** This experiment-first brief is retained for product
+> history. Current direction: [`../../product/product-thesis.md`](../../product/product-thesis.md).
+
 - Status: Prototype definition
 - Last updated: 2026-08-10
 

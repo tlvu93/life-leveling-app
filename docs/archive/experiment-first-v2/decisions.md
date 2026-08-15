@@ -1,5 +1,8 @@
 # Life Leveling V2: Decision Log
 
+> **ARCHIVED 2026-08-15.** These decisions document the first V2 reset. Current
+> accepted decisions: [`../../product/decisions.md`](../../product/decisions.md).
+
 Last updated: 2026-08-11
 
 This log records product decisions for the V2 reset. **Accepted** decisions guide the prototype. **Assumptions** must be tested. **Deferred** items stay out of the prototype and MVP until evidence justifies them.

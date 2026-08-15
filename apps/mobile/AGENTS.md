@@ -2,6 +2,15 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Product source of truth
+
+Before changing product vocabulary, state, navigation, recommendations,
+progress, Guide creation, or sharing, read `docs/README.md` and the canonical
+documents in `docs/product/` from the repository root. The current onboarding,
+Quest-resolution flow, finite Guide deck, seeded Atlas statuses, and Live
+AV-specific HUD were built for an archived experiment-first Alpha; existing UI
+is not evidence that those behaviors remain product requirements.
+
 # Atlas visual verification
 
 The Atlas ("Living Universe") look is verified against the design mock with a

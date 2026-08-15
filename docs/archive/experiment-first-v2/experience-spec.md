@@ -1,5 +1,8 @@
 # Life Leveling V2: Experience Specification
 
+> **ARCHIVED 2026-08-15.** This journey is not the current product
+> specification. See [`../../product/journeys.md`](../../product/journeys.md).
+
 - Status: Prototype specification
 - Last updated: 2026-08-10
 

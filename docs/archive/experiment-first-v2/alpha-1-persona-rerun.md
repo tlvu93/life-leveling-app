@@ -1,5 +1,8 @@
 # Alpha 1 Persona Rerun
 
+> **ARCHIVED 2026-08-15.** These scripted results remain valid evidence about
+> the earlier implementation, not validation of the current roadmap thesis.
+
 - Date: 2026-08-12
 - Implementation: Trustworthy recommendations and stopped-Quest resolution
 - Automation: `apps/mobile/e2e/atlas.spec.ts`

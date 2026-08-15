@@ -1,5 +1,8 @@
 # Alpha 2: Breadth and Guides Test
 
+> **ARCHIVED 2026-08-15.** This test predates the roadmap-centered Creator and
+> Explorer model. See the current DJ/VJ prototype plan in `docs/product`.
+
 - Status: Ready to test
 - Journeys: Sports + Creative, Starting Fresh, finite Guide discovery, private/unlisted route creation
 

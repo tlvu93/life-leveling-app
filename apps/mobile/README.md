@@ -1,6 +1,13 @@
 # Life Leveling Universal App
 
-This is the Android-first Life Leveling V2 client. It uses Expo SDK 57 and Expo Router for Android, iOS, and static web builds. The Atlas is rendered with React Native Skia rather than DOM or SVG graph nodes.
+This is the Android-first Life Leveling client. It uses Expo SDK 57 and Expo
+Router for Android, iOS, and static web builds. The Atlas is rendered with React
+Native Skia rather than DOM or SVG graph nodes.
+
+The canonical product direction is a community-powered roadmap Atlas built from
+Paths, Guides, personal Builds, and meaningful non-coercive progress. The
+current screens still implement parts of the earlier experiment-first Alpha;
+see `../../docs/product` before changing product workflows.
 
 The original Next.js application remains at the repository root as a legacy implementation and future backend/API source. New product UI work belongs here.
 
@@ -53,4 +60,7 @@ The browser suite exports and serves the production web build at `http://127.0.0
 - `public/canvaskit.wasm`: generated after install from Skia's CanvasKit dependency and loaded only by the web renderer.
 - `e2e`: viewport, interaction, and navigation checks.
 
-See `../../docs/v2/mobile-architecture.md` for the migration boundary and implementation decisions, and `../../docs/v2/journey-persistence.md` for the repository and remote API contract.
+See `../../docs/README.md` for the documentation map,
+`../../docs/v2/mobile-architecture.md` for the implementation boundary, and
+`../../docs/v2/journey-persistence.md` for the current repository and remote API
+contract.

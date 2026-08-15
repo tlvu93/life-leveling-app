@@ -1,5 +1,9 @@
 # Alpha 1 Field Test
 
+> **ARCHIVED 2026-08-15.** This test targets the superseded experiment-first
+> journey. Current validation plan:
+> [`../../product/dj-vj-prototype-plan.md`](../../product/dj-vj-prototype-plan.md).
+
 - Status: Ready to recruit
 - Journey: Onboarding → recommendation → Live Audiovisual Performer → first Quest → reflection → Atlas reveal
 

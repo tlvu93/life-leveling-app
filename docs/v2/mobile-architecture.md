@@ -1,6 +1,6 @@
 # Mobile Architecture
 
-- **Status:** Implemented technical foundation
+- **Status:** Implemented technical foundation; roadmap domain migration pending
 - **Primary platform:** Android
 - **Secondary platforms:** Web and iOS
 - **Stack:** Expo SDK 57, React Native 0.86, Expo Router, React Native Skia, Reanimated, Gesture Handler
@@ -9,7 +9,12 @@
 
 Life Leveling V2 is an Android-first universal application. Expo provides the native application lifecycle, routing, assets, haptics, and build path while retaining a supported web target. React remains the component model, but the app no longer depends on browser-only layout or graph rendering.
 
-The legacy Next.js application remains in the repository. It is not the V2 UI shell. Its database and API work can be reused behind explicit service interfaces once the discovery loop needs persistence.
+The canonical roadmap-centered product model is defined in
+[`../product/`](../product/). This document describes the current client. Its
+journey state and several supporting screens still implement the archived
+experiment-first Alpha.
+
+The legacy Next.js application remains in the repository. It is not the V2 UI shell. Its database and API work can be reused behind explicit service interfaces only after the roadmap domain model has been validated.
 
 ## Why this stack
 
@@ -27,7 +32,11 @@ Three.js is not the default Atlas renderer. The current world is a two-dimension
 
 `src/domain/atlas.ts` is platform neutral. It owns node and edge types, canonical prototype data, semantic visibility, path geometry, and camera calculations. It must not import React Native, Skia, or browser APIs.
 
-The current in-memory graph is a vertical-slice fixture. A production graph service should return the same typed shape and preserve stable node identifiers.
+The current in-memory graph is a vertical-slice fixture. It contains seeded
+statuses and some Live AV-specific presentation that are not valid long-term
+personal state. The next domain version must separate the canonical Atlas from
+Path, Guide, personal Build, Step, and progress records while preserving stable
+Node identifiers.
 
 ### Renderer
 
@@ -83,8 +92,17 @@ The native project has been regenerated with Expo, assembled with Java 17 and An
 
 ## Next migration slice
 
-1. Add V2 authentication and implement the authenticated journey endpoint before enabling the HTTP adapter.
-2. Decide the evidence-upload and cross-device conflict policy; never treat a device-local file URI as remotely usable.
-3. Measure Atlas frame time on a representative mid-range physical Android device and establish a performance budget.
-4. Run the first five-person alpha using the persisted onboarding → Path → Quest → reflection loop.
-5. Replace scaffold app icons and splash art after the visual identity is approved.
+1. Introduce a versioned roadmap domain model for Path, shared Node, Guide,
+   personal Build, Step role, and non-coercive progress.
+2. Implement the local DJ/VJ Creator and Explorer prototype in
+   [`../product/dj-vj-prototype-plan.md`](../product/dj-vj-prototype-plan.md)
+   before selecting a production backend.
+3. Remove seeded personal history, hard-coded Live AV inspector content, and
+   decorative global levels from the Atlas shell.
+4. Preserve version-3 journey migration until existing local Alpha data has an
+   explicit roadmap-state migration or retirement policy.
+5. Measure Atlas frame time on a representative mid-range physical Android
+   device and establish a performance budget.
+6. Add authentication, remote evidence, and conflict handling only after the
+   Creator/Explorer model passes participant validation; never treat a
+   device-local file URI as remotely usable.

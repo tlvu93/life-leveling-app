@@ -1,5 +1,8 @@
 # Alpha 1 Trust and Stopped-Quest Plan
 
+> **ARCHIVED 2026-08-15.** This implementation plan was completed for the
+> earlier Alpha. Do not use its restart prompt for current product work.
+
 - Status: Ready for the next implementation session
 - Scope: Personal Alpha 1 loop only
 - Primary route: Live Audiovisual Performer
