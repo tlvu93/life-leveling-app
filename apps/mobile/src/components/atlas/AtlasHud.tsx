@@ -45,6 +45,8 @@ export function AtlasHud({ camera, selectedNode, semanticZoom, showGuide, panelO
   const constrainedHeight = height < 680;
   const short = height < 520 && width > height;
   const compactNavigation = compact || short;
+  const tall = height >= 820;
+  const showSideCards = wide && !compactNavigation && tall;
   const toolDimension = compact ? 37 : 42;
   const title = selectedNode.label.replace('|', ' ');
   const isFirstQuest = selectedNode.id === 'make-track-visible';
@@ -77,7 +79,7 @@ export function AtlasHud({ camera, selectedNode, semanticZoom, showGuide, panelO
         {!compact && <Text style={[styles.atlasSubtitle, { color: theme.inkSecondary }]}>New route revealed from lived evidence</Text>}
       </View>}
 
-      <View testID="atlas-tool-rail" style={[styles.toolRail, constrainedHeight && styles.toolRailHorizontal, { top: insets.top + (constrainedHeight ? 70 : compact ? 124 : wide ? 120 : 182), left: compact ? 12 : wide ? 24 : 18, borderColor: theme.panelBorder, backgroundColor: theme.panel }]}>
+      <View testID="atlas-tool-rail" style={[styles.toolRail, constrainedHeight && styles.toolRailHorizontal, { top: insets.top + (constrainedHeight ? 70 : compact ? 124 : wide ? (tall ? 300 : 120) : 182), left: compact ? 12 : wide ? 24 : 18, borderColor: theme.panelBorder, backgroundColor: theme.panel }]}>
         <IconButton dimension={toolDimension} icon={Map} label="Fit world" onPress={camera.fitWorld} />
         <IconButton dimension={toolDimension} icon={Plus} label="Zoom in" onPress={camera.zoomIn} />
         <IconButton dimension={toolDimension} icon={Minus} label="Zoom out" onPress={camera.zoomOut} />
@@ -86,8 +88,8 @@ export function AtlasHud({ camera, selectedNode, semanticZoom, showGuide, panelO
         <IconButton dimension={toolDimension} icon={Compass} label="Focus selected node" onPress={() => camera.focusNode(selectedNode.id)} />
       </View>
 
-      {wide && !compactNavigation && <AtlasLegend />}
-      {wide && !compactNavigation && <NavigatorRoutesCard top={insets.top + 78} />}
+      {showSideCards && <AtlasLegend />}
+      {showSideCards && <NavigatorRoutesCard top={insets.top + 78} />}
 
       {!panelOpen && <View pointerEvents="none" style={[styles.zoomBadge, { bottom: (compactNavigation ? 76 : 100) + insets.bottom, borderColor: theme.panelBorder, backgroundColor: theme.panel }]}>
         <Text style={[styles.zoomBadgeLabel, { color: theme.inkSecondary }]}>ZOOM</Text>
@@ -100,10 +102,10 @@ export function AtlasHud({ camera, selectedNode, semanticZoom, showGuide, panelO
           compact && styles.inspectorCompact,
           short && styles.inspectorShort,
           short
-            ? { top: insets.top + 70, right: 10, width: Math.min(310, width - 250) }
+            ? { top: insets.top + 70, right: 10, width: Math.min(310, width - 262) }
             : compact
               ? { right: 10, bottom: 76 + insets.bottom, left: 10 }
-              : { top: insets.top + (wide ? 244 : 88), right: wide ? 24 : 32, width: wide ? 310 : 280 },
+              : { top: insets.top + (wide ? (tall ? 244 : 95) : 88), right: wide ? 24 : 32, width: wide ? 310 : 280 },
           { borderColor: theme.panelBorder, backgroundColor: theme.panel },
         ]} testID="atlas-inspector">
           <View style={styles.inspectorHeading}>
@@ -194,7 +196,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  toolRailHorizontal: { flexDirection: 'row' },
+  toolRailHorizontal: { flexDirection: 'row', padding: 2, gap: 2 },
   zoomBadge: { position: 'absolute', zIndex: 20, left: 12, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   zoomBadgeLabel: { fontSize: 7, fontWeight: '800' },
   zoomBadgeValue: { fontSize: 9, fontWeight: '800' },

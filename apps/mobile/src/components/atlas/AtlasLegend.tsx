@@ -8,10 +8,10 @@ import { useLifeTheme } from '@/state/theme-context';
 export function AtlasLegend() {
   const { theme } = useLifeTheme();
   const rows = [
-    { icon: <Star color={theme.navInk} fill={theme.navInk} size={13} />, label: 'Interest (Constellation)' },
-    { icon: <Circle color={theme.navInk} size={12} strokeWidth={2.2} />, label: 'Path (Route)' },
-    { icon: <CircleDot color={theme.navInk} size={13} strokeWidth={2} />, label: 'Skill / Practice' },
-    { icon: <Diamond color={theme.navInk} size={12} strokeWidth={2.1} />, label: 'Quest / Milestone' },
+    { icon: <Star color={theme.ink} fill={theme.ink} size={13} />, label: 'Interest (Constellation)' },
+    { icon: <Circle color={theme.ink} size={12} strokeWidth={2.2} />, label: 'Path (Route)' },
+    { icon: <CircleDot color={theme.ink} size={13} strokeWidth={2} />, label: 'Skill / Practice' },
+    { icon: <Diamond color={theme.ink} size={12} strokeWidth={2.1} />, label: 'Quest / Milestone' },
     { icon: <CircleCheck color={theme.success} size={13} strokeWidth={2.2} />, label: 'Completed' },
   ];
 
@@ -21,7 +21,7 @@ export function AtlasLegend() {
       {rows.map((row) => (
         <View key={row.label} style={styles.row}>
           <View style={styles.glyph}>{row.icon}</View>
-          <Text style={[styles.label, { color: theme.navInk }]}>{row.label}</Text>
+          <Text style={[styles.label, { color: theme.ink }]}>{row.label}</Text>
         </View>
       ))}
       <View style={[styles.divider, { backgroundColor: theme.panelBorder }]} />
@@ -29,13 +29,13 @@ export function AtlasLegend() {
         <View style={styles.glyph}>
           <View style={styles.journeyLine} />
         </View>
-        <Text style={[styles.label, { color: theme.navInk }]}>Your Journey</Text>
+        <Text style={[styles.label, { color: theme.ink }]}>Your Journey</Text>
       </View>
       <View style={styles.row}>
         <View style={[styles.glyph, styles.dashes]}>
           {[0, 1, 2].map((index) => <View key={index} style={[styles.dash, { backgroundColor: theme.amber }]} />)}
         </View>
-        <Text style={[styles.label, { color: theme.navInk }]}>Navigator Route</Text>
+        <Text style={[styles.label, { color: theme.ink }]}>Navigator Route</Text>
       </View>
     </View>
   );
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 13,
     minWidth: 172,
-    bottom: 100,
+    bottom: 80,
     shadowColor: '#2A2C55',
     shadowOpacity: 0.14,
     shadowRadius: 14,

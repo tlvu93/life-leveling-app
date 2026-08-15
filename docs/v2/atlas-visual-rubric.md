@@ -90,3 +90,4 @@ Track pass results in this file's Score log during an iteration session.
 | Pass | Date | PASS | PARTIAL | FAIL | Notes |
 |------|------|------|---------|------|-------|
 | — | — | — | — | — | baseline: current app fails nearly everything by design |
+| 1-5 | 2026-08-15 | 27 | 1 | 0 | Initial redesign session (5 capture→compare→fix cycles, verified against static export :8084). PARTIAL: B3 — flare stars render 4-arm sparkles but read subtler than the mock's large diffraction stars; consider larger arms/brighter cores in a future pass. Known content-driven deltas (not style failures): node label density and route flowing to the top-right milestone differ from mock because node positions/content differ by design. |

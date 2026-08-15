@@ -86,7 +86,7 @@ function NodeHitTarget({ node, camera, onPress }: { node: AtlasGraphNode; camera
 
 export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide, theme, onNodePress, progress, devFlags = defaultAtlasDevFlags }: AtlasSceneProps) {
   const labelFont = useFont(Inter_600SemiBold, 11);
-  const smallFont = useFont(Inter_600SemiBold, 9);
+  const smallFont = useFont(Inter_600SemiBold, 10);
   const hubFont = useFont(Inter_800ExtraBold, 14);
   const regionFont = useFont(Inter_800ExtraBold, 16);
   const stepFont = useFont(Inter_800ExtraBold, 12);
@@ -270,10 +270,10 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
               const color = visual.navigatorPalette[routeId] ?? visual.navigatorFallback;
               return (
                 <Group key={`guide-${routeId}`}>
-                  <Path path={path} color={color} style="stroke" strokeWidth={3.4} opacity={0.35}>
+                  <Path path={path} color={color} style="stroke" strokeWidth={3.2} opacity={0.25}>
                     <BlurMask blur={2} style="normal" />
                   </Path>
-                  <Path path={path} color={color} style="stroke" strokeWidth={1.8} opacity={0.9}>
+                  <Path path={path} color={color} style="stroke" strokeWidth={1.5} opacity={0.85}>
                     <DashPathEffect intervals={[7, 6]} />
                   </Path>
                 </Group>

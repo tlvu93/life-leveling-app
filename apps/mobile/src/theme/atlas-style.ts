@@ -32,12 +32,12 @@ export const domainVisuals: Record<AtlasCluster, DomainVisual> = {
 export type NodeGeometry = { radius: number; glowBlur: number; glowOpacity: number; rimWidth: number };
 
 export const NODE_GEOMETRY: Record<AtlasNodeKind, NodeGeometry> = {
-  interest: { radius: 28, glowBlur: 16, glowOpacity: 0.85, rimWidth: 2.5 },
+  interest: { radius: 28, glowBlur: 20, glowOpacity: 0.8, rimWidth: 2.5 },
   path: { radius: 22, glowBlur: 12, glowOpacity: 0.9, rimWidth: 2 },
   milestone: { radius: 20, glowBlur: 12, glowOpacity: 0.9, rimWidth: 2 },
   quest: { radius: 14, glowBlur: 8, glowOpacity: 0.85, rimWidth: 1.5 },
-  nearby: { radius: 12, glowBlur: 7, glowOpacity: 0.6, rimWidth: 1.5 },
-  skill: { radius: 8, glowBlur: 5, glowOpacity: 0.8, rimWidth: 1.25 },
+  nearby: { radius: 10, glowBlur: 6, glowOpacity: 0.6, rimWidth: 1.5 },
+  skill: { radius: 6.5, glowBlur: 4, glowOpacity: 0.8, rimWidth: 1.25 },
 };
 
 /** World-space radius for a node; preview ("nearby") paths render smaller. */
@@ -80,8 +80,8 @@ export const atlasVisual: Record<ThemeMode, AtlasVisualTheme> = {
     starTiny: 'rgba(255, 255, 255, 0.85)',
     starMedium: '#FFFFFF',
     starFlare: '#FFFFFF',
-    labelInk: '#2A2C3A',
-    labelHalo: 'rgba(255, 255, 255, 0.92)',
+    labelInk: '#20222E',
+    labelHalo: 'rgba(255, 255, 255, 0.78)',
     regionLabelHalo: 'rgba(255, 255, 255, 0.85)',
     routeCore: '#FFFFFF',
     routeSoft: 'rgba(255, 255, 255, 0.85)',

@@ -69,10 +69,7 @@ export function MarkerLabel({ node, theme, visual, fonts }: { node: AtlasGraphNo
         return (
           <Group key={`${node.id}-${line}`}>
             <SkiaText x={x} y={y} text={line} font={font} color={visual.labelHalo}>
-              <BlurMask blur={GLOW.label} style="normal" />
-            </SkiaText>
-            <SkiaText x={x} y={y} text={line} font={font} color={visual.labelHalo}>
-              <BlurMask blur={1.2} style="normal" />
+              <BlurMask blur={2.5} style="normal" />
             </SkiaText>
             <SkiaText x={x} y={y} text={line} font={font} color={visual.labelInk} />
           </Group>
@@ -260,6 +257,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
+        <Circle cx={node.x} cy={node.y} r={radius * 1.75} color="#FFFFFF" opacity={0.16} style="stroke" strokeWidth={1} />
         <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={domain} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} />
         <InterestGlyph node={node} color="#FFFFFF" />
         {label}
@@ -323,7 +321,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
       <Circle cx={node.x} cy={node.y} r={radius} color={domain.bright} style="stroke" strokeWidth={geometry.rimWidth}>
         {dashed && <DashPathEffect intervals={[4, 4]} />}
       </Circle>
-      <Path path={sparklePath(node.x, node.y, radius * 0.62)} color={clusterColors[node.cluster]} />
+      <Path path={sparklePath(node.x, node.y, radius * 0.72)} color={clusterColors[node.cluster]} />
       {node.status === 'completed' && <CompletedBadge node={node} theme={theme} />}
       {label}
     </Group>

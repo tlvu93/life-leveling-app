@@ -19,7 +19,7 @@ export function NavigatorRoutesCard({ top }: { top: number }) {
 
   return (
     <View pointerEvents="none" style={[styles.card, { top, borderColor: theme.panelBorder, backgroundColor: theme.panel }]} testID="atlas-navigator-routes">
-      <Text style={[styles.title, { color: theme.navInk }]}>
+      <Text style={[styles.title, { color: theme.ink }]}>
         Navigator Routes <Text style={[styles.titleSoft, { color: theme.inkSecondary }]}>(Community Guides)</Text>
       </Text>
       {routes.map((route) => (
@@ -27,7 +27,7 @@ export function NavigatorRoutesCard({ top }: { top: number }) {
           <View style={styles.dashes}>
             {[0, 1, 2].map((index) => <View key={index} style={[styles.dash, { backgroundColor: route.color }]} />)}
           </View>
-          <Text style={[styles.name, { color: theme.navInk }]}>{route.name}</Text>
+          <Text style={[styles.name, { color: theme.ink }]}>{route.name}</Text>
           {route.verified && <BadgeCheck color="#FFFFFF" fill={VERIFIED_BLUE} size={15} />}
         </View>
       ))}

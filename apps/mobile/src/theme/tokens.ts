@@ -46,7 +46,7 @@ export const themes = {
     success: '#3B8C61',
     accent: '#6C4FE0',
     accentSoft: 'rgba(108, 79, 224, 0.12)',
-    panel: 'rgba(255, 255, 255, 0.93)',
+    panel: 'rgba(255, 255, 255, 0.96)',
     panelBorder: 'rgba(212, 210, 238, 0.9)',
   },
   night: {

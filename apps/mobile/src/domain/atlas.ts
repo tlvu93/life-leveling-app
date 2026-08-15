@@ -210,8 +210,8 @@ function makeStars(count: number, seedBase: number, radiusMin: number, radiusMax
 
 // Three tiers: dense points, soft medium stars, and large 4-arm flare stars.
 export const atlasStars = {
-  tiny: makeStars(210, 1, 0.5, 1.1, 0.35, 0.8),
-  medium: makeStars(46, 500, 1.2, 2.4, 0.5, 0.95),
+  tiny: makeStars(320, 1, 0.5, 1.1, 0.35, 0.8),
+  medium: makeStars(64, 500, 1.2, 2.4, 0.5, 0.95),
   flare: makeStars(12, 900, 6, 14, 0.5, 0.9),
 };
 

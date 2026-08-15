@@ -68,6 +68,21 @@ for (const viewport of viewports) {
     expect(intersects(inspector, nav)).toBe(false);
     expect(intersects(tools, inspector)).toBe(false);
 
+    if (viewport.width >= 1100 && viewport.height >= 820) {
+      const legend = await bounds(page.getByTestId('atlas-legend'));
+      const navigatorCard = await bounds(page.getByTestId('atlas-navigator-routes'));
+      for (const box of [legend, navigatorCard]) {
+        expect(box.x).toBeGreaterThanOrEqual(-1);
+        expect(box.y).toBeGreaterThanOrEqual(-1);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+      }
+      expect(intersects(legend, tools)).toBe(false);
+      expect(intersects(legend, nav)).toBe(false);
+      expect(intersects(navigatorCard, inspector)).toBe(false);
+      expect(intersects(navigatorCard, header)).toBe(false);
+    }
+
     const documentSize = await page.evaluate(() => ({
       height: document.documentElement.scrollHeight,
       viewportHeight: window.innerHeight,
