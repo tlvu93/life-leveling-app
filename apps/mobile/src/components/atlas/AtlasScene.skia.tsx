@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/immutability -- Reanimated SharedValues are mutable UI-thread state by design. */
 import {
-  BlurMask,
   Canvas,
   Circle,
   DashPathEffect,
@@ -260,9 +259,8 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
 
             {relationWebs.map(({ cluster, path }) => (
               <Group key={`web-${cluster}`}>
-                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={2.4} opacity={0.4}>
-                  <BlurMask blur={GLOW.edgeWeb} style="normal" />
-                </Path>
+                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={4.6} opacity={0.16} />
+                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={2.2} opacity={0.28} />
                 <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={0.9} opacity={0.75} />
               </Group>
             ))}
@@ -270,9 +268,8 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
               const color = visual.navigatorPalette[routeId] ?? visual.navigatorFallback;
               return (
                 <Group key={`guide-${routeId}`}>
-                  <Path path={path} color={color} style="stroke" strokeWidth={3.2} opacity={0.25}>
-                    <BlurMask blur={2} style="normal" />
-                  </Path>
+                  <Path path={path} color={color} style="stroke" strokeWidth={5} opacity={0.12} />
+                  <Path path={path} color={color} style="stroke" strokeWidth={2.6} opacity={0.22} />
                   <Path path={path} color={color} style="stroke" strokeWidth={1.5} opacity={0.85}>
                     <DashPathEffect intervals={[7, 6]} />
                   </Path>
@@ -281,25 +278,24 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
             })}
             {personalPath !== '' && (
               <Group>
-                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={14} strokeCap="round" opacity={0.7}>
-                  <BlurMask blur={GLOW.routeWide} style="normal" />
-                </Path>
-                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={6} strokeCap="round" opacity={0.85}>
-                  <BlurMask blur={GLOW.routeMid} style="normal" />
-                </Path>
+                {/* Stacked plain strokes fake the old two mask-blur glow passes
+                    (sigma 12 + 5 over a near-world-sized path, every frame). */}
+                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={24} strokeCap="round" opacity={0.14} />
+                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={15} strokeCap="round" opacity={0.22} />
+                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={8} strokeCap="round" opacity={0.4} />
+                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={5} strokeCap="round" opacity={0.65} />
                 <Path path={personalPath} color={visual.routeCore} style="stroke" strokeWidth={3} strokeCap="round" />
                 {personalBeads.map((bead, index) => (
                   <Group key={`bead-${index}`}>
-                    <Circle cx={bead.x} cy={bead.y} r={4.5} color={visual.routeCore} opacity={0.85}>
-                      <BlurMask blur={GLOW.bead} style="normal" />
-                    </Circle>
+                    <Circle cx={bead.x} cy={bead.y} r={5.5} color={visual.routeCore} opacity={0.3} />
+                    <Circle cx={bead.x} cy={bead.y} r={3.6} color={visual.routeCore} opacity={0.55} />
                     <Circle cx={bead.x} cy={bead.y} r={2} color={visual.routeCore} />
                   </Group>
                 ))}
                 {goldWaypoints.map((point, index) => (
                   <Group key={`waypoint-${index}`}>
-                    <Circle cx={point.x} cy={point.y} r={7} color={visual.waypoint} opacity={0.65}>
-                      <BlurMask blur={5} style="normal" />
+                    <Circle cx={point.x} cy={point.y} r={10}>
+                      <RadialGradient c={vec(point.x, point.y)} r={10} colors={[withAlpha(visual.waypoint, 0.55), withAlpha(visual.waypoint, 0)]} positions={[0.35, 1]} />
                     </Circle>
                     <Path path={starPath(point.x, point.y, 4, 7.5, 3)} color={visual.waypoint} />
                   </Group>
@@ -307,9 +303,8 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
               </Group>
             )}
 
-            <Circle cx={particleX} cy={particleY} r={7} color={visual.routeBloom}>
-              <BlurMask blur={4} style="normal" />
-            </Circle>
+            <Circle cx={particleX} cy={particleY} r={8} color={visual.routeBloom} opacity={0.35} />
+            <Circle cx={particleX} cy={particleY} r={5} color={visual.routeBloom} opacity={0.55} />
             <Circle cx={particleX} cy={particleY} r={3.2} color={visual.routeCore} />
 
             {visibleNodes.map((node) => (

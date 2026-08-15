@@ -1,10 +1,11 @@
 import {
-  BlurMask,
+  Blur,
   Circle,
   DashPathEffect,
   Group,
   Line,
   LinearGradient,
+  Paint,
   Path,
   RadialGradient,
   RoundedRect,
@@ -15,12 +16,14 @@ import {
 import type { SharedValue } from 'react-native-reanimated';
 
 import type { AtlasGraphNode } from '@/domain/atlas';
-import { domainVisuals, GLOW, NODE_GEOMETRY, nodeRadius, type AtlasVisualTheme, type DomainVisual } from '@/theme/atlas-style';
+import { domainVisuals, GLOW, NODE_GEOMETRY, nodeRadius, withAlpha, type AtlasVisualTheme, type DomainVisual } from '@/theme/atlas-style';
 import { clusterColors, type AppTheme } from '@/theme/tokens';
 import { regularPolygonPath, sparklePath, starPath } from './atlas-geometry';
 
 // Node renderers for the "Living Universe" atlas. Recipe per node:
-//   1. blurred halo (BlurMask on a fill - the only real glow primitive we use)
+//   1. radial-gradient halo (mask-filter blurs are banned on the per-frame
+//      path: each BlurMask is a saveLayer + Gaussian pass, the dominant GPU
+//      cost on mid-range Android — see docs/superpowers/plans/2026-08-15-atlas-performance.md)
 //   2. body fill with a lighter-at-top radial gradient
 //   3. bright rim stroke (round joins fake the mock's rounded polygon corners)
 //   4. white glyph
@@ -51,9 +54,19 @@ function labelWidth(label: string, prominent: boolean, fonts: AtlasFonts) {
   return font.getTextWidth(label);
 }
 
+// 4-way outline offsets that fake the old soft BlurMask(2.5) label halo.
+const LABEL_HALO_OFFSETS: [number, number][] = [[1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3]];
+
+/** Alpha component of an rgba() string (1 when absent). */
+function haloAlpha(rgba: string): number {
+  const match = /,\s*([\d.]+)\)\s*$/.exec(rgba);
+  return match ? Number(match[1]) : 1;
+}
+
 export function MarkerLabel({ node, theme, visual, fonts }: { node: AtlasGraphNode; theme: AppTheme; visual: AtlasVisualTheme; fonts: AtlasFonts }) {
   // Interest hubs are named by their glowing region label instead.
   if (node.kind === 'interest') return null;
+  const haloColor = withAlpha(visual.labelHalo, haloAlpha(visual.labelHalo) * 0.6);
   const lines = node.label.split('|');
   const prominent = node.kind === 'path' && node.status !== 'nearby';
   const font = prominent ? fonts.hub : node.kind === 'milestone' ? fonts.label : fonts.small;
@@ -69,9 +82,9 @@ export function MarkerLabel({ node, theme, visual, fonts }: { node: AtlasGraphNo
         const y = right ? node.y - ((lines.length - 1) * lineHeight) / 2 + index * lineHeight + 4 : node.y + radius + 18 + index * lineHeight;
         return (
           <Group key={`${node.id}-${line}`}>
-            <SkiaText x={x} y={y} text={line} font={font} color={visual.labelHalo}>
-              <BlurMask blur={2.5} style="normal" />
-            </SkiaText>
+            {LABEL_HALO_OFFSETS.map(([dx, dy], offsetIndex) => (
+              <SkiaText key={`halo-${offsetIndex}`} x={x + dx} y={y + dy} text={line} font={font} color={haloColor} />
+            ))}
             <SkiaText x={x} y={y} text={line} font={font} color={visual.labelInk} />
           </Group>
         );
@@ -99,11 +112,13 @@ export function SpacedText({ x, y, text, font, color, halo, tracking = 3, blur =
   });
   return (
     <Group>
-      {glyphs.map((glyph, index) => (
-        <SkiaText key={`halo-${index}`} x={glyph.x} y={y} text={glyph.char} font={font} color={halo}>
-          <BlurMask blur={blur} style="normal" />
-        </SkiaText>
-      ))}
+      {/* One layer blur for the whole label's halo instead of a saveLayer per
+          glyph (was 62 mask-filter passes/frame across the six region names). */}
+      <Group layer={<Paint><Blur blur={blur * 0.6} /></Paint>}>
+        {glyphs.map((glyph, index) => (
+          <SkiaText key={`halo-${index}`} x={glyph.x} y={y} text={glyph.char} font={font} color={halo} />
+        ))}
+      </Group>
       {glyphs.map((glyph, index) => (
         <SkiaText key={`core-${index}`} x={glyph.x} y={y} text={glyph.char} font={font} color={color} />
       ))}
@@ -207,22 +222,22 @@ function CompletedBadge({ node, theme }: { node: AtlasGraphNode; theme: AppTheme
   );
 }
 
-function SelectionRing({ node, visual, pulseOpacity }: { node: AtlasGraphNode; visual: AtlasVisualTheme; pulseOpacity: SharedValue<number> }) {
+export function SelectionRing({ node, visual, pulseOpacity }: { node: AtlasGraphNode; visual: AtlasVisualTheme; pulseOpacity: SharedValue<number> }) {
   const radius = nodeRadius(node) + 12;
   return (
     <Group opacity={pulseOpacity}>
-      <Circle cx={node.x} cy={node.y} r={radius} color={visual.selection} style="stroke" strokeWidth={2.5}>
-        <BlurMask blur={4} style="solid" />
-      </Circle>
+      <Circle cx={node.x} cy={node.y} r={radius} color={visual.selection} style="stroke" strokeWidth={7} opacity={0.35} />
+      <Circle cx={node.x} cy={node.y} r={radius} color={visual.selection} style="stroke" strokeWidth={2.5} />
     </Group>
   );
 }
 
 /**
- * Shared layered shell, scaled by radius: atmospheric halo -> tight bloom ->
- * wide-band rim blooms (energy = width x opacity, moderate blur - never a
- * thin stroke under heavy blur) -> single center-lit body -> crisp rim.
- * Nothing solid sits outside the rim, so the white always blooms outermost.
+ * Shared layered shell, scaled by radius: atmospheric gradient halo ->
+ * wide-band rim blooms faked with stacked plain strokes (wide+faint under
+ * narrow+bright) -> single center-lit body -> crisp rim. Nothing solid sits
+ * outside the rim, so the white always blooms outermost. The old BlurMask
+ * halo/bloom passes cost a saveLayer + Gaussian blur per node per frame.
  */
 function LayeredShell({ x, y, sides, radius, domain, active, rotationRad }: {
   x: number;
@@ -234,23 +249,27 @@ function LayeredShell({ x, y, sides, radius, domain, active, rotationRad }: {
   rotationRad?: number;
 }) {
   const shell = regularPolygonPath(x, y, sides, radius, rotationRad);
+  const haloRadius = radius * 1.85;
   return (
     <Group>
-      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.08}>
-        <BlurMask blur={Math.max(4, radius * 0.57)} style="normal" />
-      </Path>
-      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.12}>
-        <BlurMask blur={Math.max(2, radius * 0.18)} style="normal" />
-      </Path>
+      <Circle cx={x} cy={y} r={haloRadius}>
+        <RadialGradient
+          c={vec(x, y)}
+          r={haloRadius}
+          colors={active
+            ? [withAlpha(domain.glow, 0.4), withAlpha(domain.glow, 0.18), withAlpha(domain.glow, 0)]
+            : [withAlpha(domain.glow, 0.16), withAlpha(domain.glow, 0.06), withAlpha(domain.glow, 0)]}
+          positions={[0.28, 0.55, 1]}
+        />
+      </Circle>
       {active && (
-        <Path path={shell} style="stroke" strokeWidth={radius * 0.36} color={domain.rim} opacity={0.5} strokeJoin="round">
-          <BlurMask blur={Math.max(2, radius * 0.21)} style="normal" />
-        </Path>
+        <Path path={shell} style="stroke" strokeWidth={radius * 0.44} color={domain.rim} opacity={0.26} strokeJoin="round" />
       )}
       {active && (
-        <Path path={shell} style="stroke" strokeWidth={radius * 0.25} color={domain.rim} opacity={0.9} strokeJoin="round">
-          <BlurMask blur={Math.max(1.2, radius * 0.09)} style="normal" />
-        </Path>
+        <Path path={shell} style="stroke" strokeWidth={radius * 0.26} color={domain.rim} opacity={0.55} strokeJoin="round" />
+      )}
+      {active && (
+        <Path path={shell} style="stroke" strokeWidth={radius * 0.14} color={domain.rim} opacity={0.9} strokeJoin="round" />
       )}
       <Path path={shell} opacity={active ? 0.94 : 0.7}>
         <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
@@ -307,7 +326,7 @@ const RAY_COUNT = 16;
  * Constellation hub matched to the mock close-up: a single-surface octagon
  * (center-lit, no inner bands) behind one luminous white rim, with the drama
  * coming from the environment - a starburst of fading rays, radar rings, and
- * sparkle dots. All glow is blurred duplicates of crisp shapes (BlurMask).
+ * sparkle dots. All glow comes from gradient fills and stacked strokes.
  */
 function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number }) {
   const { x, y } = node;
@@ -363,8 +382,13 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
       })}
       <LayeredShell x={x} y={y} sides={8} radius={radius} domain={domain} active={active} />
       {/* large icon with a small soft glow */}
-      <Circle cx={x} cy={y} r={radius * 0.55} color="#FFFFFF" opacity={active ? 0.18 : 0.08}>
-        <BlurMask blur={4} style="normal" />
+      <Circle cx={x} cy={y} r={radius * 0.78}>
+        <RadialGradient
+          c={vec(x, y)}
+          r={radius * 0.78}
+          colors={[`rgba(255, 255, 255, ${active ? 0.2 : 0.09})`, 'rgba(255, 255, 255, 0)']}
+          positions={[0.4, 1]}
+        />
       </Circle>
       <Group origin={vec(x, y)} transform={[{ scale: 0.82 }]}>
         <InterestGlyph node={node} color="#FFFFFF" />
@@ -441,20 +465,28 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
 
   // skill + nearby: tiny white badge with a domain sparkle glint
   const dashed = node.kind === 'nearby';
+  const glowRadius = radius + 2 + geometry.glowBlur * (active ? 1.6 : 0.9);
   return (
     <Group opacity={dashed ? 0.78 : 1}>
       {ring}
-      <Circle cx={node.x} cy={node.y} r={radius + 2} color={domain.glow} opacity={active ? geometry.glowOpacity : geometry.glowOpacity * 0.45}>
-        <BlurMask blur={active ? geometry.glowBlur * 1.4 : geometry.glowBlur * 0.7} style="normal" />
+      <Circle cx={node.x} cy={node.y} r={glowRadius}>
+        <RadialGradient
+          c={vec(node.x, node.y)}
+          r={glowRadius}
+          colors={[
+            withAlpha(domain.glow, active ? geometry.glowOpacity : geometry.glowOpacity * 0.45),
+            withAlpha(domain.glow, 0),
+          ]}
+          positions={[(radius + 1) / glowRadius, 1]}
+        />
       </Circle>
       <Circle cx={node.x} cy={node.y} r={radius} color={visual.markerFill} />
       {active ? (
         // White edge bloom drawn last so nothing colored sits outside it;
-        // a wide band with moderate blur carries the energy, plus a crisp ring.
+        // a wide faint band carries the energy under a crisp ring.
         <>
-          <Circle cx={node.x} cy={node.y} r={radius + 0.6} color="#FFFFFF" opacity={0.85} style="stroke" strokeWidth={3}>
-            <BlurMask blur={1.8} style="normal" />
-          </Circle>
+          <Circle cx={node.x} cy={node.y} r={radius + 0.8} color="#FFFFFF" opacity={0.4} style="stroke" strokeWidth={4.2} />
+          <Circle cx={node.x} cy={node.y} r={radius + 0.6} color="#FFFFFF" opacity={0.8} style="stroke" strokeWidth={2.2} />
           <Circle cx={node.x} cy={node.y} r={radius + 0.4} color="#FFFFFF" style="stroke" strokeWidth={1.1} />
         </>
       ) : (

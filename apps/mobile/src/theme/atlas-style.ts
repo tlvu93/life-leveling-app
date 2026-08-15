@@ -6,9 +6,15 @@ import type { ThemeMode } from '@/theme/tokens';
 // place. Target reference: apps/mobile/.tmp/mock.png (see
 // docs/v2/atlas-visual-rubric.md for the acceptance rubric).
 
-/** Returns an rgba() color with its alpha replaced; accepts rgba strings only. */
-export function withAlpha(rgba: string, alpha: number): string {
-  return rgba.replace(/,\s*[\d.]+\)\s*$/, `, ${alpha})`);
+/** Returns an rgba() color with its alpha replaced; accepts rgba() and #RRGGBB strings. */
+export function withAlpha(color: string, alpha: number): string {
+  if (color.startsWith('#')) {
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return color.replace(/,\s*[\d.]+\)\s*$/, `, ${alpha})`);
 }
 
 export type DomainVisual = {
