@@ -64,7 +64,9 @@ function AtlasExperience() {
 
   return (
     <View onLayout={onLayout} style={styles.root} testID="atlas-screen">
-      <ImageBackground source={atlasBackground} resizeMode="cover" style={StyleSheet.absoluteFill}>
+      {/* imageStyle must force 100% size: react-native-web otherwise renders the
+          inner image at its intrinsic 1672x941, leaving larger windows blank. */}
+      <ImageBackground source={atlasBackground} resizeMode="cover" style={StyleSheet.absoluteFill} imageStyle={styles.backgroundImage}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.canvasScrim }]} />
       </ImageBackground>
       {viewport.width > 0 && (
@@ -132,6 +134,7 @@ export default function AtlasScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
+  backgroundImage: { width: '100%', height: '100%' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   reveal: { position: 'absolute', zIndex: 55, right: 24, bottom: 92, left: 24, maxWidth: 820, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 15, borderWidth: 1, borderRadius: 8, padding: 17, shadowColor: '#1E2B23', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
   revealCompact: { right: 10, bottom: 78, left: 10, alignItems: 'stretch', flexDirection: 'column', gap: 10, padding: 14 },
