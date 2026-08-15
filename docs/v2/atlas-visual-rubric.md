@@ -27,6 +27,13 @@ byte-compare `full.png`.
 Scoring: each criterion is PASS / PARTIAL / FAIL against the named crop.
 Track pass results in this file's Score log during an iteration session.
 
+**Verification depth:** presence checks ("a white rim exists") are not
+sufficient and have passed wrong renders before. For border/glow recipes,
+compare STRUCTURE: zoom to pixel level, and sample a radial color profile
+(ray from node center outward) on both mock and capture — the ordering of
+bands (body → ramp → white peak → desaturated fade, nothing saturated outside
+the white) must match, not merely the presence of each band.
+
 ## Criteria
 
 ### Background (crops: `background`, `full`)

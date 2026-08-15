@@ -235,21 +235,35 @@ function GlowBadge({ x, y, sides, radius, domain, glowBlur, glowOpacity, rimWidt
   active: boolean;
   rotationRad?: number;
 }) {
-  const shape = regularPolygonPath(x, y, sides, radius, rotationRad);
+  // Corner rounding via an inset body + thick round-joined stroke whose OUTER
+  // edge lands exactly on `radius` - nothing solid may overhang the rim, or it
+  // buries the white bloom (the "red ring outside the white rim" bug).
+  const inset = Math.max(2, radius * 0.16);
+  const bodyShape = regularPolygonPath(x, y, sides, radius - inset, rotationRad);
+  const edgeShape = regularPolygonPath(x, y, sides, radius, rotationRad);
   const bodyGradient = <RadialGradient c={vec(x, y - radius * 0.45)} r={radius * 1.9} colors={[domain.bright, domain.core]} />;
   return (
     <Group>
-      <Path path={shape} color={domain.glow} opacity={active ? glowOpacity : glowOpacity * 0.4}>
+      <Path path={edgeShape} color={domain.glow} opacity={active ? glowOpacity : glowOpacity * 0.4}>
         <BlurMask blur={active ? glowBlur * 1.15 : glowBlur * 0.65} style="normal" />
       </Path>
-      {active && (
-        <Path path={shape} style="stroke" strokeWidth={rimWidth * 2.4} color="#FFFFFF" opacity={0.85} strokeJoin="round">
-          <BlurMask blur={6} style="solid" />
-        </Path>
+      <Path path={bodyShape} strokeJoin="round" style="stroke" strokeWidth={inset * 2}>{bodyGradient}</Path>
+      <Path path={bodyShape}>{bodyGradient}</Path>
+      {active ? (
+        <>
+          {/* soft edge-light ramps the body into the rim on both sides */}
+          <Path path={edgeShape} style="stroke" strokeWidth={rimWidth * 3} color="#FFFFFF" opacity={0.35} strokeJoin="round">
+            <BlurMask blur={6} style="normal" />
+          </Path>
+          {/* solid-style blur keeps the stroke crisp and blooms it outward,
+              fading white -> pale -> the colored halo underneath */}
+          <Path path={edgeShape} style="stroke" strokeWidth={rimWidth + 1} color="#FFFFFF" opacity={0.95} strokeJoin="round">
+            <BlurMask blur={7} style="solid" />
+          </Path>
+        </>
+      ) : (
+        <Path path={edgeShape} style="stroke" strokeWidth={rimWidth} color={domain.bright} strokeJoin="round" />
       )}
-      <Path path={shape} strokeJoin="round" style="stroke" strokeWidth={radius * 0.3}>{bodyGradient}</Path>
-      <Path path={shape}>{bodyGradient}</Path>
-      <Path path={shape} style="stroke" strokeWidth={active ? rimWidth + 0.5 : rimWidth} color={active ? '#FFFFFF' : domain.bright} strokeJoin="round" />
     </Group>
   );
 }
@@ -333,15 +347,17 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
       <Circle cx={node.x} cy={node.y} r={radius + 2} color={domain.glow} opacity={active ? geometry.glowOpacity : geometry.glowOpacity * 0.45}>
         <BlurMask blur={active ? geometry.glowBlur * 1.4 : geometry.glowBlur * 0.7} style="normal" />
       </Circle>
-      {active && (
-        <Circle cx={node.x} cy={node.y} r={radius + 0.5} color="#FFFFFF" opacity={0.9} style="stroke" strokeWidth={2}>
+      <Circle cx={node.x} cy={node.y} r={radius} color={visual.markerFill} />
+      {active ? (
+        // White edge bloom drawn last so nothing colored sits outside it.
+        <Circle cx={node.x} cy={node.y} r={radius} color="#FFFFFF" opacity={0.95} style="stroke" strokeWidth={1.8}>
           <BlurMask blur={3.5} style="solid" />
         </Circle>
+      ) : (
+        <Circle cx={node.x} cy={node.y} r={radius} color={domain.bright} style="stroke" strokeWidth={geometry.rimWidth}>
+          {dashed && <DashPathEffect intervals={[4, 4]} />}
+        </Circle>
       )}
-      <Circle cx={node.x} cy={node.y} r={radius} color={visual.markerFill} />
-      <Circle cx={node.x} cy={node.y} r={radius} color={domain.bright} style="stroke" strokeWidth={geometry.rimWidth}>
-        {dashed && <DashPathEffect intervals={[4, 4]} />}
-      </Circle>
       <Path path={sparklePath(node.x, node.y, radius * 0.72)} color={clusterColors[node.cluster]} />
       {node.status === 'completed' && <CompletedBadge node={node} theme={theme} />}
       {label}
