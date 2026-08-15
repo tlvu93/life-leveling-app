@@ -13,20 +13,22 @@ export function withAlpha(rgba: string, alpha: number): string {
 
 export type DomainVisual = {
   core: string;    // node body base
-  bright: string;  // rim + gradient highlight
+  bright: string;  // gradient highlight / dormant rim
+  rim: string;     // pale near-white rim tint for the active shine
+  deep: string;    // dark saturated inner surface behind the hub icon
   glow: string;    // outer halo
   web: string;     // constellation line color
   nebula: string;  // soft region field tint
 };
 
 export const domainVisuals: Record<AtlasCluster, DomainVisual> = {
-  music: { core: '#E0554E', bright: '#FF9C8F', glow: 'rgba(255, 116, 102, 0.9)', web: 'rgba(255, 158, 148, 0.6)', nebula: 'rgba(238, 108, 96, 0.16)' },
-  technology: { core: '#17AFC0', bright: '#7BEAF2', glow: 'rgba(64, 214, 228, 0.9)', web: 'rgba(126, 226, 236, 0.6)', nebula: 'rgba(35, 186, 201, 0.15)' },
-  visual: { core: '#E39A2D', bright: '#FFCB70', glow: 'rgba(255, 182, 77, 0.9)', web: 'rgba(255, 203, 122, 0.6)', nebula: 'rgba(230, 160, 55, 0.15)' },
-  nature: { core: '#4FA867', bright: '#93DFA8', glow: 'rgba(120, 214, 146, 0.9)', web: 'rgba(150, 222, 170, 0.6)', nebula: 'rgba(88, 178, 112, 0.15)' },
-  movement: { core: '#4E8FD8', bright: '#8FC2F5', glow: 'rgba(112, 176, 240, 0.9)', web: 'rgba(150, 198, 244, 0.6)', nebula: 'rgba(86, 148, 220, 0.15)' },
-  purpose: { core: '#7C5CE8', bright: '#B49AF8', glow: 'rgba(150, 118, 244, 0.9)', web: 'rgba(178, 152, 246, 0.6)', nebula: 'rgba(128, 96, 236, 0.16)' },
-  crossroads: { core: '#7C5CE8', bright: '#B49AF8', glow: 'rgba(150, 118, 244, 0.9)', web: 'rgba(178, 152, 246, 0.55)', nebula: 'rgba(128, 96, 236, 0.12)' },
+  music: { core: '#E0554E', bright: '#FF9C8F', rim: '#FFE4DF', deep: 'rgba(150, 38, 32, 0.88)', glow: 'rgba(255, 116, 102, 0.9)', web: 'rgba(255, 158, 148, 0.6)', nebula: 'rgba(238, 108, 96, 0.16)' },
+  technology: { core: '#087F8C', bright: '#7BEAF2', rim: '#BFFAFF', deep: 'rgba(3, 77, 86, 0.85)', glow: 'rgba(55, 221, 226, 0.9)', web: 'rgba(126, 226, 236, 0.6)', nebula: 'rgba(35, 186, 201, 0.15)' },
+  visual: { core: '#E39A2D', bright: '#FFCB70', rim: '#FFF1D6', deep: 'rgba(148, 90, 12, 0.86)', glow: 'rgba(255, 182, 77, 0.9)', web: 'rgba(255, 203, 122, 0.6)', nebula: 'rgba(230, 160, 55, 0.15)' },
+  nature: { core: '#4FA867', bright: '#93DFA8', rim: '#DFFFE8', deep: 'rgba(24, 94, 46, 0.86)', glow: 'rgba(120, 214, 146, 0.9)', web: 'rgba(150, 222, 170, 0.6)', nebula: 'rgba(88, 178, 112, 0.15)' },
+  movement: { core: '#4E8FD8', bright: '#8FC2F5', rim: '#DCEFFF', deep: 'rgba(23, 76, 138, 0.86)', glow: 'rgba(112, 176, 240, 0.9)', web: 'rgba(150, 198, 244, 0.6)', nebula: 'rgba(86, 148, 220, 0.15)' },
+  purpose: { core: '#7C5CE8', bright: '#B49AF8', rim: '#E9DFFF', deep: 'rgba(58, 30, 138, 0.86)', glow: 'rgba(150, 118, 244, 0.9)', web: 'rgba(178, 152, 246, 0.6)', nebula: 'rgba(128, 96, 236, 0.16)' },
+  crossroads: { core: '#7C5CE8', bright: '#B49AF8', rim: '#E9DFFF', deep: 'rgba(58, 30, 138, 0.86)', glow: 'rgba(150, 118, 244, 0.9)', web: 'rgba(178, 152, 246, 0.55)', nebula: 'rgba(128, 96, 236, 0.12)' },
 };
 
 export type NodeGeometry = { radius: number; glowBlur: number; glowOpacity: number; rimWidth: number };

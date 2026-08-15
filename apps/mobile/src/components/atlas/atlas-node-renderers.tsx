@@ -4,6 +4,7 @@ import {
   DashPathEffect,
   Group,
   Line,
+  Oval,
   Path,
   RadialGradient,
   RoundedRect,
@@ -273,6 +274,72 @@ function isActiveStatus(node: AtlasGraphNode): boolean {
   return node.status === 'discovered' || node.status === 'attempted' || node.status === 'completed';
 }
 
+/**
+ * Layered constellation hub ("strategy-game bloom node"). All glow comes from
+ * duplicating crisp shapes behind themselves and Gaussian-blurring the copies
+ * (BlurMask) - never one big shadow. Layer stack, bottom to top:
+ *   atmospheric halo -> tight bloom -> orbital ellipses -> concentric rings ->
+ *   blurred rim duplicates (wide + tight) -> translucent shell -> crisp pale
+ *   rim -> inset ring -> dark saturated inner polygon -> icon glow -> icon.
+ * The center stays crisp; only the duplicate layers are blurred.
+ */
+function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number }) {
+  const { x, y } = node;
+  const shell = regularPolygonPath(x, y, 6, radius);
+  const insetRing = regularPolygonPath(x, y, 6, radius * 0.8);
+  const innerRadius = radius * 0.62;
+  const inner = regularPolygonPath(x, y, 6, innerRadius);
+  return (
+    <Group>
+      {/* 1. very soft atmospheric halo (~0.6R beyond the shell) */}
+      <Path path={shell} color={domain.glow} opacity={active ? 0.18 : 0.08}>
+        <BlurMask blur={11} style="normal" />
+      </Path>
+      {/* 2. tighter bloom (~0.3R beyond) */}
+      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.12}>
+        <BlurMask blur={5} style="normal" />
+      </Path>
+      {/* 3. faint orbital ellipses behind the node */}
+      <Group origin={vec(x, y)} transform={[{ rotate: 0.42 }]}>
+        <Oval x={x - radius * 2.1} y={y - radius * 1.02} width={radius * 4.2} height={radius * 2.04} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.12 : 0.07} />
+      </Group>
+      <Group origin={vec(x, y)} transform={[{ rotate: -0.9 }]}>
+        <Oval x={x - radius * 1.85} y={y - radius * 1.2} width={radius * 3.7} height={radius * 2.4} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.09 : 0.05} />
+      </Group>
+      {/* 4. thin concentric rings */}
+      <Circle cx={x} cy={y} r={radius * 1.45} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.18 : 0.1} />
+      <Circle cx={x} cy={y} r={radius * 1.85} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.11 : 0.06} />
+      {/* 5. rim bloom: blurred duplicates BEHIND the crisp rim (wide, then tight) */}
+      {active && (
+        <Path path={shell} style="stroke" strokeWidth={2.2} color={domain.rim} opacity={0.5} strokeJoin="round">
+          <BlurMask blur={6} style="normal" />
+        </Path>
+      )}
+      {active && (
+        <Path path={shell} style="stroke" strokeWidth={2} color={domain.rim} opacity={0.85} strokeJoin="round">
+          <BlurMask blur={2.5} style="normal" />
+        </Path>
+      )}
+      {/* 6. translucent shell body */}
+      <Path path={shell} color={domain.core} opacity={active ? 0.42 : 0.3} />
+      {/* 7. crisp rim (pale when active, domain tint when dormant) */}
+      <Path path={shell} style="stroke" strokeWidth={1.4} color={active ? domain.rim : domain.bright} opacity={active ? 1 : 0.85} strokeJoin="round" />
+      {/* 8. inset ring */}
+      <Path path={insetRing} style="stroke" strokeWidth={0.8} color={active ? domain.rim : domain.bright} opacity={0.35} strokeJoin="round" />
+      {/* 9. dark saturated inner surface + its edge */}
+      <Path path={inner} color={domain.deep} strokeJoin="round" />
+      <Path path={inner} style="stroke" strokeWidth={1} color={domain.bright} opacity={0.55} strokeJoin="round" />
+      {/* 10. small icon glow, then the crisp white glyph scaled into the core */}
+      <Circle cx={x} cy={y} r={innerRadius * 0.72} color="#FFFFFF" opacity={active ? 0.2 : 0.1}>
+        <BlurMask blur={3} style="normal" />
+      </Circle>
+      <Group origin={vec(x, y)} transform={[{ scale: 0.62 }]}>
+        <InterestGlyph node={node} color="#FFFFFF" />
+      </Group>
+    </Group>
+  );
+}
+
 export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpacity, thinLabels = false }: NodeProps) {
   const domain = domainVisuals[node.cluster];
   const violet = domainVisuals.crossroads;
@@ -287,9 +354,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
-        <Circle cx={node.x} cy={node.y} r={radius * 1.75} color="#FFFFFF" opacity={active ? 0.22 : 0.12} style="stroke" strokeWidth={1} />
-        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={domain} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
-        <InterestGlyph node={node} color="#FFFFFF" />
+        <HubNode node={node} domain={domain} active={active} radius={radius} />
         {label}
       </Group>
     );
