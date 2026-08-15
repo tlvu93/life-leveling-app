@@ -1,17 +1,15 @@
 /* eslint-disable react-hooks/immutability -- Reanimated SharedValues are mutable UI-thread state by design. */
 import {
+  BlurMask,
   Canvas,
   Circle,
   DashPathEffect,
   Group,
-  Line,
   Path,
   Points,
-  RoundedRect,
-  Text as SkiaText,
+  RadialGradient,
   useFont,
   vec,
-  type SkFont,
 } from '@shopify/react-native-skia';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
@@ -25,13 +23,12 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 
 import {
   ATLAS_MAX_SCALE,
   ATLAS_MIN_SCALE,
-  atlasEdgePath,
+  atlasNodeIndex,
   atlasRegions,
   atlasShowcaseEdges,
   atlasShowcaseNodes,
@@ -39,15 +36,21 @@ import {
   cameraTranslationForAnchor,
   visibleAtlasEdges,
   visibleAtlasNodes,
+  type AtlasCluster,
+  type AtlasGraphEdge,
   type AtlasProgress,
   type AtlasGraphNode,
   type AtlasZoom,
 } from '@/domain/atlas';
 import { defaultAtlasDevFlags, type AtlasDevFlags } from '@/lib/atlas-dev-flags';
-import { atlasVisual } from '@/theme/atlas-style';
-import { clusterColors, type AppTheme } from '@/theme/tokens';
-import { sparklePath } from './atlas-geometry';
+import { atlasVisual, domainVisuals, GLOW, nodeRadius, withAlpha } from '@/theme/atlas-style';
+import { type AppTheme } from '@/theme/tokens';
+import { concatEdgePaths, pointOnEdge, sparklePath, starPath } from './atlas-geometry';
+import { AtlasNodeView, SpacedText, type AtlasFonts } from './atlas-node-renderers';
 import type { AtlasCamera } from './use-atlas-camera';
+
+// Route edges that carry a gold waypoint sparkle at their midpoint.
+const GOLD_WAYPOINT_EDGE_IDS = new Set(['route-music', 'route-q1']);
 
 export type AtlasSceneProps = {
   camera: AtlasCamera;
@@ -59,208 +62,6 @@ export type AtlasSceneProps = {
   progress: AtlasProgress;
   devFlags?: AtlasDevFlags;
 };
-
-type AtlasFonts = {
-  label: SkFont;
-  small: SkFont;
-  hub: SkFont;
-  region: SkFont;
-  step: SkFont;
-};
-
-function nodeRadius(node: AtlasGraphNode) {
-  if (node.kind === 'interest') return 28;
-  if (node.kind === 'path') return node.status === 'nearby' ? 21 : 31;
-  if (node.kind === 'milestone') return 24;
-  if (node.kind === 'quest') return 19;
-  if (node.kind === 'nearby') return 17;
-  return 10;
-}
-
-function labelWidth(label: string, prominent: boolean, fonts: AtlasFonts) {
-  const font = prominent ? fonts.hub : fonts.label;
-  return font.getTextWidth(label);
-}
-
-function MarkerLabel({ node, color, theme, fonts }: { node: AtlasGraphNode; color: string; theme: AppTheme; fonts: AtlasFonts }) {
-  const lines = node.label.split('|');
-  const prominent = node.kind === 'interest' || (node.kind === 'path' && node.status !== 'nearby');
-  const font = prominent ? fonts.hub : node.kind === 'milestone' ? fonts.label : fonts.small;
-  const lineHeight = prominent ? 17 : node.kind === 'milestone' ? 12 : 10;
-  const radius = nodeRadius(node);
-  const right = node.labelSide === 'right';
-
-  return (
-    <Group>
-      {lines.map((line, index) => {
-        const width = labelWidth(line, prominent, fonts);
-        const x = right ? node.x + radius + 9 : node.x - width / 2;
-        const y = right ? node.y - ((lines.length - 1) * lineHeight) / 2 + index * lineHeight + 4 : node.y + radius + 18 + index * lineHeight;
-        return (
-          <Group key={`${node.id}-${line}`}>
-            <SkiaText x={x + 1} y={y + 1} text={line} font={font} color={theme.mode === 'night' ? '#000000' : '#F7FAF8'} opacity={0.72} />
-            <SkiaText x={x} y={y} text={line} font={font} color={prominent ? theme.ink : color === clusterColors.crossroads ? theme.ink : theme.ink} />
-          </Group>
-        );
-      })}
-    </Group>
-  );
-}
-
-function InterestSymbol({ node, color }: { node: AtlasGraphNode; color: string }) {
-  const x = node.x;
-  const y = node.y;
-
-  if (node.id === 'music') {
-    return (
-      <Group>
-        <Path path={`M ${x - 5} ${y + 7} L ${x - 5} ${y - 10} L ${x + 9} ${y - 13} L ${x + 9} ${y + 3}`} color={color} style="stroke" strokeWidth={3} />
-        <Line p1={vec(x - 5, y - 5)} p2={vec(x + 9, y - 8)} color={color} strokeWidth={3} />
-        <Circle cx={x - 10} cy={y + 9} r={5} color={color} />
-        <Circle cx={x + 4} cy={y + 5} r={5} color={color} />
-      </Group>
-    );
-  }
-
-  if (node.id === 'technology') {
-    return (
-      <Group>
-        <RoundedRect x={x - 11} y={y - 11} width={22} height={22} r={4} color={color} style="stroke" strokeWidth={3} />
-        <RoundedRect x={x - 5} y={y - 5} width={10} height={10} r={2} color={color} />
-        {[-7, 0, 7].map((offset) => (
-          <Group key={`technology-${offset}`}>
-            <Line p1={vec(x + offset, y - 16)} p2={vec(x + offset, y - 11)} color={color} strokeWidth={2} />
-            <Line p1={vec(x + offset, y + 11)} p2={vec(x + offset, y + 16)} color={color} strokeWidth={2} />
-            <Line p1={vec(x - 16, y + offset)} p2={vec(x - 11, y + offset)} color={color} strokeWidth={2} />
-            <Line p1={vec(x + 11, y + offset)} p2={vec(x + 16, y + offset)} color={color} strokeWidth={2} />
-          </Group>
-        ))}
-      </Group>
-    );
-  }
-
-  if (node.id === 'visual') {
-    const palette = `M ${x + 13} ${y + 2} C ${x + 12} ${y + 14}, ${x + 2} ${y + 17}, ${x - 8} ${y + 13} C ${x - 20} ${y + 8}, ${x - 19} ${y - 8}, ${x - 9} ${y - 15} C ${x + 1} ${y - 22}, ${x + 17} ${y - 14}, ${x + 18} ${y - 4} C ${x + 19} ${y + 1}, ${x + 17} ${y + 3}, ${x + 13} ${y + 2} Z`;
-    return (
-      <Group>
-        <Path path={palette} color={color} opacity={0.14} />
-        <Path path={palette} color={color} style="stroke" strokeWidth={3} />
-        <Circle cx={x - 8} cy={y - 8} r={2.8} color={color} />
-        <Circle cx={x} cy={y - 11} r={2.8} color={color} />
-        <Circle cx={x + 8} cy={y - 6} r={2.8} color={color} />
-        <Circle cx={x - 7} cy={y + 2} r={2.8} color={color} />
-      </Group>
-    );
-  }
-
-  if (node.id === 'nature') {
-    const leaf = `M ${x - 14} ${y + 12} C ${x - 12} ${y - 7}, ${x + 2} ${y - 17}, ${x + 16} ${y - 16} C ${x + 16} ${y + 1}, ${x + 7} ${y + 15}, ${x - 7} ${y + 14} C ${x - 10} ${y + 14}, ${x - 12} ${y + 13}, ${x - 14} ${y + 12} Z`;
-    return (
-      <Group>
-        <Path path={leaf} color={color} opacity={0.13} />
-        <Path path={leaf} color={color} style="stroke" strokeWidth={3} />
-        <Path path={`M ${x - 12} ${y + 13} C ${x - 1} ${y + 5}, ${x + 3} ${y - 2}, ${x + 10} ${y - 10}`} color={color} style="stroke" strokeWidth={2.5} />
-      </Group>
-    );
-  }
-
-  if (node.id === 'movement') {
-    return (
-      <Group>
-        <Path path={`M ${x - 16} ${y + 10} C ${x - 16} ${y - 8}, ${x - 8} ${y - 16}, ${x} ${y - 16} C ${x + 9} ${y - 16}, ${x + 16} ${y - 7}, ${x + 16} ${y + 10}`} color={color} style="stroke" strokeWidth={3} />
-        <Line p1={vec(x - 10, y + 10)} p2={vec(x + 10, y + 10)} color={color} strokeWidth={3} />
-        <Line p1={vec(x, y + 5)} p2={vec(x + 9, y - 6)} color={color} strokeWidth={3} />
-        <Circle cx={x} cy={y + 5} r={3} color={color} />
-      </Group>
-    );
-  }
-
-  const heart = `M ${x} ${y + 14} C ${x - 4} ${y + 8}, ${x - 16} ${y + 1}, ${x - 16} ${y - 7} C ${x - 16} ${y - 17}, ${x - 3} ${y - 19}, ${x} ${y - 10} C ${x + 3} ${y - 19}, ${x + 16} ${y - 17}, ${x + 16} ${y - 7} C ${x + 16} ${y + 1}, ${x + 4} ${y + 8}, ${x} ${y + 14} Z`;
-  return (
-    <Group>
-      <Path path={heart} color={color} opacity={0.13} />
-      <Path path={heart} color={color} style="stroke" strokeWidth={3} />
-      <Path path={`M ${x - 9} ${y + 3} L ${x - 3} ${y - 2} L ${x + 2} ${y + 2} L ${x + 9} ${y - 4}`} color={color} style="stroke" strokeWidth={2} />
-    </Group>
-  );
-}
-
-function AtlasNode({ node, selected, theme, pulseOpacity, fonts }: { node: AtlasGraphNode; selected: boolean; theme: AppTheme; pulseOpacity: SharedValue<number>; fonts: AtlasFonts }) {
-  const color = clusterColors[node.cluster];
-  const radius = nodeRadius(node);
-  const markerFill = theme.mode === 'night' ? '#0B1510' : '#FAFCF9';
-
-  if (node.kind === 'path') {
-    const diamond = `M ${node.x} ${node.y - radius - 4} L ${node.x + radius + 4} ${node.y} L ${node.x} ${node.y + radius + 4} L ${node.x - radius - 4} ${node.y} Z`;
-    const emphasized = selected || node.status !== 'nearby';
-    const pathColor = emphasized ? theme.route : theme.border;
-    return (
-      <Group opacity={emphasized ? 1 : 0.58}>
-        {selected && <Circle cx={node.x} cy={node.y} r={radius + 15} color={theme.focus} style="stroke" strokeWidth={2} opacity={pulseOpacity} />}
-        {emphasized && <Path path={diamond} color={theme.routeGlow} style="stroke" strokeWidth={12} />}
-        <Path path={diamond} color={markerFill} />
-        <Path path={diamond} color={pathColor} style="stroke" strokeWidth={emphasized ? 3 : 2} />
-        <Path path={`M ${node.x - 7} ${node.y - 17} L ${node.x + 2} ${node.y - 3} L ${node.x - 3} ${node.y - 3} L ${node.x + 8} ${node.y + 17} L ${node.x - 9} ${node.y + 2} L ${node.x - 2} ${node.y + 2} Z`} color={pathColor} />
-        <MarkerLabel node={node} color={emphasized ? color : theme.inkSecondary} theme={theme} fonts={fonts} />
-      </Group>
-    );
-  }
-
-  if (node.kind === 'milestone') {
-    const diamond = `M ${node.x} ${node.y - radius} L ${node.x + radius} ${node.y} L ${node.x} ${node.y + radius} L ${node.x - radius} ${node.y} Z`;
-    return (
-      <Group>
-        {selected && <Circle cx={node.x} cy={node.y} r={radius + 13} color={theme.focus} style="stroke" strokeWidth={2} opacity={pulseOpacity} />}
-        <Path path={diamond} color={markerFill} />
-        <Path path={diamond} color={theme.pink} style="stroke" strokeWidth={3} />
-        <Line p1={vec(node.x - 6, node.y + 10)} p2={vec(node.x - 6, node.y - 12)} color={theme.pink} strokeWidth={2} />
-        <Path path={`M ${node.x - 5} ${node.y - 11} L ${node.x + 9} ${node.y - 7} L ${node.x - 5} ${node.y - 2} Z`} color={theme.pink} />
-        <MarkerLabel node={node} color={color} theme={theme} fonts={fonts} />
-      </Group>
-    );
-  }
-
-  if (node.kind === 'quest') {
-    const points = [
-      [node.x - radius * 0.7, node.y - radius], [node.x + radius * 0.7, node.y - radius],
-      [node.x + radius, node.y], [node.x + radius * 0.7, node.y + radius],
-      [node.x - radius * 0.7, node.y + radius], [node.x - radius, node.y],
-    ];
-    const hex = `${points.map(([x, y], index) => `${index ? 'L' : 'M'} ${x} ${y}`).join(' ')} Z`;
-    return (
-      <Group>
-        {selected && <Circle cx={node.x} cy={node.y} r={radius + 12} color={theme.focus} style="stroke" strokeWidth={2} opacity={pulseOpacity} />}
-        <Path path={hex} color={theme.route} />
-        <SkiaText x={node.x - fonts.step.getTextWidth(node.step ?? '') / 2} y={node.y + 4} text={node.step ?? ''} font={fonts.step} color="#FFFFFF" />
-        <MarkerLabel node={node} color={color} theme={theme} fonts={fonts} />
-      </Group>
-    );
-  }
-
-  if (node.kind === 'interest') {
-    return (
-      <Group>
-        <Circle cx={node.x} cy={node.y} r={radius + 10} color={color} opacity={selected ? pulseOpacity : 0.22} style="stroke" strokeWidth={2} />
-        <RoundedRect x={node.x - radius} y={node.y - radius} width={radius * 2} height={radius * 2} r={9} color={markerFill} />
-        <RoundedRect x={node.x - radius} y={node.y - radius} width={radius * 2} height={radius * 2} r={9} color={color} style="stroke" strokeWidth={3} />
-        <InterestSymbol node={node} color={color} />
-        <MarkerLabel node={node} color={color} theme={theme} fonts={fonts} />
-      </Group>
-    );
-  }
-
-  return (
-    <Group>
-      {selected && <Circle cx={node.x} cy={node.y} r={radius + 10} color={theme.focus} style="stroke" strokeWidth={2} opacity={pulseOpacity} />}
-      <Circle cx={node.x} cy={node.y} r={radius + 3} color={markerFill} />
-      <Circle cx={node.x} cy={node.y} r={radius} color={color} style="stroke" strokeWidth={node.kind === 'nearby' ? 2 : 2.5}>
-        {node.kind === 'nearby' && <DashPathEffect intervals={[4, 4]} />}
-      </Circle>
-      <Circle cx={node.x} cy={node.y} r={node.status === 'completed' ? 4 : 2.8} color={node.status === 'completed' ? theme.success : color} />
-      <MarkerLabel node={node} color={color} theme={theme} fonts={fonts} />
-    </Group>
-  );
-}
 
 function NodeHitTarget({ node, camera, onPress }: { node: AtlasGraphNode; camera: AtlasCamera; onPress: () => void }) {
   const hitSize = Math.max(48, nodeRadius(node) * 2);
@@ -284,12 +85,12 @@ function NodeHitTarget({ node, camera, onPress }: { node: AtlasGraphNode; camera
 }
 
 export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide, theme, onNodePress, progress, devFlags = defaultAtlasDevFlags }: AtlasSceneProps) {
-  const labelFont = useFont(Inter_600SemiBold, 10);
-  const smallFont = useFont(Inter_600SemiBold, 8);
+  const labelFont = useFont(Inter_600SemiBold, 11);
+  const smallFont = useFont(Inter_600SemiBold, 9);
   const hubFont = useFont(Inter_800ExtraBold, 14);
-  const regionFont = useFont(Inter_800ExtraBold, 15);
+  const regionFont = useFont(Inter_800ExtraBold, 16);
   const stepFont = useFont(Inter_800ExtraBold, 12);
-  const fonts = useMemo(() => labelFont && smallFont && hubFont && regionFont && stepFont
+  const fonts = useMemo<AtlasFonts | null>(() => labelFont && smallFont && hubFont && regionFont && stepFont
     ? { label: labelFont, small: smallFont, hub: hubFont, region: regionFont, step: stepFont }
     : null, [hubFont, labelFont, regionFont, smallFont, stepFont]);
   const { showcase, freeze } = devFlags;
@@ -297,6 +98,51 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const tinyStarPoints = useMemo(() => atlasStars.tiny.map((star) => vec(star.x, star.y)), []);
   const visibleNodes = useMemo(() => showcase ? atlasShowcaseNodes() : visibleAtlasNodes(semanticZoom, progress), [progress, semanticZoom, showcase]);
   const edges = useMemo(() => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress), [progress, semanticZoom, showcase, showGuide]);
+
+  // Constellation webs: one concatenated path per cluster keeps glow passes cheap.
+  const relationWebs = useMemo(() => {
+    const buckets = new Map<AtlasCluster, AtlasGraphEdge[]>();
+    for (const edge of edges) {
+      if (edge.kind !== 'relation') continue;
+      const cluster = atlasNodeIndex.get(edge.to)?.cluster ?? atlasNodeIndex.get(edge.from)?.cluster ?? 'crossroads';
+      const bucket = buckets.get(cluster) ?? [];
+      bucket.push(edge);
+      buckets.set(cluster, bucket);
+    }
+    return [...buckets.entries()].map(([cluster, list]) => ({ cluster, path: concatEdgePaths(list) }));
+  }, [edges]);
+  const guideRoutes = useMemo(() => {
+    const buckets = new Map<string, AtlasGraphEdge[]>();
+    for (const edge of edges) {
+      if (edge.kind !== 'guide') continue;
+      const key = edge.routeId ?? 'default';
+      const bucket = buckets.get(key) ?? [];
+      bucket.push(edge);
+      buckets.set(key, bucket);
+    }
+    return [...buckets.entries()].map(([routeId, list]) => ({ routeId, path: concatEdgePaths(list) }));
+  }, [edges]);
+  const personalEdges = useMemo(() => edges.filter((edge) => edge.kind === 'personal'), [edges]);
+  const personalPath = useMemo(() => concatEdgePaths(personalEdges), [personalEdges]);
+  const personalBeads = useMemo(
+    () => personalEdges.map((edge) => pointOnEdge(edge, 0.5)).filter((point): point is { x: number; y: number } => point !== null),
+    [personalEdges],
+  );
+  const goldWaypoints = useMemo(
+    () => personalEdges.filter((edge) => GOLD_WAYPOINT_EDGE_IDS.has(edge.id)).map((edge) => pointOnEdge(edge, 0.5)).filter((point): point is { x: number; y: number } => point !== null),
+    [personalEdges],
+  );
+  // The travelling particle follows the final approach into the milestone.
+  const particleCurve = useMemo(() => {
+    const edge = personalEdges.find((candidate) => candidate.to === 'mini-set') ?? personalEdges[0];
+    if (!edge) return null;
+    const from = atlasNodeIndex.get(edge.from);
+    const to = atlasNodeIndex.get(edge.to);
+    if (!from || !to) return null;
+    const dx = to.x - from.x;
+    return { fx: from.x, fy: from.y, c1x: from.x + dx * 0.42, c1y: from.y, c2x: to.x - dx * 0.42, c2y: to.y, tx: to.x, ty: to.y };
+  }, [personalEdges]);
+
   const cameraTransform = useDerivedValue(() => [
     { translateX: camera.x.value },
     { translateY: camera.y.value },
@@ -306,8 +152,18 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const routeProgress = useSharedValue(0);
   const pulseOpacity = useDerivedValue(() => 0.28 + pulse.value * 0.55);
   const dustOpacity = useDerivedValue(() => 0.42 + pulse.value * 0.18);
-  const particleX = useDerivedValue(() => 610 + (850 - 610) * routeProgress.value);
-  const particleY = useDerivedValue(() => 350 + (118 - 350) * routeProgress.value);
+  const particleX = useDerivedValue(() => {
+    if (!particleCurve) return -1000;
+    const t = routeProgress.value;
+    const u = 1 - t;
+    return u * u * u * particleCurve.fx + 3 * u * u * t * particleCurve.c1x + 3 * u * t * t * particleCurve.c2x + t * t * t * particleCurve.tx;
+  });
+  const particleY = useDerivedValue(() => {
+    if (!particleCurve) return -1000;
+    const t = routeProgress.value;
+    const u = 1 - t;
+    return u * u * u * particleCurve.fy + 3 * u * u * t * particleCurve.c1y + 3 * u * t * t * particleCurve.c2y + t * t * t * particleCurve.ty;
+  });
   const panStartX = useSharedValue(0);
   const panStartY = useSharedValue(0);
   const pinchStartScale = useSharedValue(1);
@@ -380,36 +236,84 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
             </Group>
 
             {atlasRegions.map((region) => {
-              const color = clusterColors[region.id];
+              const domain = domainVisuals[region.id];
+              const hub = atlasNodeIndex.get(region.id);
+              const cx = hub?.x ?? region.labelX;
+              const cy = hub?.y ?? region.labelY;
               return (
-                <Group key={region.id}>
-                  <Path path={region.path} color={color} opacity={theme.mode === 'night' ? 0.08 : 0.085} />
-                  <Path path={region.path} color={color} opacity={0.4} style="stroke" strokeWidth={1.25} />
-                  {semanticZoom < 2 && <SkiaText x={region.labelX} y={region.labelY} text={region.label} font={fonts.region} color={color} opacity={0.76} />}
+                <Circle key={`field-${region.id}`} cx={cx} cy={cy} r={250}>
+                  <RadialGradient c={vec(cx, cy)} r={250} colors={[domain.nebula, withAlpha(domain.nebula, 0)]} />
+                </Circle>
+              );
+            })}
+            {atlasRegions.map((region) => (
+              <SpacedText
+                key={`label-${region.id}`}
+                x={region.labelX}
+                y={region.labelY}
+                text={region.label}
+                font={fonts.region}
+                color={domainVisuals[region.id].core}
+                halo={visual.regionLabelHalo}
+              />
+            ))}
+
+            {relationWebs.map(({ cluster, path }) => (
+              <Group key={`web-${cluster}`}>
+                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={2.4} opacity={0.4}>
+                  <BlurMask blur={GLOW.edgeWeb} style="normal" />
+                </Path>
+                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={0.9} opacity={0.75} />
+              </Group>
+            ))}
+            {guideRoutes.map(({ routeId, path }) => {
+              const color = visual.navigatorPalette[routeId] ?? visual.navigatorFallback;
+              return (
+                <Group key={`guide-${routeId}`}>
+                  <Path path={path} color={color} style="stroke" strokeWidth={3.4} opacity={0.35}>
+                    <BlurMask blur={2} style="normal" />
+                  </Path>
+                  <Path path={path} color={color} style="stroke" strokeWidth={1.8} opacity={0.9}>
+                    <DashPathEffect intervals={[7, 6]} />
+                  </Path>
                 </Group>
               );
             })}
-
-            {edges.filter((edge) => edge.kind === 'relation').map((edge) => (
-              <Path key={edge.id} path={atlasEdgePath(edge)} color={theme.relation} style="stroke" strokeWidth={1.3} />
-            ))}
-            {edges.filter((edge) => edge.kind === 'guide').map((edge) => (
-              <Path key={edge.id} path={atlasEdgePath(edge)} color={theme.guide} style="stroke" strokeWidth={2.4}>
-                <DashPathEffect intervals={[8, 7]} />
-              </Path>
-            ))}
-            {edges.filter((edge) => edge.kind === 'personal').map((edge) => (
-              <Group key={edge.id}>
-                <Path path={atlasEdgePath(edge)} color={theme.routeGlow} style="stroke" strokeWidth={11} />
-                <Path path={atlasEdgePath(edge)} color={theme.route} style="stroke" strokeWidth={4.4} />
+            {personalPath !== '' && (
+              <Group>
+                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={14} strokeCap="round" opacity={0.7}>
+                  <BlurMask blur={GLOW.routeWide} style="normal" />
+                </Path>
+                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={6} strokeCap="round" opacity={0.85}>
+                  <BlurMask blur={GLOW.routeMid} style="normal" />
+                </Path>
+                <Path path={personalPath} color={visual.routeCore} style="stroke" strokeWidth={3} strokeCap="round" />
+                {personalBeads.map((bead, index) => (
+                  <Group key={`bead-${index}`}>
+                    <Circle cx={bead.x} cy={bead.y} r={4.5} color={visual.routeCore} opacity={0.85}>
+                      <BlurMask blur={GLOW.bead} style="normal" />
+                    </Circle>
+                    <Circle cx={bead.x} cy={bead.y} r={2} color={visual.routeCore} />
+                  </Group>
+                ))}
+                {goldWaypoints.map((point, index) => (
+                  <Group key={`waypoint-${index}`}>
+                    <Circle cx={point.x} cy={point.y} r={7} color={visual.waypoint} opacity={0.65}>
+                      <BlurMask blur={5} style="normal" />
+                    </Circle>
+                    <Path path={starPath(point.x, point.y, 4, 7.5, 3)} color={visual.waypoint} />
+                  </Group>
+                ))}
               </Group>
-            ))}
+            )}
 
-            <Circle cx={particleX} cy={particleY} r={7} color={theme.routeGlow} />
-            <Circle cx={particleX} cy={particleY} r={3.2} color={theme.route} />
+            <Circle cx={particleX} cy={particleY} r={7} color={visual.routeBloom}>
+              <BlurMask blur={4} style="normal" />
+            </Circle>
+            <Circle cx={particleX} cy={particleY} r={3.2} color={visual.routeCore} />
 
             {visibleNodes.map((node) => (
-              <AtlasNode key={node.id} node={node} selected={selectedId === node.id} theme={theme} pulseOpacity={pulseOpacity} fonts={fonts} />
+              <AtlasNodeView key={node.id} node={node} selected={selectedId === node.id} theme={theme} visual={visual} fonts={fonts} pulseOpacity={pulseOpacity} thinLabels={showcase} />
             ))}
           </Group>
         </Canvas>

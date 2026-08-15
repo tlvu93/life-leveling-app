@@ -6,6 +6,11 @@ import type { ThemeMode } from '@/theme/tokens';
 // place. Target reference: apps/mobile/.tmp/mock.png (see
 // docs/v2/atlas-visual-rubric.md for the acceptance rubric).
 
+/** Returns an rgba() color with its alpha replaced; accepts rgba strings only. */
+export function withAlpha(rgba: string, alpha: number): string {
+  return rgba.replace(/,\s*[\d.]+\)\s*$/, `, ${alpha})`);
+}
+
 export type DomainVisual = {
   core: string;    // node body base
   bright: string;  // rim + gradient highlight
@@ -34,6 +39,13 @@ export const NODE_GEOMETRY: Record<AtlasNodeKind, NodeGeometry> = {
   nearby: { radius: 12, glowBlur: 7, glowOpacity: 0.6, rimWidth: 1.5 },
   skill: { radius: 8, glowBlur: 5, glowOpacity: 0.8, rimWidth: 1.25 },
 };
+
+/** World-space radius for a node; preview ("nearby") paths render smaller. */
+export function nodeRadius(node: { kind: AtlasNodeKind; status?: string }): number {
+  const base = NODE_GEOMETRY[node.kind].radius;
+  if (node.kind === 'path' && node.status === 'nearby') return Math.round(base * 0.75);
+  return base;
+}
 
 // BlurMask sigmas shared by non-node draws.
 export const GLOW = {

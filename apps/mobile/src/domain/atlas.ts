@@ -312,17 +312,30 @@ export function atlasShowcaseNodes(): AtlasGraphNode[] {
   });
 }
 
+// The one bright journey the showcase renders as the glowing white route;
+// remaining personal branches demote to constellation web lines so the map
+// reads like the mock (one ribbon, many faint links).
+const showcaseRouteSpine = new Set([
+  'route-music', 'route-production', 'route-sound',
+  'route-stage-1', 'route-stage-2', 'route-q1',
+  'route-live', 'route-live-goal',
+]);
+
 /**
  * All edges for showcase mode. Overview-only duplicates (edges capped below
- * zoom 2) are dropped, and personal chains of non-active routes render as
- * dashed navigator routes (`guide` kind) keyed by their own routeId.
+ * zoom 2) are dropped, personal chains of non-active routes render as dashed
+ * navigator routes (`guide` kind) keyed by their own routeId, and live-av
+ * personal edges off the spine become plain relations.
  */
 export function atlasShowcaseEdges(): AtlasGraphEdge[] {
   return atlasGraphEdges
     .filter((edge) => edge.maxZoom === undefined || edge.maxZoom >= 2)
-    .map((edge) => edge.kind === 'personal' && edge.routeId && edge.routeId !== 'live-av'
-      ? { ...edge, kind: 'guide' as const }
-      : edge);
+    .map((edge) => {
+      if (edge.kind !== 'personal') return edge;
+      if (edge.routeId && edge.routeId !== 'live-av') return { ...edge, kind: 'guide' as const };
+      if (!showcaseRouteSpine.has(edge.id)) return { ...edge, kind: 'relation' as const };
+      return edge;
+    });
 }
 
 export function atlasEdgePath(edge: AtlasGraphEdge) {
