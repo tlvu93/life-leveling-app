@@ -5,7 +5,6 @@ import {
   Group,
   Line,
   LinearGradient,
-  Oval,
   Path,
   RadialGradient,
   RoundedRect,
@@ -220,52 +219,74 @@ function SelectionRing({ node, visual, pulseOpacity }: { node: AtlasGraphNode; v
 }
 
 /**
- * Shared glowing polygon badge: halo, gradient body, rim, all round-joined.
- * `active` nodes (discovered / attempted / completed / selected) get the
- * mock's "shining" treatment: a white-hot rim that blooms outward over the
- * domain-colored halo. Inactive ("nearby") nodes stay subdued/dormant.
+ * Shared layered shell, scaled by radius: atmospheric halo -> tight bloom ->
+ * wide-band rim blooms (energy = width x opacity, moderate blur - never a
+ * thin stroke under heavy blur) -> single center-lit body -> crisp rim.
+ * Nothing solid sits outside the rim, so the white always blooms outermost.
  */
-function GlowBadge({ x, y, sides, radius, domain, glowBlur, glowOpacity, rimWidth, active, rotationRad }: {
+function LayeredShell({ x, y, sides, radius, domain, active, rotationRad }: {
   x: number;
   y: number;
   sides: number;
   radius: number;
   domain: DomainVisual;
-  glowBlur: number;
-  glowOpacity: number;
-  rimWidth: number;
   active: boolean;
   rotationRad?: number;
 }) {
-  // Corner rounding via an inset body + thick round-joined stroke whose OUTER
-  // edge lands exactly on `radius` - nothing solid may overhang the rim, or it
-  // buries the white bloom (the "red ring outside the white rim" bug).
-  const inset = Math.max(2, radius * 0.16);
-  const bodyShape = regularPolygonPath(x, y, sides, radius - inset, rotationRad);
-  const edgeShape = regularPolygonPath(x, y, sides, radius, rotationRad);
-  const bodyGradient = <RadialGradient c={vec(x, y - radius * 0.45)} r={radius * 1.9} colors={[domain.bright, domain.core]} />;
+  const shell = regularPolygonPath(x, y, sides, radius, rotationRad);
   return (
     <Group>
-      <Path path={edgeShape} color={domain.glow} opacity={active ? glowOpacity : glowOpacity * 0.4}>
-        <BlurMask blur={active ? glowBlur * 1.15 : glowBlur * 0.65} style="normal" />
+      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.08}>
+        <BlurMask blur={Math.max(4, radius * 0.57)} style="normal" />
       </Path>
-      <Path path={bodyShape} strokeJoin="round" style="stroke" strokeWidth={inset * 2}>{bodyGradient}</Path>
-      <Path path={bodyShape}>{bodyGradient}</Path>
-      {active ? (
-        <>
-          {/* soft edge-light ramps the body into the rim on both sides */}
-          <Path path={edgeShape} style="stroke" strokeWidth={rimWidth * 3} color="#FFFFFF" opacity={0.35} strokeJoin="round">
-            <BlurMask blur={6} style="normal" />
-          </Path>
-          {/* solid-style blur keeps the stroke crisp and blooms it outward,
-              fading white -> pale -> the colored halo underneath */}
-          <Path path={edgeShape} style="stroke" strokeWidth={rimWidth + 1} color="#FFFFFF" opacity={0.95} strokeJoin="round">
-            <BlurMask blur={7} style="solid" />
-          </Path>
-        </>
-      ) : (
-        <Path path={edgeShape} style="stroke" strokeWidth={rimWidth} color={domain.bright} strokeJoin="round" />
+      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.12}>
+        <BlurMask blur={Math.max(2, radius * 0.18)} style="normal" />
+      </Path>
+      {active && (
+        <Path path={shell} style="stroke" strokeWidth={radius * 0.36} color={domain.rim} opacity={0.5} strokeJoin="round">
+          <BlurMask blur={Math.max(2, radius * 0.21)} style="normal" />
+        </Path>
       )}
+      {active && (
+        <Path path={shell} style="stroke" strokeWidth={radius * 0.25} color={domain.rim} opacity={0.9} strokeJoin="round">
+          <BlurMask blur={Math.max(1.2, radius * 0.09)} style="normal" />
+        </Path>
+      )}
+      <Path path={shell} opacity={active ? 0.94 : 0.7}>
+        <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
+      </Path>
+      <Path
+        path={shell}
+        style="stroke"
+        strokeWidth={active ? Math.max(1.5, radius * 0.086) : Math.max(1.2, radius * 0.05)}
+        color={active ? '#FFFFFF' : domain.bright}
+        opacity={active ? 1 : 0.85}
+        strokeJoin="round"
+      />
+    </Group>
+  );
+}
+
+/** Faint ring + short fading rays for mid-size badges (path / milestone). */
+function MiniEnvironment({ x, y, radius, seedOffset }: { x: number; y: number; radius: number; seedOffset: number }) {
+  const seedBase = x * 7.3 + y * 13.7 + seedOffset;
+  return (
+    <Group>
+      <Circle cx={x} cy={y} r={radius * 1.55} style="stroke" strokeWidth={0.5} color="#FFFFFF" opacity={0.18} />
+      {Array.from({ length: 8 }, (_, index) => {
+        const angle = (index * 2 * Math.PI) / 8 + (frac(seedBase + index) - 0.5) * 0.4;
+        const inner = radius * 1.12;
+        const length = radius * (0.9 + frac(seedBase + index * 3.1) * 1.1);
+        const x1 = x + inner * Math.cos(angle);
+        const y1 = y + inner * Math.sin(angle);
+        const x2 = x + (inner + length) * Math.cos(angle);
+        const y2 = y + (inner + length) * Math.sin(angle);
+        return (
+          <Line key={`mini-ray-${index}`} p1={vec(x1, y1)} p2={vec(x2, y2)} strokeWidth={0.6} opacity={0.24}>
+            <LinearGradient start={vec(x1, y1)} end={vec(x2, y2)} colors={['#FFFFFF', 'rgba(255, 255, 255, 0)']} />
+          </Line>
+        );
+      })}
     </Group>
   );
 }
@@ -290,7 +311,6 @@ const RAY_COUNT = 16;
  */
 function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number }) {
   const { x, y } = node;
-  const shell = regularPolygonPath(x, y, 8, radius);
   const seedBase = x * 7.3 + y * 13.7;
   const rays: { x1: number; y1: number; x2: number; y2: number; width: number; opacity: number; bright: boolean }[] = [];
   if (active) {
@@ -312,13 +332,6 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
   }
   return (
     <Group>
-      {/* broad atmospheric field + tighter bloom */}
-      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.08}>
-        <BlurMask blur={16} style="normal" />
-      </Path>
-      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.12}>
-        <BlurMask blur={5} style="normal" />
-      </Path>
       {/* starburst rays, fading outward; a few carry a sparkle at the tip */}
       {rays.map((ray, index) => (
         <Line key={`ray-${index}`} p1={vec(ray.x1, ray.y1)} p2={vec(ray.x2, ray.y2)} strokeWidth={ray.width} opacity={ray.opacity}>
@@ -348,25 +361,7 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
           />
         );
       })}
-      {/* rim bloom duplicates behind the crisp rim */}
-      {/* Bloom needs energy: wide bands with moderate blur - a thin stroke
-          under a heavy blur dilutes to nothing. */}
-      {active && (
-        <Path path={shell} style="stroke" strokeWidth={10} color={domain.rim} opacity={0.5} strokeJoin="round">
-          <BlurMask blur={6} style="normal" />
-        </Path>
-      )}
-      {active && (
-        <Path path={shell} style="stroke" strokeWidth={7} color={domain.rim} opacity={0.9} strokeJoin="round">
-          <BlurMask blur={2.5} style="normal" />
-        </Path>
-      )}
-      {/* single body surface, lighter at center like the mock */}
-      <Path path={shell} opacity={active ? 0.94 : 0.7}>
-        <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
-      </Path>
-      {/* one crisp luminous rim */}
-      <Path path={shell} style="stroke" strokeWidth={active ? 2.4 : 1.4} color={active ? '#FFFFFF' : domain.bright} opacity={active ? 1 : 0.85} strokeJoin="round" />
+      <LayeredShell x={x} y={y} sides={8} radius={radius} domain={domain} active={active} />
       {/* large icon with a small soft glow */}
       <Circle cx={x} cy={y} r={radius * 0.55} color="#FFFFFF" opacity={active ? 0.18 : 0.08}>
         <BlurMask blur={4} style="normal" />
@@ -403,7 +398,8 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group opacity={preview ? 0.62 : 1}>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={6} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={preview ? 0.4 : geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
+        {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={1} />}
+        <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path
           path={`M ${node.x - 5} ${node.y - 12} L ${node.x + 2} ${node.y - 2} L ${node.x - 2} ${node.y - 2} L ${node.x + 6} ${node.y + 12} L ${node.x - 7} ${node.y + 1} L ${node.x - 1} ${node.y + 1} Z`}
           color="#FFFFFF"
@@ -417,7 +413,8 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
+        {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={2} />}
+        <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path path={starPath(node.x, node.y, 5, radius * 0.52, radius * 0.22)} color="#FFFFFF" />
         {label}
       </Group>
@@ -428,7 +425,7 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     return (
       <Group>
         {ring}
-        <GlowBadge x={node.x} y={node.y} sides={7} radius={radius} domain={violet} glowBlur={geometry.glowBlur} glowOpacity={geometry.glowOpacity} rimWidth={geometry.rimWidth} active={active} />
+        <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <SkiaText
           x={node.x - fonts.step.getTextWidth(node.step ?? '') / 2}
           y={node.y + 4}
@@ -452,10 +449,14 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
       </Circle>
       <Circle cx={node.x} cy={node.y} r={radius} color={visual.markerFill} />
       {active ? (
-        // White edge bloom drawn last so nothing colored sits outside it.
-        <Circle cx={node.x} cy={node.y} r={radius} color="#FFFFFF" opacity={0.95} style="stroke" strokeWidth={1.8}>
-          <BlurMask blur={3.5} style="solid" />
-        </Circle>
+        // White edge bloom drawn last so nothing colored sits outside it;
+        // a wide band with moderate blur carries the energy, plus a crisp ring.
+        <>
+          <Circle cx={node.x} cy={node.y} r={radius + 0.6} color="#FFFFFF" opacity={0.85} style="stroke" strokeWidth={3}>
+            <BlurMask blur={1.8} style="normal" />
+          </Circle>
+          <Circle cx={node.x} cy={node.y} r={radius + 0.4} color="#FFFFFF" style="stroke" strokeWidth={1.1} />
+        </>
       ) : (
         <Circle cx={node.x} cy={node.y} r={radius} color={domain.bright} style="stroke" strokeWidth={geometry.rimWidth}>
           {dashed && <DashPathEffect intervals={[4, 4]} />}
