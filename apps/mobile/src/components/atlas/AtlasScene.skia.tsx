@@ -2,22 +2,26 @@
 import {
   Canvas,
   Circle,
-  DashPathEffect,
   Group,
-  Path,
+  Picture,
   Points,
-  RadialGradient,
+  Skia,
+  drawAsPicture,
   useFont,
   vec,
+  type SkPicture,
 } from '@shopify/react-native-skia';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
-import { memo, useEffect, useMemo } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useDerivedValue,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -27,7 +31,6 @@ import {
   ATLAS_MAX_SCALE,
   ATLAS_MIN_SCALE,
   atlasNodeIndex,
-  atlasRegions,
   atlasShowcaseEdges,
   atlasShowcaseNodes,
   atlasStars,
@@ -41,14 +44,20 @@ import {
   type AtlasZoom,
 } from '@/domain/atlas';
 import { defaultAtlasDevFlags, type AtlasDevFlags } from '@/lib/atlas-dev-flags';
-import { atlasVisual, domainVisuals, nodeRadius, withAlpha } from '@/theme/atlas-style';
+import { atlasVisual, nodeRadius } from '@/theme/atlas-style';
 import { type AppTheme } from '@/theme/tokens';
-import { concatEdgePaths, pointOnEdge, sparklePath, starPath } from './atlas-geometry';
-import { AtlasNodeView, SpacedText, type AtlasFonts } from './atlas-node-renderers';
+import { concatEdgePaths, pointOnEdge } from './atlas-geometry';
+import { SelectionRing, type AtlasFonts } from './atlas-node-renderers';
+import { AtlasWorldScene } from './AtlasWorldScene';
 import type { AtlasCamera } from './use-atlas-camera';
 
 // Route edges that carry a gold waypoint sparkle at their midpoint.
 const GOLD_WAYPOINT_EDGE_IDS = new Set(['route-music', 'route-q1']);
+
+// Deterministic capture values (dev `static=1` flag and reduce-motion): the
+// loops pin mid-phase so screenshots are reproducible.
+const FREEZE_PULSE = 0.55;
+const FREEZE_ROUTE_PROGRESS = 0.35;
 
 export type AtlasSceneProps = {
   camera: AtlasCamera;
@@ -126,6 +135,7 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
     () => showcase ? atlasShowcaseEdges() : visibleAtlasEdges(semanticZoom, showGuide, progress, visibleNodeIds),
     [progress, semanticZoom, showcase, showGuide, visibleNodeIds],
   );
+  const selectedNode = useMemo(() => visibleNodes.find((node) => node.id === selectedId) ?? null, [selectedId, visibleNodes]);
 
   // Constellation webs: one concatenated path per cluster keeps glow passes cheap.
   const relationWebs = useMemo(() => {
@@ -171,15 +181,57 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
     return { fx: from.x, fy: from.y, c1x: from.x + dx * 0.42, c1y: from.y, c2x: to.x - dx * 0.42, c2y: to.y, tx: to.x, ty: to.y };
   }, [personalEdges]);
 
+  // ---------------------------------------------------------------------------
+  // World canvas: everything static-in-world-space, baked to one SkPicture.
+  // INVARIANT: the ONLY SharedValue prop on this canvas is the camera
+  // transform. One extra always-animating binding (a pulse, a particle) makes
+  // RN Skia replay the whole display list at 60fps forever - keep animated
+  // content on the overlay canvas below.
+  // ---------------------------------------------------------------------------
+  const worldElement = useMemo(() => fonts ? (
+    <AtlasWorldScene
+      visibleNodes={visibleNodes}
+      relationWebs={relationWebs}
+      guideRoutes={guideRoutes}
+      personalPath={personalPath}
+      personalBeads={personalBeads}
+      goldWaypoints={goldWaypoints}
+      tinyStarPoints={tinyStarPoints}
+      selectedId={selectedId}
+      theme={theme}
+      visual={visual}
+      fonts={fonts}
+      thinLabels={showcase}
+      semanticZoom={semanticZoom}
+    />
+  ) : null, [fonts, goldWaypoints, guideRoutes, personalBeads, personalPath, relationWebs, selectedId, semanticZoom, showcase, theme, tinyStarPoints, visibleNodes, visual]);
+
+  const [worldPicture, setWorldPicture] = useState<SkPicture | null>(null);
+  useEffect(() => {
+    if (!worldElement) return;
+    let live = true;
+    // Cull rect: star field (-80,-60 to 1280,710) plus glow/label margins.
+    const bounds = Skia.XYWHRect(-140, -120, 1520, 980);
+    void drawAsPicture(worldElement, bounds).then((picture) => {
+      if (live) setWorldPicture(picture);
+    });
+    return () => {
+      live = false;
+    };
+  }, [worldElement]);
+
   const cameraTransform = useDerivedValue(() => [
     { translateX: camera.x.value },
     { translateY: camera.y.value },
     { scale: camera.scale.value },
   ]);
-  const pulse = useSharedValue(0.25);
-  const routeProgress = useSharedValue(0);
+  const pulse = useSharedValue(FREEZE_PULSE);
+  const routeProgress = useSharedValue(FREEZE_ROUTE_PROGRESS);
   const pulseOpacity = useDerivedValue(() => 0.28 + pulse.value * 0.55);
-  const dustOpacity = useDerivedValue(() => 0.42 + pulse.value * 0.18);
+  // The world picture bakes the star layer at the freeze dust value; the
+  // overlay re-draws the tiny-star batch brightening above that base, so the
+  // twinkle survives while frozen captures stay pixel-identical to the bake.
+  const twinkleOpacity = useDerivedValue(() => Math.max(0, (pulse.value - FREEZE_PULSE) * 0.18));
   const particleX = useDerivedValue(() => {
     if (!particleCurve) return -1000;
     const t = routeProgress.value;
@@ -198,16 +250,24 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
   const pinchWorldX = useSharedValue(0);
   const pinchWorldY = useSharedValue(0);
 
-  useEffect(() => {
-    if (freeze) {
-      // Deterministic capture mode: pin the loops mid-phase so screenshots are reproducible.
-      pulse.value = 0.55;
-      routeProgress.value = 0.35;
+  // Loops run only while the atlas is focused and motion is welcome; a covered
+  // or blurred atlas costs zero frames (audit: they ran forever, even behind
+  // pushed routes).
+  const reducedMotion = useReducedMotion();
+  const frozen = freeze || reducedMotion;
+  useFocusEffect(useCallback(() => {
+    if (frozen) {
+      pulse.value = FREEZE_PULSE;
+      routeProgress.value = FREEZE_ROUTE_PROGRESS;
       return;
     }
     pulse.value = withRepeat(withTiming(1, { duration: 1500 }), -1, true);
     routeProgress.value = withRepeat(withTiming(1, { duration: 3600 }), -1, false);
-  }, [freeze, pulse, routeProgress]);
+    return () => {
+      cancelAnimation(pulse);
+      cancelAnimation(routeProgress);
+    };
+  }, [frozen, pulse, routeProgress]));
 
   const panGesture = Gesture.Pan()
     .maxPointers(1)
@@ -246,101 +306,26 @@ export default function AtlasScene({ camera, semanticZoom, selectedId, showGuide
       <View style={styles.root} testID="atlas-scene">
         <Canvas accessibilityLabel="Interactive Life Atlas" style={StyleSheet.absoluteFill}>
           <Group transform={cameraTransform}>
-            <Group opacity={dustOpacity}>
-              <Points points={tinyStarPoints} mode="points" strokeWidth={1.3} strokeCap="round" color={visual.starTiny} />
-              {atlasStars.medium.map((star, index) => (
-                <Group key={`star-m-${index}`} opacity={star.opacity}>
-                  <Circle cx={star.x} cy={star.y} r={star.radius * 2.4} color={visual.starMedium} opacity={0.22} />
-                  <Circle cx={star.x} cy={star.y} r={star.radius} color={visual.starMedium} />
-                </Group>
-              ))}
-              {atlasStars.flare.map((star, index) => (
-                <Group key={`star-f-${index}`} opacity={star.opacity}>
-                  <Circle cx={star.x} cy={star.y} r={star.radius * 0.45} color={visual.starFlare} opacity={0.28} />
-                  <Path path={sparklePath(star.x, star.y, star.radius, 0.08)} color={visual.starFlare} />
-                  <Circle cx={star.x} cy={star.y} r={Math.max(1.1, star.radius * 0.14)} color={visual.starFlare} />
-                </Group>
-              ))}
-            </Group>
-
-            {atlasRegions.map((region) => {
-              const domain = domainVisuals[region.id];
-              const hub = atlasNodeIndex.get(region.id);
-              const cx = hub?.x ?? region.labelX;
-              const cy = hub?.y ?? region.labelY;
-              return (
-                <Circle key={`field-${region.id}`} cx={cx} cy={cy} r={250}>
-                  <RadialGradient c={vec(cx, cy)} r={250} colors={[domain.nebula, withAlpha(domain.nebula, 0)]} />
-                </Circle>
-              );
-            })}
-            {atlasRegions.map((region) => (
-              <SpacedText
-                key={`label-${region.id}`}
-                x={region.labelX}
-                y={region.labelY}
-                text={region.label}
-                font={fonts.region}
-                color={domainVisuals[region.id].core}
-                halo={visual.regionLabelHalo}
-              />
-            ))}
-
-            {relationWebs.map(({ cluster, path }) => (
-              <Group key={`web-${cluster}`}>
-                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={4.6} opacity={0.16} />
-                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={2.2} opacity={0.28} />
-                <Path path={path} color={domainVisuals[cluster].web} style="stroke" strokeWidth={0.9} opacity={0.75} />
-              </Group>
-            ))}
-            {guideRoutes.map(({ routeId, path }) => {
-              const color = visual.navigatorPalette[routeId] ?? visual.navigatorFallback;
-              return (
-                <Group key={`guide-${routeId}`}>
-                  <Path path={path} color={color} style="stroke" strokeWidth={5} opacity={0.12} />
-                  <Path path={path} color={color} style="stroke" strokeWidth={2.6} opacity={0.22} />
-                  <Path path={path} color={color} style="stroke" strokeWidth={1.5} opacity={0.85}>
-                    <DashPathEffect intervals={[7, 6]} />
-                  </Path>
-                </Group>
-              );
-            })}
-            {personalPath !== '' && (
-              <Group>
-                {/* Stacked plain strokes fake the old two mask-blur glow passes
-                    (sigma 12 + 5 over a near-world-sized path, every frame). */}
-                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={24} strokeCap="round" opacity={0.14} />
-                <Path path={personalPath} color={visual.routeBloom} style="stroke" strokeWidth={15} strokeCap="round" opacity={0.22} />
-                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={8} strokeCap="round" opacity={0.4} />
-                <Path path={personalPath} color={visual.routeSoft} style="stroke" strokeWidth={5} strokeCap="round" opacity={0.65} />
-                <Path path={personalPath} color={visual.routeCore} style="stroke" strokeWidth={3} strokeCap="round" />
-                {personalBeads.map((bead, index) => (
-                  <Group key={`bead-${index}`}>
-                    <Circle cx={bead.x} cy={bead.y} r={5.5} color={visual.routeCore} opacity={0.3} />
-                    <Circle cx={bead.x} cy={bead.y} r={3.6} color={visual.routeCore} opacity={0.55} />
-                    <Circle cx={bead.x} cy={bead.y} r={2} color={visual.routeCore} />
-                  </Group>
-                ))}
-                {goldWaypoints.map((point, index) => (
-                  <Group key={`waypoint-${index}`}>
-                    <Circle cx={point.x} cy={point.y} r={10}>
-                      <RadialGradient c={vec(point.x, point.y)} r={10} colors={[withAlpha(visual.waypoint, 0.55), withAlpha(visual.waypoint, 0)]} positions={[0.35, 1]} />
-                    </Circle>
-                    <Path path={starPath(point.x, point.y, 4, 7.5, 3)} color={visual.waypoint} />
-                  </Group>
-                ))}
-              </Group>
-            )}
-
-            <Circle cx={particleX} cy={particleY} r={8} color={visual.routeBloom} opacity={0.35} />
-            <Circle cx={particleX} cy={particleY} r={5} color={visual.routeBloom} opacity={0.55} />
-            <Circle cx={particleX} cy={particleY} r={3.2} color={visual.routeCore} />
-
-            {visibleNodes.map((node) => (
-              <AtlasNodeView key={node.id} node={node} selected={selectedId === node.id} theme={theme} visual={visual} fonts={fonts} pulseOpacity={pulseOpacity} thinLabels={showcase} />
-            ))}
+            {worldPicture && <Picture picture={worldPicture} />}
           </Group>
         </Canvas>
+
+        {/* Overlay canvas: the few animated draws (twinkle, particle,
+            selection ring). Cheap to replay at 60fps; keeps the world canvas
+            idle between camera changes. */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Canvas style={StyleSheet.absoluteFill}>
+            <Group transform={cameraTransform}>
+              <Group opacity={twinkleOpacity}>
+                <Points points={tinyStarPoints} mode="points" strokeWidth={1.3} strokeCap="round" color={visual.starTiny} />
+              </Group>
+              <Circle cx={particleX} cy={particleY} r={8} color={visual.routeBloom} opacity={0.35} />
+              <Circle cx={particleX} cy={particleY} r={5} color={visual.routeBloom} opacity={0.55} />
+              <Circle cx={particleX} cy={particleY} r={3.2} color={visual.routeCore} />
+              {selectedNode && <SelectionRing node={selectedNode} visual={visual} pulseOpacity={pulseOpacity} />}
+            </Group>
+          </Canvas>
+        </View>
 
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           <NodeHitTargets nodes={visibleNodes} camera={camera} onNodePress={onNodePress} />

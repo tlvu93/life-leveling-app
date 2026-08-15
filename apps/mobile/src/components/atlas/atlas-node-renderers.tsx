@@ -15,7 +15,7 @@ import {
 } from '@shopify/react-native-skia';
 import type { SharedValue } from 'react-native-reanimated';
 
-import type { AtlasGraphNode } from '@/domain/atlas';
+import type { AtlasGraphNode, AtlasZoom } from '@/domain/atlas';
 import { domainVisuals, GLOW, NODE_GEOMETRY, nodeRadius, withAlpha, type AtlasVisualTheme, type DomainVisual } from '@/theme/atlas-style';
 import { clusterColors, type AppTheme } from '@/theme/tokens';
 import { regularPolygonPath, sparklePath, starPath } from './atlas-geometry';
@@ -44,9 +44,10 @@ type NodeProps = {
   theme: AppTheme;
   visual: AtlasVisualTheme;
   fonts: AtlasFonts;
-  pulseOpacity: SharedValue<number>;
   /** Showcase density control: drop labels of redirect/advanced quest steps. */
   thinLabels?: boolean;
+  /** Current tier, for level-of-detail gating of sub-pixel decoration. */
+  semanticZoom?: AtlasZoom;
 };
 
 function labelWidth(label: string, prominent: boolean, fonts: AtlasFonts) {
@@ -397,20 +398,20 @@ function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domai
   );
 }
 
-export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpacity, thinLabels = false }: NodeProps) {
+export function AtlasNodeView({ node, selected, theme, visual, fonts, thinLabels = false }: NodeProps) {
   const domain = domainVisuals[node.cluster];
   const violet = domainVisuals.crossroads;
   const radius = nodeRadius(node);
   const geometry = NODE_GEOMETRY[node.kind];
   const busyStep = node.kind === 'quest' && node.step ? /[R+]/.test(node.step) : false;
   const label = thinLabels && busyStep ? null : <MarkerLabel node={node} theme={theme} visual={visual} fonts={fonts} />;
-  const ring = selected ? <SelectionRing node={node} visual={visual} pulseOpacity={pulseOpacity} /> : null;
+  // The pulsing selection ring is animated, so it renders on the overlay
+  // canvas (AtlasScene) instead of inside the baked world picture.
   const active = selected || isActiveStatus(node);
 
   if (node.kind === 'interest') {
     return (
       <Group>
-        {ring}
         <HubNode node={node} domain={domain} active={active} radius={radius} />
         {label}
       </Group>
@@ -421,7 +422,6 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
     const preview = node.status === 'nearby' && !selected;
     return (
       <Group opacity={preview ? 0.62 : 1}>
-        {ring}
         {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={1} />}
         <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path
@@ -436,7 +436,6 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   if (node.kind === 'milestone') {
     return (
       <Group>
-        {ring}
         {active && <MiniEnvironment x={node.x} y={node.y} radius={radius} seedOffset={2} />}
         <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <Path path={starPath(node.x, node.y, 5, radius * 0.52, radius * 0.22)} color="#FFFFFF" />
@@ -448,7 +447,6 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   if (node.kind === 'quest') {
     return (
       <Group>
-        {ring}
         <LayeredShell x={node.x} y={node.y} sides={7} radius={radius} domain={violet} active={active} />
         <SkiaText
           x={node.x - fonts.step.getTextWidth(node.step ?? '') / 2}
@@ -468,7 +466,6 @@ export function AtlasNodeView({ node, selected, theme, visual, fonts, pulseOpaci
   const glowRadius = radius + 2 + geometry.glowBlur * (active ? 1.6 : 0.9);
   return (
     <Group opacity={dashed ? 0.78 : 1}>
-      {ring}
       <Circle cx={node.x} cy={node.y} r={glowRadius}>
         <RadialGradient
           c={vec(node.x, node.y)}
