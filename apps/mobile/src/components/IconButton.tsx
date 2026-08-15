@@ -24,11 +24,11 @@ export function IconButton({ icon: Icon, label, onPress, active = false, size = 
       style={({ pressed }) => [
         styles.button,
         { width: dimension, height: dimension },
-        { borderColor: theme.borderSoft, backgroundColor: active ? `${theme.green}14` : theme.surface },
+        { backgroundColor: active ? theme.accentSoft : 'transparent' },
         pressed && styles.pressed,
       ]}>
       <View pointerEvents="none">
-        <Icon color={active ? theme.green : theme.inkSecondary} size={size} strokeWidth={active ? 2.4 : 1.9} />
+        <Icon color={active ? theme.accent : theme.inkSecondary} size={size} strokeWidth={active ? 2.4 : 1.9} />
       </View>
     </Pressable>
   );
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 1,
+    borderRadius: 10,
   },
   pressed: { opacity: 0.68 },
 });

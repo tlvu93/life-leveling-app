@@ -3,7 +3,6 @@ import type { LucideIcon } from 'lucide-react-native';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLifeTheme } from '@/state/theme-context';
@@ -19,7 +18,6 @@ function NavItem({ label, href, icon: Icon, active, compact }: { label: string; 
   const router = useRouter();
   const { theme } = useLifeTheme();
   const [hovered, setHovered] = useState(false);
-  const itemIndex = items.findIndex((item) => item.label === label);
 
   return (
     <Pressable
@@ -30,26 +28,10 @@ function NavItem({ label, href, icon: Icon, active, compact }: { label: string; 
       onHoverOut={() => setHovered(false)}
       onPress={() => router.navigate(href)}
       style={({ pressed }) => [styles.item, compact && styles.itemCompact, pressed && styles.pressed]}>
-      {hovered && Platform.OS === 'web' && !compact && (
-        itemIndex === 0 || itemIndex === items.length - 1 ? (
-          <Svg
-            height="100%"
-            preserveAspectRatio="none"
-            style={[styles.endHover, itemIndex === 0 ? styles.firstHover : styles.lastHover]}
-            viewBox="0 0 218 64"
-            width="100%">
-            <Path
-              d={itemIndex === 0
-                ? 'M38 0H218V64H10Q-1 64 2 54L18 15Q23 0 38 0Z'
-                : 'M0 0H180Q195 0 200 15L216 54Q219 64 208 64H0Z'}
-              fill="rgba(94,72,190,0.07)"
-            />
-          </Svg>
-        ) : <View style={styles.middleHover} />
-      )}
-      <Icon color={active ? theme.violet : theme.navInk} size={compact ? 23 : 29} strokeWidth={active ? 2.4 : 1.9} />
-      <Text style={[styles.itemLabel, compact && styles.itemLabelCompact, { color: active ? theme.violet : theme.navInk }]}>{label}</Text>
-      {active && <View style={[styles.activeLine, compact && styles.activeLineCompact, { backgroundColor: theme.violet }]} />}
+      {hovered && Platform.OS === 'web' && !compact && <View style={styles.middleHover} />}
+      <Icon color={active ? theme.accent : theme.navInk} size={compact ? 23 : 26} strokeWidth={active ? 2.3 : 1.8} />
+      <Text style={[styles.itemLabel, compact && styles.itemLabelCompact, { color: active ? theme.accent : theme.navInk }]}>{label}</Text>
+      {active && <View style={[styles.activeLine, compact && styles.activeLineCompact, { backgroundColor: theme.accent }]} />}
     </Pressable>
   );
 }
@@ -69,13 +51,7 @@ export function BottomNav() {
       {compact ? (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.nav, borderTopColor: theme.borderSoft, borderTopWidth: 1 }]} />
       ) : (
-        <Svg height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} viewBox="0 0 820 64" width="100%">
-          <Path
-            d="M38 1H782Q797 1 802 15L818 53Q821 63 810 63H10Q-1 63 2 53L18 15Q23 1 38 1Z"
-            fill={theme.nav}
-            stroke="rgba(210,215,229,0.96)"
-          />
-        </Svg>
+        <View style={[StyleSheet.absoluteFill, styles.pill, { backgroundColor: theme.nav, borderColor: theme.panelBorder }]} />
       )}
       <View style={[styles.items, compact && { paddingBottom: insets.bottom }]}>
         {items.map((item) => {
@@ -90,16 +66,14 @@ export function BottomNav() {
 const styles = StyleSheet.create({
   outer: { position: 'absolute', zIndex: 60 },
   outerWide: { shadowColor: '#1E2951', shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
+  pill: { borderWidth: 1, borderRadius: 32 },
   items: { flex: 1, flexDirection: 'row', paddingHorizontal: 25 },
-  item: { position: 'relative', flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 4 },
+  item: { position: 'relative', flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 4 },
   itemCompact: { flexDirection: 'column', gap: 1, paddingTop: 6, paddingBottom: 5 },
   itemLabel: { fontSize: 14, fontWeight: '700', letterSpacing: 0 },
   itemLabelCompact: { fontSize: 9 },
-  activeLine: { position: 'absolute', right: 16, bottom: 4, left: 16, height: 4, borderRadius: 2 },
+  activeLine: { position: 'absolute', right: 24, bottom: 6, left: 24, height: 3.5, borderRadius: 2 },
   activeLineCompact: { right: 5, bottom: 1, left: 5, height: 3 },
-  middleHover: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(94,72,190,0.07)' },
-  endHover: { position: 'absolute', top: 0, bottom: 0 },
-  firstHover: { right: 0, left: -25 },
-  lastHover: { right: -25, left: 0 },
+  middleHover: { position: 'absolute', top: 6, right: 4, bottom: 6, left: 4, borderRadius: 24, backgroundColor: 'rgba(94,72,190,0.07)' },
   pressed: { opacity: 0.7 },
 });
