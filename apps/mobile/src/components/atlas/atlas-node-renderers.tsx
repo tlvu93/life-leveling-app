@@ -4,6 +4,7 @@ import {
   DashPathEffect,
   Group,
   Line,
+  LinearGradient,
   Oval,
   Path,
   RadialGradient,
@@ -274,66 +275,103 @@ function isActiveStatus(node: AtlasGraphNode): boolean {
   return node.status === 'discovered' || node.status === 'attempted' || node.status === 'completed';
 }
 
+const frac = (seed: number) => {
+  const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+const RAY_COUNT = 16;
+
 /**
- * Layered constellation hub ("strategy-game bloom node"). All glow comes from
- * duplicating crisp shapes behind themselves and Gaussian-blurring the copies
- * (BlurMask) - never one big shadow. Layer stack, bottom to top:
- *   atmospheric halo -> tight bloom -> orbital ellipses -> concentric rings ->
- *   blurred rim duplicates (wide + tight) -> translucent shell -> crisp pale
- *   rim -> inset ring -> dark saturated inner polygon -> icon glow -> icon.
- * The center stays crisp; only the duplicate layers are blurred.
+ * Constellation hub matched to the mock close-up: a single-surface octagon
+ * (center-lit, no inner bands) behind one luminous white rim, with the drama
+ * coming from the environment - a starburst of fading rays, radar rings, and
+ * sparkle dots. All glow is blurred duplicates of crisp shapes (BlurMask).
  */
 function HubNode({ node, domain, active, radius }: { node: AtlasGraphNode; domain: DomainVisual; active: boolean; radius: number }) {
   const { x, y } = node;
-  const shell = regularPolygonPath(x, y, 6, radius);
-  const insetRing = regularPolygonPath(x, y, 6, radius * 0.8);
-  const innerRadius = radius * 0.62;
-  const inner = regularPolygonPath(x, y, 6, innerRadius);
+  const shell = regularPolygonPath(x, y, 8, radius);
+  const seedBase = x * 7.3 + y * 13.7;
+  const rays: { x1: number; y1: number; x2: number; y2: number; width: number; opacity: number; bright: boolean }[] = [];
+  if (active) {
+    for (let index = 0; index < RAY_COUNT; index += 1) {
+      const angle = (index * 2 * Math.PI) / RAY_COUNT + (frac(seedBase + index) - 0.5) * 0.28;
+      const inner = radius * 1.08;
+      const length = radius * (1.4 + frac(seedBase + index * 3.1) * 1.6);
+      const bright = index % 4 === 0;
+      rays.push({
+        x1: x + inner * Math.cos(angle),
+        y1: y + inner * Math.sin(angle),
+        x2: x + (inner + length) * Math.cos(angle),
+        y2: y + (inner + length) * Math.sin(angle),
+        width: bright ? 1.1 : 0.7,
+        opacity: bright ? 0.5 : 0.2 + frac(seedBase + index * 5.7) * 0.15,
+        bright,
+      });
+    }
+  }
   return (
     <Group>
-      {/* 1. very soft atmospheric halo (~0.6R beyond the shell) */}
-      <Path path={shell} color={domain.glow} opacity={active ? 0.18 : 0.08}>
-        <BlurMask blur={11} style="normal" />
+      {/* broad atmospheric field + tighter bloom */}
+      <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.08}>
+        <BlurMask blur={16} style="normal" />
       </Path>
-      {/* 2. tighter bloom (~0.3R beyond) */}
       <Path path={shell} color={domain.glow} opacity={active ? 0.3 : 0.12}>
         <BlurMask blur={5} style="normal" />
       </Path>
-      {/* 3. faint orbital ellipses behind the node */}
-      <Group origin={vec(x, y)} transform={[{ rotate: 0.42 }]}>
-        <Oval x={x - radius * 2.1} y={y - radius * 1.02} width={radius * 4.2} height={radius * 2.04} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.12 : 0.07} />
-      </Group>
-      <Group origin={vec(x, y)} transform={[{ rotate: -0.9 }]}>
-        <Oval x={x - radius * 1.85} y={y - radius * 1.2} width={radius * 3.7} height={radius * 2.4} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.09 : 0.05} />
-      </Group>
-      {/* 4. thin concentric rings */}
-      <Circle cx={x} cy={y} r={radius * 1.45} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.18 : 0.1} />
-      <Circle cx={x} cy={y} r={radius * 1.85} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.11 : 0.06} />
-      {/* 5. rim bloom: blurred duplicates BEHIND the crisp rim (wide, then tight) */}
+      {/* starburst rays, fading outward; a few carry a sparkle at the tip */}
+      {rays.map((ray, index) => (
+        <Line key={`ray-${index}`} p1={vec(ray.x1, ray.y1)} p2={vec(ray.x2, ray.y2)} strokeWidth={ray.width} opacity={ray.opacity}>
+          <LinearGradient start={vec(ray.x1, ray.y1)} end={vec(ray.x2, ray.y2)} colors={['#FFFFFF', 'rgba(255, 255, 255, 0)']} />
+        </Line>
+      ))}
+      {rays.filter((ray) => ray.bright).map((ray, index) => (
+        <Group key={`glint-${index}`} opacity={0.75}>
+          <Circle cx={ray.x2} cy={ray.y2} r={1.3} color="#FFFFFF" />
+          <Circle cx={ray.x2} cy={ray.y2} r={2.6} color="#FFFFFF" opacity={0.35} />
+        </Group>
+      ))}
+      {/* radar rings + short radial ticks between them */}
+      <Circle cx={x} cy={y} r={radius * 1.5} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.22 : 0.1} />
+      <Circle cx={x} cy={y} r={radius * 1.95} style="stroke" strokeWidth={0.6} color="#FFFFFF" opacity={active ? 0.13 : 0.06} />
+      {active && <Circle cx={x} cy={y} r={radius * 2.45} style="stroke" strokeWidth={0.5} color="#FFFFFF" opacity={0.08} />}
+      {active && Array.from({ length: 12 }, (_, index) => {
+        const angle = (index * 2 * Math.PI) / 12 + 0.26;
+        return (
+          <Line
+            key={`tick-${index}`}
+            p1={vec(x + radius * 1.55 * Math.cos(angle), y + radius * 1.55 * Math.sin(angle))}
+            p2={vec(x + radius * 1.9 * Math.cos(angle), y + radius * 1.9 * Math.sin(angle))}
+            strokeWidth={0.5}
+            color="#FFFFFF"
+            opacity={0.22}
+          />
+        );
+      })}
+      {/* rim bloom duplicates behind the crisp rim */}
+      {/* Bloom needs energy: wide bands with moderate blur - a thin stroke
+          under a heavy blur dilutes to nothing. */}
       {active && (
-        <Path path={shell} style="stroke" strokeWidth={2.2} color={domain.rim} opacity={0.5} strokeJoin="round">
+        <Path path={shell} style="stroke" strokeWidth={10} color={domain.rim} opacity={0.5} strokeJoin="round">
           <BlurMask blur={6} style="normal" />
         </Path>
       )}
       {active && (
-        <Path path={shell} style="stroke" strokeWidth={2} color={domain.rim} opacity={0.85} strokeJoin="round">
+        <Path path={shell} style="stroke" strokeWidth={7} color={domain.rim} opacity={0.9} strokeJoin="round">
           <BlurMask blur={2.5} style="normal" />
         </Path>
       )}
-      {/* 6. translucent shell body */}
-      <Path path={shell} color={domain.core} opacity={active ? 0.42 : 0.3} />
-      {/* 7. crisp rim (pale when active, domain tint when dormant) */}
-      <Path path={shell} style="stroke" strokeWidth={1.4} color={active ? domain.rim : domain.bright} opacity={active ? 1 : 0.85} strokeJoin="round" />
-      {/* 8. inset ring */}
-      <Path path={insetRing} style="stroke" strokeWidth={0.8} color={active ? domain.rim : domain.bright} opacity={0.35} strokeJoin="round" />
-      {/* 9. dark saturated inner surface + its edge */}
-      <Path path={inner} color={domain.deep} strokeJoin="round" />
-      <Path path={inner} style="stroke" strokeWidth={1} color={domain.bright} opacity={0.55} strokeJoin="round" />
-      {/* 10. small icon glow, then the crisp white glyph scaled into the core */}
-      <Circle cx={x} cy={y} r={innerRadius * 0.72} color="#FFFFFF" opacity={active ? 0.2 : 0.1}>
-        <BlurMask blur={3} style="normal" />
+      {/* single body surface, lighter at center like the mock */}
+      <Path path={shell} opacity={active ? 0.94 : 0.7}>
+        <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
+      </Path>
+      {/* one crisp luminous rim */}
+      <Path path={shell} style="stroke" strokeWidth={active ? 2.4 : 1.4} color={active ? '#FFFFFF' : domain.bright} opacity={active ? 1 : 0.85} strokeJoin="round" />
+      {/* large icon with a small soft glow */}
+      <Circle cx={x} cy={y} r={radius * 0.55} color="#FFFFFF" opacity={active ? 0.18 : 0.08}>
+        <BlurMask blur={4} style="normal" />
       </Circle>
-      <Group origin={vec(x, y)} transform={[{ scale: 0.62 }]}>
+      <Group origin={vec(x, y)} transform={[{ scale: 0.82 }]}>
         <InterestGlyph node={node} color="#FFFFFF" />
       </Group>
     </Group>

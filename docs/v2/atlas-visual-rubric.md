@@ -34,6 +34,13 @@ compare STRUCTURE: zoom to pixel level, and sample a radial color profile
 bands (body → ramp → white peak → desaturated fade, nothing saturated outside
 the white) must match, not merely the presence of each band.
 
+**Glow energy:** bloom brightness comes from band width × opacity, not blur.
+Blurring a thin stroke with a large sigma dilutes its light to imperceptible;
+to make a rim "burn", use a WIDE stroke (≈0.25–0.35R) with moderate blur
+(σ 2–6) layered twice, plus a crisp core stroke on top. Verify with the
+radial profile: the post-peak fade should stay bright (R>230) for several px
+like the mock, not collapse immediately.
+
 ## Criteria
 
 ### Background (crops: `background`, `full`)
