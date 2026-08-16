@@ -50,4 +50,5 @@ export const roadmapCatalog: RoadmapCatalog = {
     woodworkingGuide,
     uxDesignGuide,
   ],
+  relationships: [],
 };
