@@ -11,6 +11,7 @@ import type { UniverseRelationship } from '@/domain/roadmap/catalog';
 import type { NodeId } from '@/domain/roadmap/ids';
 import type { UniverseNodeVm } from '@/domain/roadmap/selectors/universe';
 import type { UniverseLayout } from '@/domain/roadmap/universe-layout';
+import type { AtlasVisualTheme } from '@/theme/atlas-style';
 import type { AppTheme } from '@/theme/tokens';
 import { UniverseWorldScene } from './UniverseWorldScene';
 import { UNIVERSE_MAX_SCALE, UNIVERSE_MIN_SCALE, type UniverseCamera, type UniverseZoom } from './use-universe-camera';
@@ -21,6 +22,7 @@ export type UniverseSceneProps = {
   relationships: UniverseRelationship[];
   camera: UniverseCamera;
   theme: AppTheme;
+  visual: AtlasVisualTheme;
   tier: UniverseZoom;
   selectedId: NodeId | null;
   highlightedPathId: string | null;
@@ -70,10 +72,14 @@ const HitTargets = memo(function HitTargets({
 });
 
 export default function UniverseScene({
-  layout, nodes, relationships, camera, theme, tier, selectedId, highlightedPathId, routeNodeIds, onNodePress,
+  layout, nodes, relationships, camera, theme, visual, tier, selectedId, highlightedPathId, routeNodeIds, onNodePress,
 }: UniverseSceneProps) {
-  const label = useFont(Inter_600SemiBold, 12);
-  const cluster = useFont(Inter_800ExtraBold, 16);
+  // Text is baked in world units, so a zoomed-out tier needs a physically
+  // larger glyph to stay readable. Sizes are per tier, not per frame.
+  const labelSize = tier >= 2 ? 13 : tier === 1 ? 22 : 34;
+  const titleSize = tier >= 2 ? 20 : tier === 1 ? 34 : 54;
+  const label = useFont(Inter_600SemiBold, labelSize);
+  const cluster = useFont(Inter_800ExtraBold, titleSize);
   const [picture, setPicture] = useState<SkPicture | null>(null);
 
   const worldElement = useMemo(() => {
@@ -84,13 +90,14 @@ export default function UniverseScene({
         relationships={relationships}
         fonts={label && cluster ? { label, cluster } : null}
         theme={theme}
+        visual={visual}
         selectedId={selectedId}
         highlightedPathId={highlightedPathId}
         routeNodeIds={routeNodeIds}
         tier={tier}
       />
     );
-  }, [cluster, highlightedPathId, label, layout, nodes, relationships, routeNodeIds, selectedId, theme, tier]);
+  }, [cluster, highlightedPathId, label, layout, nodes, relationships, routeNodeIds, selectedId, theme, tier, visual]);
 
   useEffect(() => {
     if (!worldElement) return;

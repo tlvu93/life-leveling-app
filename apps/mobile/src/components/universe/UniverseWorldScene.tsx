@@ -15,10 +15,27 @@ import type { UniverseRelationship } from '@/domain/roadmap/catalog';
 import type { NodeId } from '@/domain/roadmap/ids';
 import type { UniverseNodeVm } from '@/domain/roadmap/selectors/universe';
 import type { UniverseLayout } from '@/domain/roadmap/universe-layout';
+import type { AtlasVisualTheme } from '@/theme/atlas-style';
 import type { AppTheme } from '@/theme/tokens';
-import { domainVisual, isDestination, nodeRimWidth, progressRing, relationshipStyle, withAlpha } from './universe-visuals';
+import { domainVisual, progressRing, relationshipStyle, shellSidesFor, starField, withAlpha, type DomainVisual } from './universe-visuals';
 
 export type UniverseFonts = { label: SkFont; cluster: SkFont };
+
+export type UniverseWorldSceneProps = {
+  layout: UniverseLayout;
+  nodes: UniverseNodeVm[];
+  relationships: UniverseRelationship[];
+  /** Null until the typefaces resolve; the Universe still draws without them. */
+  fonts: UniverseFonts | null;
+  theme: AppTheme;
+  visual: AtlasVisualTheme;
+  selectedId: NodeId | null;
+  highlightedPathId: string | null;
+  routeNodeIds: NodeId[];
+  tier: 0 | 1 | 2;
+};
+
+const LABEL_HALO_OFFSETS: [number, number][] = [[1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3]];
 
 /**
  * `measureText` throws "Not implemented on React Native Web", which takes the
@@ -35,30 +52,87 @@ function textWidth(font: SkFont, text: string): number {
   return text.length * font.getSize() * 0.52;
 }
 
-export type UniverseWorldSceneProps = {
-  layout: UniverseLayout;
-  nodes: UniverseNodeVm[];
-  relationships: UniverseRelationship[];
-  /** Null until the typefaces resolve; the Universe still draws without them. */
-  fonts: UniverseFonts | null;
-  theme: AppTheme;
-  selectedId: NodeId | null;
-  highlightedPathId: string | null;
-  routeNodeIds: NodeId[];
-  tier: 0 | 1 | 2;
-};
+/** Halo, optional bloom rims, gradient body, crisp rim — the Atlas recipe. */
+function NodeShell({ x, y, radius, sides, domain, active }: {
+  x: number; y: number; radius: number; sides: number | null; domain: DomainVisual; active: boolean;
+}) {
+  const shell = sides ? regularPolygonPath(x, y, sides, radius) : null;
+  const haloRadius = radius * 1.85;
+  const body = (key: string, extra: Record<string, unknown>) => (shell
+    ? <Path key={key} path={shell} strokeJoin="round" {...extra} />
+    : <Circle key={key} cx={x} cy={y} r={radius} {...extra} />);
+
+  return (
+    <Group>
+      <Circle cx={x} cy={y} r={haloRadius}>
+        <RadialGradient
+          c={vec(x, y)}
+          r={haloRadius}
+          colors={active
+            ? [withAlpha(domain.glow, 0.4), withAlpha(domain.glow, 0.18), withAlpha(domain.glow, 0)]
+            : [withAlpha(domain.glow, 0.16), withAlpha(domain.glow, 0.06), withAlpha(domain.glow, 0)]}
+          positions={[0.28, 0.55, 1]}
+        />
+      </Circle>
+      {active && body('bloom-wide', { style: 'stroke', strokeWidth: radius * 0.44, color: domain.rim, opacity: 0.26 })}
+      {active && body('bloom-mid', { style: 'stroke', strokeWidth: radius * 0.26, color: domain.rim, opacity: 0.55 })}
+      {active && body('bloom-tight', { style: 'stroke', strokeWidth: radius * 0.14, color: domain.rim, opacity: 0.9 })}
+      {shell ? (
+        <Path path={shell} opacity={active ? 0.94 : 0.74}>
+          <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
+        </Path>
+      ) : (
+        <Circle cx={x} cy={y} r={radius} opacity={active ? 0.94 : 0.74}>
+          <RadialGradient c={vec(x, y)} r={radius * 1.35} colors={[domain.bright, domain.core]} />
+        </Circle>
+      )}
+      {body('rim', {
+        style: 'stroke',
+        strokeWidth: active ? Math.max(1.5, radius * 0.086) : Math.max(1.1, radius * 0.05),
+        color: active ? '#FFFFFF' : domain.bright,
+        opacity: active ? 1 : 0.85,
+      })}
+    </Group>
+  );
+}
+
+/** Letter-spaced constellation title with a halo, as the Atlas draws regions. */
+function SpacedTitle({ x, y, text, font, color, halo, tracking = 2.6 }: {
+  x: number; y: number; text: string; font: SkFont; color: string; halo: string; tracking?: number;
+}) {
+  const glyphs = [...text];
+  const total = glyphs.reduce((sum, glyph) => sum + textWidth(font, glyph) + tracking, -tracking);
+  let cursor = x - total / 2;
+  return (
+    <Group>
+      {glyphs.map((glyph, index) => {
+        const at = cursor;
+        cursor += textWidth(font, glyph) + tracking;
+        return (
+          <Group key={`${glyph}-${index}`}>
+            {LABEL_HALO_OFFSETS.map(([dx, dy], offset) => (
+              <SkiaText key={offset} x={at + dx} y={y + dy} text={glyph} font={font} color={halo} />
+            ))}
+            <SkiaText x={at} y={y} text={glyph} font={font} color={color} />
+          </Group>
+        );
+      })}
+    </Group>
+  );
+}
 
 /**
  * Pure and hook-free: this whole tree is baked to one SkPicture and replayed
  * under the camera transform, so it must never read a SharedValue.
  */
 export function UniverseWorldScene({
-  layout, nodes, relationships, fonts, theme, selectedId, highlightedPathId, routeNodeIds, tier,
+  layout, nodes, relationships, fonts, theme, visual, selectedId, highlightedPathId, routeNodeIds, tier,
 }: UniverseWorldSceneProps) {
   const visible = new Set(nodes.map((n) => n.id));
   const nodeVmById = new Map(nodes.map((n) => [n.id, n]));
   const dimmed = (clusterId: string) => highlightedPathId !== null && clusterId !== highlightedPathId;
   const routeSet = new Set(routeNodeIds);
+  const stars = starField(layout.world.width, layout.world.height);
 
   const neighbours = new Set<NodeId>();
   if (selectedId) {
@@ -79,33 +153,44 @@ export function UniverseWorldScene({
 
   return (
     <Group>
-      {/* Constellation fields, tinted by domain. */}
+      {stars.map((star, index) => (
+        <Circle key={`star-${index}`} cx={star.x} cy={star.y} r={star.r} color={visual.starTiny} opacity={0.55} />
+      ))}
+
+      {/* Constellation nebula fields, tinted by domain. */}
       {layout.clusters.map((cluster) => {
-        const visual = domainVisual(cluster.domainId);
+        const domain = domainVisual(cluster.domainId);
         const faded = dimmed(cluster.pathId);
+        const fieldRadius = cluster.radius * 1.15;
         return (
-          <Group key={cluster.pathId}>
-            <Circle cx={cluster.x} cy={cluster.y} r={cluster.radius} opacity={faded ? 0.25 : 1}>
+          <Group key={cluster.pathId} opacity={faded ? 0.32 : 1}>
+            <Circle cx={cluster.x} cy={cluster.y} r={fieldRadius}>
               <RadialGradient
                 c={vec(cluster.x, cluster.y)}
-                r={cluster.radius}
-                colors={[withAlpha(visual.core, cluster.status === 'stub' ? 0.1 : 0.18), withAlpha(visual.core, 0)]}
+                r={fieldRadius}
+                colors={[
+                  withAlpha(domain.nebula, cluster.status === 'stub' ? 0.5 : 1),
+                  withAlpha(domain.nebula, 0.35),
+                  withAlpha(domain.nebula, 0),
+                ]}
+                positions={[0, 0.55, 1]}
               />
             </Circle>
             {fonts && (
-              <SkiaText
-                x={cluster.x - textWidth(fonts.cluster, cluster.title) / 2}
-                y={cluster.y - cluster.radius + 26}
-                text={cluster.title}
+              <SpacedTitle
+                x={cluster.x}
+                y={cluster.y - cluster.radius + 4}
+                text={cluster.title.toUpperCase()}
                 font={fonts.cluster}
-                color={faded ? withAlpha(visual.bright, 0.3) : visual.bright}
+                color={domain.bright}
+                halo={visual.regionLabelHalo}
               />
             )}
           </Group>
         );
       })}
 
-      {/* Typed relationships: solid dependency, dotted related, long bridge. */}
+      {/* Typed relationships: solid dependency, dotted related, bowed bridge. */}
       {relationships.map((rel) => {
         const from = layout.byId.get(rel.from);
         const to = layout.byId.get(rel.to);
@@ -117,91 +202,85 @@ export function UniverseWorldScene({
         const path = Skia.Path.Make();
         path.moveTo(from.x, from.y);
         if (rel.kind === 'bridge') {
-          const midX = (from.x + to.x) / 2;
-          const midY = (from.y + to.y) / 2;
           const bow = Math.hypot(to.x - from.x, to.y - from.y) * 0.16;
-          path.quadTo(midX + bow, midY - bow, to.x, to.y);
+          path.quadTo((from.x + to.x) / 2 + bow, (from.y + to.y) / 2 - bow, to.x, to.y);
         } else {
           path.lineTo(to.x, to.y);
         }
-        const visual = domainVisual(from.domainId);
+        const domain = domainVisual(from.domainId);
+        const alpha = style.opacity * (faded ? 0.25 : 1) * (selectedId && !involved ? 0.45 : 1);
         return (
-          <Path
-            key={`${rel.kind}-${rel.from}-${rel.to}`}
-            path={path}
-            style="stroke"
-            strokeWidth={style.width * (involved ? 1.8 : 1)}
-            color={withAlpha(rel.kind === 'bridge' ? visual.bright : theme.inkSecondary, style.opacity * (faded ? 0.3 : 1) * (selectedId && !involved ? 0.5 : 1))}>
-            {style.dash && <DashPathEffect intervals={style.dash} />}
-          </Path>
+          <Group key={`${rel.kind}-${rel.from}-${rel.to}`}>
+            {/* Wide faint stroke under a narrow bright one fakes a glow pass. */}
+            <Path path={path} style="stroke" strokeWidth={style.width * 3.2} color={withAlpha(domain.web, alpha * 0.22)}>
+              {style.dash && <DashPathEffect intervals={style.dash.map((d) => d * 3)} />}
+            </Path>
+            <Path
+              path={path}
+              style="stroke"
+              strokeWidth={style.width * (involved ? 1.7 : 1)}
+              color={withAlpha(rel.kind === 'bridge' ? domain.bright : domain.web, alpha)}>
+              {style.dash && <DashPathEffect intervals={style.dash} />}
+            </Path>
+          </Group>
         );
       })}
 
-      {/* The active Journey's route, drawn over the graph it runs through. */}
+      {/* The active Journey's route, over the graph it runs through. */}
       {routeStarted && (
         <Group>
-          <Path path={routePath} style="stroke" strokeWidth={9} color={withAlpha('#F2C14E', 0.16)} />
-          <Path path={routePath} style="stroke" strokeWidth={3} color={withAlpha('#F2C14E', 0.75)} />
+          <Path path={routePath} style="stroke" strokeWidth={14} color={visual.routeBloom} opacity={0.5} />
+          <Path path={routePath} style="stroke" strokeWidth={6} color={visual.routeSoft} opacity={0.7} />
+          <Path path={routePath} style="stroke" strokeWidth={2.4} color={visual.routeCore} />
         </Group>
       )}
 
-      {/* Nodes. */}
       {nodes.map((node) => {
         const seat = layout.byId.get(node.id);
         if (!seat) return null;
-        const visual = domainVisual(node.domainId);
+        const domain = domainVisual(node.domainId);
         const faded = dimmed(seat.clusterId);
         const selected = node.id === selectedId;
         const related = neighbours.has(node.id);
-        const alpha = faded ? 0.28 : selectedId && !selected && !related ? 0.6 : 1;
+        const onRoute = routeSet.has(node.id);
+        const active = selected || onRoute || node.progressState !== null;
         const ring = progressRing(node.progressState);
         const vm = nodeVmById.get(node.id);
+        // At the Regions tier the constellation titles carry the map; the
+        // Constellations tier names only the major concepts, because labelling
+        // every standard node there collides in a dense cluster.
+        const showLabel = fonts && (tier >= 2 || (tier === 1 && node.size === 'major'));
 
         return (
-          <Group key={node.id} opacity={alpha}>
-            <Circle cx={seat.x} cy={seat.y} r={seat.radius * 2.2}>
-              <RadialGradient c={vec(seat.x, seat.y)} r={seat.radius * 2.2} colors={[withAlpha(visual.core, 0.28), withAlpha(visual.core, 0)]} />
-            </Circle>
-            {isDestination(vm?.type ?? 'skill') ? (
-              <Path path={regularPolygonPath(seat.x, seat.y, 7, seat.radius)} color={theme.surfaceStrong} />
-            ) : (
-              <Circle cx={seat.x} cy={seat.y} r={seat.radius} color={theme.surfaceStrong} />
-            )}
-            {isDestination(vm?.type ?? 'skill') ? (
-              <Path
-                path={regularPolygonPath(seat.x, seat.y, 7, seat.radius)}
-                style="stroke"
-                strokeWidth={nodeRimWidth(vm?.type ?? 'skill')}
-                color={visual.bright}
-              />
-            ) : (
-              <Circle
-                cx={seat.x}
-                cy={seat.y}
-                r={seat.radius}
-                style="stroke"
-                strokeWidth={nodeRimWidth(vm?.type ?? 'skill')}
-                color={visual.bright}
-              />
-            )}
-            {routeSet.has(node.id) && (
-              <Circle cx={seat.x} cy={seat.y} r={seat.radius + 4} style="stroke" strokeWidth={1.5} color={withAlpha('#F2C14E', 0.8)} />
-            )}
-            {ring && (
-              <Circle cx={seat.x} cy={seat.y} r={seat.radius + 7} style="stroke" strokeWidth={2} color={ring} />
-            )}
+          <Group key={node.id} opacity={faded ? 0.3 : selectedId && !selected && !related ? 0.55 : 1}>
+            <NodeShell
+              x={seat.x}
+              y={seat.y}
+              radius={seat.radius}
+              sides={shellSidesFor(vm?.type ?? 'skill')}
+              domain={domain}
+              active={active}
+            />
+            {ring && <Circle cx={seat.x} cy={seat.y} r={seat.radius + 7} style="stroke" strokeWidth={2} color={ring} opacity={0.9} />}
             {selected && (
-              <Circle cx={seat.x} cy={seat.y} r={seat.radius + 12} style="stroke" strokeWidth={2} color={theme.accent} />
+              <Group>
+                <Circle cx={seat.x} cy={seat.y} r={seat.radius + 13} style="stroke" strokeWidth={5} color={visual.selection} opacity={0.28} />
+                <Circle cx={seat.x} cy={seat.y} r={seat.radius + 13} style="stroke" strokeWidth={1.8} color={visual.selection} />
+              </Group>
             )}
-            {fonts && (tier >= 2 || (tier === 1 && node.size !== 'minor') || node.size === 'major') && (
-              <SkiaText
-                x={seat.x - textWidth(fonts.label, node.title) / 2}
-                y={seat.y + seat.radius + 16}
-                text={node.title}
-                font={fonts.label}
-                color={faded ? withAlpha(theme.ink, 0.35) : theme.ink}
-              />
-            )}
+            {showLabel && fonts && (() => {
+              const width = textWidth(fonts.label, node.title);
+              const lx = seat.x - width / 2;
+              const ly = seat.y + seat.radius + fonts.label.getSize() + 5;
+              return (
+                <Group>
+                  {LABEL_HALO_OFFSETS.map(([dx, dy], offset) => (
+                    <SkiaText key={offset} x={lx + dx} y={ly + dy} text={node.title} font={fonts.label} color={visual.labelHalo} />
+                  ))}
+                  <SkiaText x={lx} y={ly} text={node.title} font={fonts.label} color={visual.labelInk} />
+                </Group>
+              );
+            })()}
           </Group>
         );
       })}
