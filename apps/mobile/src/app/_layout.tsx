@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { JourneyProvider } from '@/state/journey-context';
+import { RoadmapProvider } from '@/state/roadmap-context';
 import { LifeThemeProvider, useLifeTheme } from '@/state/theme-context';
 
 function RootNavigation() {
@@ -22,7 +23,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <LifeThemeProvider>
           <JourneyProvider>
-            <RootNavigation />
+            <RoadmapProvider>
+              <RootNavigation />
+            </RoadmapProvider>
           </JourneyProvider>
         </LifeThemeProvider>
       </SafeAreaProvider>
