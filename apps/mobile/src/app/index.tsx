@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { ClientOnly } from '@/components/ClientOnly';
+import RoadmapDiscoverScreen from '@/screens/roadmap/RoadmapDiscoverScreen';
 
 export default function HomeRoute() {
-  return <View><Text>Discover</Text></View>;
+  return <ClientOnly><RoadmapDiscoverScreen /></ClientOnly>;
 }
