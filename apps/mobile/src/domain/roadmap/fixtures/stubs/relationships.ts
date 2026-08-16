@@ -15,7 +15,10 @@ export const stubRelationships: UniverseRelationship[] = [
   { from: 'live-coding-patterns', to: 'browser-video-synthesis', kind: 'dependency' },
   { from: 'live-coding-patterns', to: 'algorave-set', kind: 'dependency' },
   { from: 'browser-video-synthesis', to: 'algorave-set', kind: 'dependency' },
-  { from: 'browser-video-synthesis', to: 'reactive-visuals', kind: 'related' },
+  {
+    from: 'browser-video-synthesis', to: 'reactive-visuals', kind: 'bridge',
+    note: 'A live-coded video synth is a VJ rig you typed yourself — the same beat-driven imagery, reached from the other side.',
+  },
 
   // Projection Mapping
   { from: 'surface-mapping', to: 'mapped-installation', kind: 'dependency' },

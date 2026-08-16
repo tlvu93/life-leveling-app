@@ -3,7 +3,8 @@ import type { NodeId, PathId } from './ids';
 
 export type RelationshipIssueCode =
   | 'missing-node' | 'self-link' | 'duplicate' | 'dependency-cycle'
-  | 'bridge-same-domain' | 'bridge-missing-note' | 'missing-featured-guide';
+  | 'bridge-same-cluster' | 'bridge-missing-note' | 'missing-featured-guide'
+  | 'unknown-cluster';
 
 export type RelationshipIssue = {
   code: RelationshipIssueCode;
@@ -75,8 +76,12 @@ export function validateRelationships(
     }
     seen.add(key);
     if (rel.kind === 'bridge') {
-      if (from.domainId === to.domainId) {
-        issues.push({ code: 'bridge-same-domain', from: rel.from, to: rel.to, message: `Bridge ${rel.from} -> ${rel.to} stays inside "${from.domainId}"; a bridge must cross domains.` });
+      // A bridge earns its name by leaving the constellation. Crossing domains
+      // is the common case, not the definition: two technology constellations
+      // are still a real crossing, and two nodes inside one constellation are
+      // not a bridge however different their domains look.
+      if (from.clusterId === to.clusterId) {
+        issues.push({ code: 'bridge-same-cluster', from: rel.from, to: rel.to, message: `Bridge ${rel.from} -> ${rel.to} stays inside "${from.clusterId}"; a bridge must cross constellations.` });
       }
       if (!rel.note?.trim()) {
         issues.push({ code: 'bridge-missing-note', from: rel.from, to: rel.to, message: `Bridge ${rel.from} -> ${rel.to} needs a note explaining the crossing.` });
@@ -89,9 +94,15 @@ export function validateRelationships(
   return issues;
 }
 
-/** Relationship rules plus the catalog-level featured-guide rule. */
+/** Relationship rules plus the catalog-level cluster and featured-guide rules. */
 export function validateCatalog(catalog: RoadmapCatalog): RelationshipIssue[] {
   const issues = validateRelationships(catalog.nodes, catalog.relationships);
+  const pathIds = new Set(catalog.paths.map((p) => p.id));
+  for (const node of catalog.nodes) {
+    if (!pathIds.has(node.clusterId)) {
+      issues.push({ code: 'unknown-cluster', from: node.id, message: `Node "${node.id}" claims constellation "${node.clusterId}", which is not a Path in this catalog.` });
+    }
+  }
   for (const path of catalog.paths) {
     if (path.featuredGuideId === undefined) continue;
     const guide = catalog.guides.find((g) => g.id === path.featuredGuideId);

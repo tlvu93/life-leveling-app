@@ -21,6 +21,10 @@ describe('strongestState', () => {
     expect(strongestState(['skipped', 'not-for-me'])).toBe('skipped');
     expect(strongestState([])).toBeNull();
   });
+  it('treats a pause as more engagement than bare curiosity', () => {
+    expect(strongestState(['interested', 'paused'])).toBe('paused');
+    expect(strongestState(['interested', 'skipped'])).toBe('interested');
+  });
 });
 
 describe('universeView', () => {

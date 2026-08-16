@@ -10,7 +10,8 @@ export type AtlasNode = {
   title: string;
   description: string;
   domainId: InterestId;
-  clusterId: string;
+  /** Home constellation: the Path this node natively belongs to. */
+  clusterId: PathId;
   depth: 0 | 1 | 2 | 3;
   size: NodeSize;
   provisional?: { scopeGuideId: GuideId };

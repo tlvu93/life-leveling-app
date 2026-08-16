@@ -59,9 +59,16 @@ export type UniverseRelationship = {
 
 Semantics: `dependency` is directed ("to relies on from" reads as from -> to)
 and the dependency subgraph must be acyclic. `related` is symmetric and stored
-once (selectors surface both directions). `bridge` must connect nodes with
-different `domainId`s and must carry a non-empty `note` telling the
-cross-domain story.
+once (selectors surface both directions). `bridge` must connect nodes in
+different **constellations** (`clusterId`) and must carry a non-empty `note`
+telling the crossing's story.
+
+**Revised during implementation (code review):** the bridge rule originally
+keyed on `domainId`. That both admitted fakes (two nodes inside one
+constellation with different domains passed as a "bridge" while crossing
+nothing) and rejected real crossings (a technology node in one constellation
+reaching a technology node in another). Crossing domains is the common case,
+not the definition; `clusterId` is the rule.
 
 ## Validator (`relationships.ts`, new module)
 
@@ -75,8 +82,9 @@ rules. Issue codes:
   for `related`;
 - `dependency-cycle` — the dependency-kind subgraph has a cycle (reuse the
   Kahn linearization approach from `graph.ts` over a temporary step list);
-- `bridge-same-domain` — bridge endpoints share a `domainId`;
+- `bridge-same-cluster` — bridge endpoints share a `clusterId`;
 - `bridge-missing-note` — bridge with empty/absent note;
+- `unknown-cluster` — a node's `clusterId` is not a Path in the catalog;
 - `missing-featured-guide` — a Path's `featuredGuideId` does not exist or
   belongs to a different Path.
 
@@ -102,11 +110,13 @@ export type UniverseVm = {
 export function universeView(catalog: RoadmapCatalog, state: RoadmapState): UniverseVm
 ```
 
-Strongest-state resolution across all Journey steps sharing a node:
-`demonstrated > practicing > tried > interested`; `paused`, `skipped`, and
-`not-for-me` never win over those four and never count as "applies"; a node
-whose only states are paused/skipped/not-for-me reports that state only if no
-stronger state exists anywhere (paused > skipped > not-for-me as tiebreak).
+Strongest-state resolution across all Journey steps sharing a node, ranked by
+real engagement: `demonstrated > practicing > tried > paused > interested >
+skipped > not-for-me`. Only `tried`, `practicing`, and `demonstrated` count as
+"applies" for transfer. (Revised during code review: `paused` outranks
+`interested`, because a pause records engagement that stopped while
+`interested` records only curiosity — the original order made a paused node
+read as *less* engaged than a bookmark.)
 
 `selectors/path-transfer.ts` (new):
 

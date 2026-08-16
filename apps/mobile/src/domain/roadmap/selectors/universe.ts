@@ -29,15 +29,18 @@ export type UniverseVm = {
 };
 
 /**
- * Active engagement outranks resting states, so a node the person practises in
- * one Journey never reads as "skipped" because another Journey dropped it.
+ * When the same node appears in several Journeys, the Universe shows the state
+ * that reflects the most real engagement — hands-on work first, then a pause
+ * (which records engagement that stopped), then curiosity, and only then the
+ * deliberate declines. A node practised in one Journey never reads as "skipped"
+ * because another Journey dropped it.
  */
-const activeRank: readonly ProgressState[] = ['demonstrated', 'practicing', 'tried', 'interested'];
-const restingRank: readonly ProgressState[] = ['paused', 'skipped', 'not-for-me'];
+const engagementRank: readonly ProgressState[] = [
+  'demonstrated', 'practicing', 'tried', 'paused', 'interested', 'skipped', 'not-for-me',
+];
 
 export function strongestState(states: readonly ProgressState[]): ProgressState | null {
-  for (const candidate of activeRank) if (states.includes(candidate)) return candidate;
-  for (const candidate of restingRank) if (states.includes(candidate)) return candidate;
+  for (const candidate of engagementRank) if (states.includes(candidate)) return candidate;
   return null;
 }
 
