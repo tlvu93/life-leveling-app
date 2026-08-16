@@ -22,10 +22,15 @@ export default function StepDetailScreen() {
 
   const path = catalog.paths.find((p) => p.id === build.pathId);
   const placed = new Set(build.steps.map((s) => s.nodeId));
-  const alternatives = (path?.nodeIds ?? [])
-    .filter((id) => !placed.has(id))
-    .map((id) => catalog.nodes.find((n) => n.id === id))
-    .filter((n): n is NonNullable<typeof n> => Boolean(n));
+  const nearby = new Set(path?.nodeIds ?? []);
+  // Anything in the shared Universe can take this Step's place — a Guide that
+  // already places every concept on its own Path would otherwise offer nothing.
+  const alternatives = catalog.nodes
+    .filter((node) => !node.provisional && !placed.has(node.id))
+    .sort((a, b) => {
+      const near = Number(nearby.has(b.id)) - Number(nearby.has(a.id));
+      return near !== 0 ? near : a.title.localeCompare(b.title);
+    });
 
   return (
     <RoadmapScaffold title={vm.nodeTitle}>

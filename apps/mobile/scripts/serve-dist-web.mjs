@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,15 +17,37 @@ const contentTypes = {
   '.xml': 'image/svg+xml',
 };
 
+/**
+ * Expo exports a dynamic route as a literal `[param].html`. A real static host
+ * maps `/paths/djvj` onto it; this dev server has to do the same or every
+ * dynamic route 404s.
+ */
+async function resolveDynamicRoute(requestedFile) {
+  const directory = path.resolve(root, path.dirname(requestedFile));
+  const relative = path.relative(root, directory);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  const entries = await readdir(directory).catch(() => []);
+  const dynamic = entries.find((entry) => /^\[.+\]\.html$/.test(entry));
+  return dynamic ? path.join(directory, dynamic) : null;
+}
+
 createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
     const requestedFile = pathname === '/' ? 'index.html' : pathname.slice(1);
-    const resolvedFile = path.resolve(root, path.extname(requestedFile) ? requestedFile : `${requestedFile}.html`);
+    const hasExtension = Boolean(path.extname(requestedFile));
+    const resolvedFile = path.resolve(root, hasExtension ? requestedFile : `${requestedFile}.html`);
     const relativeFile = path.relative(root, resolvedFile);
     if (relativeFile.startsWith('..') || path.isAbsolute(relativeFile)) throw new Error('Invalid path');
 
-    const body = await readFile(resolvedFile);
+    const body = await readFile(resolvedFile).catch(async (error) => {
+      if (hasExtension) throw error;
+      const nested = await readFile(path.resolve(root, requestedFile, 'index.html')).catch(() => null);
+      if (nested) return nested;
+      const dynamic = await resolveDynamicRoute(requestedFile);
+      if (!dynamic) throw error;
+      return readFile(dynamic);
+    });
     const contentType = contentTypes[path.extname(resolvedFile)] ?? 'application/octet-stream';
     response.writeHead(200, { 'Content-Type': contentType });
     response.end(body);

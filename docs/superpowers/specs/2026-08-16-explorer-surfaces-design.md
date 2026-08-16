@@ -1,6 +1,6 @@
 # Explorer Surfaces Design
 
-- **Status:** Approved 2026-08-16
+- **Status:** Implemented 2026-08-16
 - **Parent specs:** [`2026-08-16-roadmap-domain-model-design.md`](2026-08-16-roadmap-domain-model-design.md), [`2026-08-16-universe-schema-extension-design.md`](2026-08-16-universe-schema-extension-design.md)
 - **Serves:** [`docs/product/dj-vj-prototype-plan.md`](../../product/dj-vj-prototype-plan.md) Explorer golden journey (H1, H2, H4, H5, H6) and decisions A-008/A-009.
 
