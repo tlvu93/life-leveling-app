@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, NotFound, SectionTitle } from '@/components/roadmap/pieces';
+import { Body, Card, NotFound, RoadmapLoading, SectionTitle } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import type { RouteRole } from '@/domain/roadmap/catalog';
 import { compareGuides, type ComparisonSide } from '@/domain/roadmap/selectors/guide-comparison';
@@ -25,8 +25,10 @@ function sideText(side: ComparisonSide) {
 export default function GuideComparisonScreen() {
   const params = useLocalSearchParams<{ a?: string; b?: string }>();
   const { theme } = useLifeTheme();
-  const { catalog, adoptGuide } = useRoadmap();
+  const { hydrated, catalog, adoptGuide } = useRoadmap();
   const router = useRouter();
+
+  if (!hydrated) return <RoadmapLoading />;
 
   const vm = compareGuides(catalog, params.a ?? '', params.b ?? '');
   if (!vm) return <RoadmapScaffold title="Compare"><NotFound what="pair of Guides" /></RoadmapScaffold>;

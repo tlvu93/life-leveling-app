@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { RouteRole } from '@/domain/roadmap/catalog';
 import { progressStates, type ProgressState } from '@/domain/roadmap/state';
@@ -75,6 +75,19 @@ export function ProgressStatePicker({ value, onChange }: { value: ProgressState 
   );
 }
 
+/**
+ * Every roadmap screen waits for storage before drawing: rendering the default
+ * state first would tell a returning person they have no Journey.
+ */
+export function RoadmapLoading() {
+  const { theme } = useLifeTheme();
+  return (
+    <View testID="roadmap-loading" style={[styles.loading, { backgroundColor: theme.surfaceStrong }]}>
+      <ActivityIndicator color={theme.accent} />
+    </View>
+  );
+}
+
 export function NotFound({ what }: { what: string }) {
   const { theme } = useLifeTheme();
   return <Text testID="not-found" style={[styles.body, { color: theme.ink }]}>{`We could not find that ${what}.`}</Text>;
@@ -88,4 +101,5 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 6 },
   body: { fontSize: 14, lineHeight: 20 },
   picker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

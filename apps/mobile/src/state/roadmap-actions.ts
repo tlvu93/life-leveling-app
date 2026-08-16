@@ -21,20 +21,29 @@ export function applySetInterests(state: RoadmapState, interests: InterestId[]):
   return { state: { ...state, interests }, issues: [] };
 }
 
+/**
+ * Adopting a Guide the person already adopted reopens their existing Journey
+ * rather than starting a pristine one: a second tap must never orphan a remix
+ * and its progress behind a Journey they can no longer reach.
+ */
 export function applyAdoptGuide(
   catalog: RoadmapCatalog, state: RoadmapState, guideId: GuideId, ids: () => string, now: string,
 ): OpResult {
+  const existing = state.builds.find((build) => build.provenance.kind === 'adopted' && build.provenance.guideId === guideId);
+  if (existing) return { state: { ...state, activeBuildId: existing.id }, issues: [] };
   return adoptGuide(catalog, state, guideId, ids, now);
 }
 
-/** Changing a progress state never drops evidence the person already attached. */
+/** Changing a progress state never drops the evidence or the note already attached. */
 export function applySetProgress(
   state: RoadmapState, stepId: StepId, progress: ProgressState, now: string, note?: string,
 ): OpResult {
+  const existing = state.progress[stepId];
+  const carried = note ?? existing?.note;
   return setProgress(state, stepId, {
     state: progress,
     updatedAt: now,
-    artifactIds: state.progress[stepId]?.artifactIds ?? [],
-    ...(note ? { note } : {}),
+    artifactIds: existing?.artifactIds ?? [],
+    ...(carried ? { note: carried } : {}),
   });
 }

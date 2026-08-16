@@ -46,6 +46,17 @@ test.describe('Explorer golden journey', () => {
     await expect(page.getByTestId('shared-interest-technology')).toHaveCount(0);
     await expect(page.getByTestId('share-audit')).toBeVisible();
 
+    // Ticking a Step must not smuggle the route title onto the page, and
+    // unticking the last one must take it back to genuinely empty.
+    const firstStepPick = page.locator('[data-testid^="pick-step-"]').first();
+    await firstStepPick.click();
+    await expect(page.getByTestId('shared-step').first()).toBeVisible();
+    await firstStepPick.click();
+    await expect(page.getByTestId('shared-step')).toHaveCount(0);
+    await expect(page.getByTestId('shared-build')).toHaveCount(0);
+    await page.getByTestId('pick-interest-music').click();
+    await expect(page.getByTestId('share-empty')).toBeVisible();
+
     // The guardrail that stayed committed: no life-completion score anywhere.
     await expect(page.getByText(/life level|overall completion/i)).toHaveCount(0);
   });

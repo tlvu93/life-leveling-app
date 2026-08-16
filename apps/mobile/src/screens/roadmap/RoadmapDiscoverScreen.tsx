@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, SectionTitle } from '@/components/roadmap/pieces';
+import { Body, Card, RoadmapLoading, SectionTitle } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import { discoverView } from '@/domain/roadmap/selectors/discover';
 import type { InterestId } from '@/domain/roadmap/ids';
@@ -13,9 +13,7 @@ export default function RoadmapDiscoverScreen() {
   const { hydrated, state, catalog, setInterests } = useRoadmap();
   const router = useRouter();
 
-  if (!hydrated) {
-    return <View style={[styles.loading, { backgroundColor: theme.surfaceStrong }]}><ActivityIndicator color={theme.accent} /></View>;
-  }
+  if (!hydrated) return <RoadmapLoading />;
 
   const vm = discoverView(catalog, state);
   const toggle = (id: InterestId) => {
@@ -55,15 +53,14 @@ export default function RoadmapDiscoverScreen() {
         </Card>
       ))}
 
-      <Pressable accessibilityRole="link" onPress={() => router.push('/discover')} style={styles.legacy}>
-        <Text style={[styles.legacyText, { color: theme.inkSecondary }]}>Open the earlier prototype</Text>
+      <Pressable testID="open-legacy" accessibilityRole="link" onPress={() => router.push('/discover')} style={styles.legacy}>
+        <Text style={[styles.legacyText, { color: theme.inkSecondary }]}>Open the earlier prototype — it asks its own questions first</Text>
       </Pressable>
     </RoadmapScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   interests: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   chipText: { fontSize: 13, fontWeight: '700' },

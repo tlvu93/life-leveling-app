@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, NotFound, SectionTitle } from '@/components/roadmap/pieces';
+import { Body, Card, NotFound, RoadmapLoading, SectionTitle } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import { pathOverviewView } from '@/domain/roadmap/selectors/path-overview';
 import { pathTransferView } from '@/domain/roadmap/selectors/path-transfer';
@@ -13,8 +13,10 @@ export default function PathOverviewScreen() {
   const params = useLocalSearchParams<{ pathId?: string; framing?: string; marker?: string }>();
   const pathId = params.pathId ?? '';
   const { theme } = useLifeTheme();
-  const { state, catalog, adoptGuide } = useRoadmap();
+  const { hydrated, state, catalog, adoptGuide } = useRoadmap();
   const router = useRouter();
+
+  if (!hydrated) return <RoadmapLoading />;
 
   const vm = pathOverviewView(catalog, pathId);
   if (!vm) return <RoadmapScaffold title="Path"><NotFound what="Path" /></RoadmapScaffold>;

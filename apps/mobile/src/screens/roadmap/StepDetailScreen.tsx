@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, NotFound, ProgressStatePicker, RoleChip, SectionTitle } from '@/components/roadmap/pieces';
+import { Body, Card, NotFound, ProgressStatePicker, RoadmapLoading, RoleChip, SectionTitle } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import { stepDetailView } from '@/domain/roadmap/selectors/step-detail';
 import { useRoadmap } from '@/state/roadmap-context';
@@ -12,9 +12,11 @@ export default function StepDetailScreen() {
   const params = useLocalSearchParams<{ stepId?: string }>();
   const stepId = params.stepId ?? '';
   const { theme } = useLifeTheme();
-  const { state, catalog, setProgress, replaceStep } = useRoadmap();
+  const { hydrated, state, catalog, setProgress, replaceStep } = useRoadmap();
   const router = useRouter();
   const [showAlternatives, setShowAlternatives] = useState(false);
+
+  if (!hydrated) return <RoadmapLoading />;
 
   const build = state.builds.find((b) => b.steps.some((s) => s.id === stepId));
   const vm = build ? stepDetailView(catalog, state, build.id, stepId) : null;

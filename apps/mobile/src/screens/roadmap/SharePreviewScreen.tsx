@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, SectionTitle, progressLabels } from '@/components/roadmap/pieces';
+import { Body, Card, RoadmapLoading, SectionTitle, progressLabels } from '@/components/roadmap/pieces';
+import { interestLabels } from '@/domain/roadmap/ids';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import { buildView } from '@/domain/roadmap/selectors/build';
 import { shareAudit, sharePreviewView } from '@/domain/roadmap/selectors/share-preview';
@@ -9,7 +10,9 @@ import { useLifeTheme } from '@/state/theme-context';
 
 export default function SharePreviewScreen() {
   const { theme } = useLifeTheme();
-  const { state, catalog, selectForShare, clearShare } = useRoadmap();
+  const { hydrated, state, catalog, selectForShare, clearShare } = useRoadmap();
+
+  if (!hydrated) return <RoadmapLoading />;
 
   const activeId = state.activeBuildId ?? state.builds[0]?.id ?? null;
   const journey = activeId ? buildView(catalog, state, activeId) : null;
@@ -34,7 +37,7 @@ export default function SharePreviewScreen() {
             onPress={() => selectForShare({
               interestIds: on ? state.share.interestIds.filter((id) => id !== interest) : [...state.share.interestIds, interest],
             })}>
-            <Text style={[styles.pick, { color: on ? theme.accent : theme.inkSecondary }]}>{`${on ? '☑' : '☐'} ${interest}`}</Text>
+            <Text style={[styles.pick, { color: on ? theme.accent : theme.inkSecondary }]}>{`${on ? '☑' : '☐'} ${interestLabels[interest]}`}</Text>
           </Pressable>
         );
       })}
@@ -49,7 +52,9 @@ export default function SharePreviewScreen() {
             onPress={() => {
               if (!activeId) return;
               const next = on ? state.share.stepIds.filter((id) => id !== step.stepId) : [...state.share.stepIds, step.stepId];
-              selectForShare({ buildId: activeId, stepIds: next });
+              // The route only appears once a Step of it does, and unticking
+              // the last Step takes the page back to genuinely empty.
+              selectForShare({ buildId: next.length > 0 ? activeId : null, stepIds: next });
             }}>
             <Text style={[styles.pick, { color: on ? theme.accent : theme.inkSecondary }]}>{`${on ? '☑' : '☐'} ${step.nodeTitle}`}</Text>
           </Pressable>

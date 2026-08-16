@@ -67,6 +67,8 @@ export function RoadmapProvider({
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
   const lastWriteError = useRef<Error | null>(null);
   const mounted = useRef(true);
+  /** Set the moment an op lands, so a slow load cannot revert real work. */
+  const touched = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -95,6 +97,7 @@ export function RoadmapProvider({
     const { state: next, issues } = op(current);
     setLastIssues(issues);
     if (next === current) return;
+    touched.current = true;
     stateRef.current = next;
     setState(next);
     void enqueueSave(next);
@@ -105,8 +108,13 @@ export function RoadmapProvider({
     repositoryRef.current.load()
       .then((loaded) => {
         if (!active) return;
-        stateRef.current = loaded;
-        setState(loaded);
+        // If the person already acted while storage was still resolving, their
+        // work wins: overwriting it here would revert an adoption and then
+        // persist the reverted state.
+        if (!touched.current) {
+          stateRef.current = loaded;
+          setState(loaded);
+        }
         setPersistenceError(null);
         setHydrated(true);
       })

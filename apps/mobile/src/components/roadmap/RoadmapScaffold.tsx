@@ -1,4 +1,4 @@
-import { Compass, Orbit, Route as RouteIcon } from 'lucide-react-native';
+import { Compass, Route as RouteIcon, Share2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -8,10 +8,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoadmap } from '@/state/roadmap-context';
 import { useLifeTheme } from '@/state/theme-context';
 
+/**
+ * No Universe tab yet: `/atlas` is still the Alpha screen, which redirects
+ * anyone without a legacy journey profile into legacy onboarding and offers no
+ * way back. It returns when the Universe canvas renders the shared catalog.
+ */
 const items: { label: string; href: Href; icon: LucideIcon }[] = [
   { label: 'Discover', href: '/', icon: Compass },
   { label: 'Journey', href: '/journey', icon: RouteIcon },
-  { label: 'Universe', href: '/atlas', icon: Orbit },
+  { label: 'Share', href: '/share', icon: Share2 },
 ];
 
 export function RoadmapScaffold({ children, title }: { children: ReactNode; title: string }) {

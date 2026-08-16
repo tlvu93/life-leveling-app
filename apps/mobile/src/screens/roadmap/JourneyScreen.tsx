@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, RoleChip, SectionTitle, progressLabels } from '@/components/roadmap/pieces';
+import { Body, Card, RoadmapLoading, RoleChip, SectionTitle, progressLabels } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
 import { buildView } from '@/domain/roadmap/selectors/build';
 import { pathTransferView } from '@/domain/roadmap/selectors/path-transfer';
@@ -12,8 +12,10 @@ import { useLifeTheme } from '@/state/theme-context';
 export default function JourneyScreen() {
   const params = useLocalSearchParams<{ framing?: string; marker?: string }>();
   const { theme } = useLifeTheme();
-  const { state, catalog } = useRoadmap();
+  const { hydrated, state, catalog } = useRoadmap();
   const router = useRouter();
+
+  if (!hydrated) return <RoadmapLoading />;
 
   const activeId = state.activeBuildId ?? state.builds[0]?.id ?? null;
   const vm = activeId ? buildView(catalog, state, activeId) : null;
