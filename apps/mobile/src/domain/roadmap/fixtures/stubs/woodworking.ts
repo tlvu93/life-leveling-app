@@ -15,6 +15,7 @@ export const woodworkingPath: Path = {
   title: 'Woodworking',
   status: 'stub',
   interestIds: ['making'],
+  featuredGuideId: 'guide-community-workshop',
   overview: {
     whatItIs:
       'Making things from wood, by hand and by machine. Access and safety gate everything: the route runs through a workshop you can actually use, and projects are the milestones. The hand-tool versus power-tool split is a genuine authorial divide.',

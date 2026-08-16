@@ -12,6 +12,7 @@ export const creativeCodingPath: Path = {
   title: 'Creative Coding for Music',
   status: 'stub',
   interestIds: ['music', 'technology'],
+  featuredGuideId: 'guide-browser-first',
   overview: {
     whatItIs:
       'Performing music and visuals by writing and editing code live, with the code projected — the live-coding scene’s founding ethic is showing your screen. The entry point is uniquely frictionless: open a browser-based pattern or video-synth environment and make sound or image in under a minute, then graduate to deeper stacks. Material is generated from algorithms rather than mixed from recordings, and the entire toolchain is free.',

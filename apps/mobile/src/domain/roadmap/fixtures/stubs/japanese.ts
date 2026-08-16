@@ -16,6 +16,7 @@ export const japanesePath: Path = {
   title: 'Learning Japanese',
   status: 'stub',
   interestIds: ['language'],
+  featuredGuideId: 'guide-immersion-first',
   overview: {
     whatItIs:
       'A long-horizon language practice: kana, grammar, thousands of hours of input, and speaking. Method debates (textbook-first versus immersion-first) are real and unresolved; plateaus are normal and expected. There is no stage, no gig, and no finish line — which is exactly why routes here must feel useful without deadlines.',

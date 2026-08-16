@@ -6,6 +6,7 @@ export const djvjPath: Path = {
   title: 'DJ/VJ and Live Audiovisual Performance',
   status: 'full',
   interestIds: ['music', 'technology'],
+  featuredGuideId: 'guide-club-first',
   overview: {
     whatItIs:
       'The craft of performing recorded or generated sound and image for a room, in real time. A DJ selects and blends recorded music so a night feels continuous and alive; a VJ performs visuals — video loops, generative graphics, live-coded imagery — in sync with that music; an audiovisual performer does some of both. Practitioners on both sides describe the core skill the same way: less about the equipment, more about selection, timing, and reading the room.',

@@ -51,6 +51,13 @@ describe('roadmap catalog fixtures', () => {
       }
     }
   });
+  it('every path features a guide that belongs to it', () => {
+    for (const path of roadmapCatalog.paths) {
+      const featured = roadmapCatalog.guides.find((g) => g.id === path.featuredGuideId);
+      expect({ path: path.id, ok: Boolean(featured) && featured?.pathId === path.id })
+        .toEqual({ path: path.id, ok: true });
+    }
+  });
   it('the theory disagreement spans the catalog: optional in A, excluded in B, required somewhere', () => {
     const a = roadmapCatalog.guides.find((g) => g.id === 'guide-club-first');
     const b = roadmapCatalog.guides.find((g) => g.id === 'guide-visual-first');

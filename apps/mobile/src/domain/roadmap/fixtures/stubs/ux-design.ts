@@ -15,6 +15,7 @@ export const uxDesignPath: Path = {
   title: 'UX Design',
   status: 'stub',
   interestIds: ['design', 'technology'],
+  featuredGuideId: 'guide-portfolio-first',
   overview: {
     whatItIs:
       'Designing how software works for the people using it. The route debates are real — bootcamp versus self-taught versus degree — but every route converges on the same currency: a portfolio of honest case studies. The outcome is employment-shaped, and what you choose to show is the craft’s own selective-sharing problem.',

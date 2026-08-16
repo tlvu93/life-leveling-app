@@ -16,6 +16,7 @@ export const boulderingPath: Path = {
   title: 'Bouldering',
   status: 'stub',
   interestIds: ['movement'],
+  featuredGuideId: 'guide-gym-first-bouldering',
   overview: {
     whatItIs:
       'Climbing short, hard problems close to the ground, without ropes, over pads. Gyms made it one of the most accessible ways into climbing: technique and reading matter as much as strength, and progress is famously nonlinear.',

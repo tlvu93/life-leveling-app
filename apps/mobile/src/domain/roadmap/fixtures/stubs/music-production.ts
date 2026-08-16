@@ -13,6 +13,7 @@ export const musicProductionPath: Path = {
   title: 'Music Production',
   status: 'stub',
   interestIds: ['music'],
+  featuredGuideId: 'guide-daw-first',
   overview: {
     whatItIs:
       'Composing, arranging, and mixing original tracks in a DAW — the most-trafficked neighbor of DJing, since DJ/producer is effectively one hyphenated career in dance music. It is a studio craft measured in finished tracks, not live performance: feedback arrives in release cycles rather than seconds, and the payoff model is catalog and identity rather than gig fees.',

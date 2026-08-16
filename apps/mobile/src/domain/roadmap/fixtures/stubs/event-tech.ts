@@ -14,6 +14,7 @@ export const eventTechPath: Path = {
   title: 'Event Technology',
   status: 'stub',
   interestIds: ['technology', 'making'],
+  featuredGuideId: 'guide-stagehand-route',
   overview: {
     whatItIs:
       'The crew-side craft that makes shows happen: PA and consoles, stage lighting and DMX control, power, rigging. Its canonical entry is not software but showing up — working as a stagehand and learning on real rigs. It is a service trade with a job ladder, not a creative performance identity: the measure of success is the show going right and nobody noticing you.',

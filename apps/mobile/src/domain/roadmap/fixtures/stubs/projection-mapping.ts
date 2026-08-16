@@ -12,6 +12,7 @@ export const projectionMappingPath: Path = {
   title: 'Projection Mapping',
   status: 'stub',
   interestIds: ['design', 'technology'],
+  featuredGuideId: 'guide-home-mapping-first',
   overview: {
     whatItIs:
       'Warping and masking video to fit real three-dimensional surfaces — façades, stage sets, sculptures — rather than flat screens. Entry is one mid-brightness projector, a textured wall or cardboard sculpture at home, and a mapping tool’s trial. The work is site- and geometry-driven rather than beat-driven: success is measured in alignment, blending, and reliability over hours, and much of it is installation rather than performance.',
