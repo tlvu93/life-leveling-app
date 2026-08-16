@@ -61,6 +61,10 @@ Route roles are explicit:
 - **Alternative:** another way to reach a similar outcome;
 - **Checkpoint:** a place to try, review, or demonstrate something.
 
+A Guide may also record an explicit **excluded** stance, with a stated reason,
+for a shared Node it deliberately does not place. Absence without a stance
+carries no meaning.
+
 A Guide is versioned advice, not canonical truth.
 
 ### Build
@@ -122,7 +126,7 @@ not automatically grant authority; context and evidence establish trust.
 ### Progress
 
 The Explorer's relationship with a Step or Build, recorded in language such as
-interested, tried, practicing, demonstrated, paused, or not for me.
+interested, tried, practicing, demonstrated, paused, skipped, or not for me.
 
 ### Journey
 

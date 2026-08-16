@@ -11,6 +11,12 @@ Quest-resolution flow, finite Guide deck, seeded Atlas statuses, and Live
 AV-specific HUD were built for an archived experiment-first Alpha; existing UI
 is not evidence that those behaviors remain product requirements.
 
+The roadmap domain model implementing this vocabulary lives in
+`src/domain/roadmap/` (see
+`docs/superpowers/specs/2026-08-16-roadmap-domain-model-design.md` from the
+repository root); the Alpha `JourneyState` in `src/domain/journey.ts` is legacy
+and must not gain new features.
+
 # Atlas visual verification
 
 The Atlas ("Living Universe") look is verified against the design mock with a
