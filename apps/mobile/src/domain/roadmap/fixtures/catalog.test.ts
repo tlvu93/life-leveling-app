@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateGuide } from '../graph';
+import { validateCatalog } from '../relationships';
 import { roadmapCatalog } from './catalog';
 
 const nodeIds = new Set(roadmapCatalog.nodes.map((n) => n.id));
@@ -56,6 +57,26 @@ describe('roadmap catalog fixtures', () => {
       const featured = roadmapCatalog.guides.find((g) => g.id === path.featuredGuideId);
       expect({ path: path.id, ok: Boolean(featured) && featured?.pathId === path.id })
         .toEqual({ path: path.id, ok: true });
+    }
+  });
+  it('the catalog passes relationship and featured-guide validation', () => {
+    expect(validateCatalog(roadmapCatalog)).toEqual([]);
+  });
+  it('DJ/VJ bridges reach all four neighbour paths', () => {
+    const djvjNodeIds = new Set(roadmapCatalog.paths.find((p) => p.id === 'djvj')?.nodeIds ?? []);
+    const clusterOf = (id: string) => roadmapCatalog.nodes.find((n) => n.id === id)?.clusterId;
+    const reached = new Set(
+      roadmapCatalog.relationships
+        .filter((r) => r.kind === 'bridge')
+        .flatMap((r) => {
+          if (djvjNodeIds.has(r.from) && !djvjNodeIds.has(r.to)) return [clusterOf(r.to)];
+          if (djvjNodeIds.has(r.to) && !djvjNodeIds.has(r.from)) return [clusterOf(r.from)];
+          return [];
+        })
+        .filter((c): c is string => Boolean(c)),
+    );
+    for (const neighbour of ['music-production', 'creative-coding-music', 'projection-mapping', 'event-technology']) {
+      expect({ neighbour, reached: reached.has(neighbour) }).toEqual({ neighbour, reached: true });
     }
   });
   it('the theory disagreement spans the catalog: optional in A, excluded in B, required somewhere', () => {

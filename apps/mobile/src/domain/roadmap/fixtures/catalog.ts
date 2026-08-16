@@ -3,6 +3,7 @@ import { djvjNodes } from './djvj/nodes';
 import { djvjPath } from './djvj/path';
 import { guideClubFirst } from './djvj/guide-club-first';
 import { guideVisualFirst } from './djvj/guide-visual-first';
+import { djvjRelationships } from './djvj/relationships';
 import { boulderingGuide, boulderingNodes, boulderingPath } from './stubs/bouldering';
 import { creativeCodingGuide, creativeCodingNodes, creativeCodingPath } from './stubs/creative-coding';
 import { eventTechGuide, eventTechNodes, eventTechPath } from './stubs/event-tech';
@@ -50,5 +51,5 @@ export const roadmapCatalog: RoadmapCatalog = {
     woodworkingGuide,
     uxDesignGuide,
   ],
-  relationships: [],
+  relationships: [...djvjRelationships],
 };
