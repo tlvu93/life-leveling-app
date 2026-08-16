@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLifeTheme } from '@/state/theme-context';
 
 const items: { label: string; href: Href; icon: LucideIcon }[] = [
-  { label: 'Atlas', href: '/', icon: Orbit },
+  { label: 'Atlas', href: '/atlas', icon: Orbit },
   { label: 'Discover', href: '/discover', icon: Telescope },
   { label: 'Quest', href: '/quest', icon: Compass },
   { label: 'Community', href: '/community', icon: Users },

@@ -81,7 +81,7 @@ export default function DiscoverScreen() {
             <Text style={[styles.refinedTitle, { color: theme.ink }]}>{refined.title}</Text>
             <Text style={[styles.refinedText, { color: theme.inkSecondary }]}>{refined.reason} {refined.whyDifferent}</Text>
           </View>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/')} style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.violet }, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/atlas')} style={({ pressed }) => [styles.smallButton, { backgroundColor: theme.violet }, pressed && styles.pressed]}>
             <Text style={styles.smallButtonText}>SEE UNLOCK</Text>
           </Pressable>
         </View>

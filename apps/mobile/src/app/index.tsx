@@ -1,6 +1,5 @@
-import { ClientOnly } from '@/components/ClientOnly';
-import AtlasScreen from '@/screens/AtlasScreen';
+import { Text, View } from 'react-native';
 
-export default function AtlasRoute() {
-  return <ClientOnly><AtlasScreen /></ClientOnly>;
+export default function HomeRoute() {
+  return <View><Text>Discover</Text></View>;
 }

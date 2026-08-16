@@ -54,7 +54,7 @@ export default function PathScreen() {
   const primaryAction = async () => {
     if (journeyBusy) return;
     if (resolved) {
-      router.push('/');
+      router.push('/atlas');
       return;
     }
     setJourneyBusy(true);

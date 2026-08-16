@@ -12,7 +12,7 @@ async function openShowcase(page: Page, theme: 'living' | 'night') {
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
   }, { key: journeyStates.storageKey, value: journeyStates.active });
   await page.setViewportSize(VIEWPORT);
-  await page.goto(`/?showcase=1&static=1&theme=${theme}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`/atlas?showcase=1&static=1&theme=${theme}`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('atlas-scene')).toBeVisible();
   // Two canvases by design: the baked world canvas plus the animation overlay.
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });

@@ -46,7 +46,7 @@ for (const viewport of viewports) {
     });
     await seedJourney(page);
     await page.setViewportSize(viewport);
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/atlas', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('atlas-scene')).toBeVisible();
     // Two canvases by design: the baked world canvas plus the animation overlay.
     await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
@@ -100,7 +100,7 @@ for (const viewport of viewports) {
 
 test('first-run journey completes a Quest and persists Atlas growth', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/atlas', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/onboarding$/);
   await expect(page.getByText('What should your Atlas look for?', { exact: true })).toBeVisible();
   await page.getByRole('checkbox', { name: 'Music', exact: true }).click();
@@ -187,7 +187,7 @@ test('first-run journey completes a Quest and persists Atlas growth', async ({ p
 test('Atlas controls and primary navigation work', async ({ page }) => {
   await seedJourney(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/atlas', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
 
   await page.getByLabel('Zoom in', { exact: true }).click();

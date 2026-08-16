@@ -155,7 +155,7 @@ export default function QuestScreen() {
 
   const requestResolution = (outcome: QuestOutcome) => {
     if (done) {
-      router.replace('/');
+      router.replace('/atlas');
       return;
     }
     if (!ready) return;
@@ -174,7 +174,7 @@ export default function QuestScreen() {
         pendingOutcome === 'completed' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning,
       );
       setPendingOutcome(null);
-      router.replace({ pathname: '/', params: { reveal: '1' } });
+      router.replace({ pathname: '/atlas', params: { reveal: '1' } });
     } catch (error) {
       setResolutionError(error instanceof Error ? error.message : 'This Quest outcome could not be saved. Please try again.');
     } finally {
