@@ -3,7 +3,8 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { localRoadmapRepository } from '@/data/local-roadmap-repository';
 import type { RoadmapRepository } from '@/data/roadmap-repository';
 import { roadmapCatalog } from '@/domain/roadmap/fixtures/catalog';
-import type { ArtifactId, BuildId, GuideId, InterestId, NodeId, StepId } from '@/domain/roadmap/ids';
+import type { Guide, NodeType, RouteEdgeKind, RouteRole } from '@/domain/roadmap/catalog';
+import type { ArtifactId, BuildId, GuideId, InterestId, NodeId, PathId, StepId } from '@/domain/roadmap/ids';
 import {
   addArtifact as addArtifactOp,
   attachArtifact as attachArtifactOp,
@@ -18,11 +19,26 @@ import {
   migrateRoadmapState,
   type Artifact,
   type ArtifactKind,
+  type DraftVisibility,
   type ProgressState,
   type RoadmapState,
   type ShareSelection,
 } from '@/domain/roadmap/state';
 import { applyAdoptGuide, applySetInterests, applySetProgress, makeIdFactory } from './roadmap-actions';
+import {
+  addProvisionalNode as addProvisionalNodeOp,
+  clearDraftStance as clearDraftStanceOp,
+  connectDraftSteps as connectDraftStepsOp,
+  createDraft as createDraftOp,
+  deleteDraft as deleteDraftOp,
+  placeDraftStep as placeDraftStepOp,
+  removeDraftStep as removeDraftStepOp,
+  setDraftStance as setDraftStanceOp,
+  setDraftStepNote as setDraftStepNoteOp,
+  setDraftStepRole as setDraftStepRoleOp,
+  setDraftVisibility as setDraftVisibilityOp,
+  updateDraftPersona as updateDraftPersonaOp,
+} from './draft-actions';
 
 export type RoadmapContextValue = {
   hydrated: boolean;
@@ -38,6 +54,18 @@ export type RoadmapContextValue = {
   attachArtifact: (stepId: StepId, artifactId: ArtifactId) => void;
   selectForShare: (patch: Partial<ShareSelection>) => void;
   clearShare: () => void;
+  createDraft: (pathId: PathId, title: string) => GuideId;
+  updateDraftPersona: (draftId: GuideId, persona: Partial<Guide['persona']> & { title?: string; rationale?: string }) => void;
+  placeDraftStep: (draftId: GuideId, nodeId: NodeId) => void;
+  setDraftStepRole: (draftId: GuideId, stepId: StepId, role: RouteRole) => void;
+  setDraftStepNote: (draftId: GuideId, stepId: StepId, note: string) => void;
+  removeDraftStep: (draftId: GuideId, stepId: StepId) => void;
+  connectDraftSteps: (draftId: GuideId, from: StepId, to: StepId, kind: RouteEdgeKind) => void;
+  setDraftStance: (draftId: GuideId, nodeId: NodeId, reason: string) => void;
+  clearDraftStance: (draftId: GuideId, nodeId: NodeId) => void;
+  addProvisionalNode: (draftId: GuideId, node: { title: string; description: string; type: NodeType; domainId: InterestId }) => void;
+  setDraftVisibility: (draftId: GuideId, visibility: DraftVisibility) => void;
+  deleteDraft: (draftId: GuideId) => void;
   flushRoadmap: () => Promise<void>;
   resetRoadmap: () => Promise<void>;
 };
@@ -160,6 +188,58 @@ export function RoadmapProvider({
     runOp((current) => clearShareOp(current));
   }, [runOp]);
 
+  const now = () => new Date().toISOString();
+
+  const createDraft = useCallback((pathId: PathId, title: string) => {
+    const draftId = nextRoadmapId();
+    runOp((current) => createDraftOp(current, pathId, title, () => draftId, now()));
+    return draftId;
+  }, [runOp]);
+
+  const updateDraftPersona = useCallback((draftId: GuideId, persona: Partial<Guide['persona']> & { title?: string; rationale?: string }) => {
+    runOp((current) => updateDraftPersonaOp(current, draftId, persona, now()));
+  }, [runOp]);
+
+  const placeDraftStep = useCallback((draftId: GuideId, nodeId: NodeId) => {
+    runOp((current) => placeDraftStepOp(roadmapCatalog, current, draftId, nodeId, nextRoadmapId, now()));
+  }, [runOp]);
+
+  const setDraftStepRole = useCallback((draftId: GuideId, stepId: StepId, role: RouteRole) => {
+    runOp((current) => setDraftStepRoleOp(roadmapCatalog, current, draftId, stepId, role, now()));
+  }, [runOp]);
+
+  const setDraftStepNote = useCallback((draftId: GuideId, stepId: StepId, note: string) => {
+    runOp((current) => setDraftStepNoteOp(current, draftId, stepId, note, now()));
+  }, [runOp]);
+
+  const removeDraftStep = useCallback((draftId: GuideId, stepId: StepId) => {
+    runOp((current) => removeDraftStepOp(current, draftId, stepId, now()));
+  }, [runOp]);
+
+  const connectDraftSteps = useCallback((draftId: GuideId, from: StepId, to: StepId, kind: RouteEdgeKind) => {
+    runOp((current) => connectDraftStepsOp(roadmapCatalog, current, draftId, from, to, kind, now()));
+  }, [runOp]);
+
+  const setDraftStance = useCallback((draftId: GuideId, nodeId: NodeId, reason: string) => {
+    runOp((current) => setDraftStanceOp(roadmapCatalog, current, draftId, nodeId, reason, now()));
+  }, [runOp]);
+
+  const clearDraftStance = useCallback((draftId: GuideId, nodeId: NodeId) => {
+    runOp((current) => clearDraftStanceOp(roadmapCatalog, current, draftId, nodeId, now()));
+  }, [runOp]);
+
+  const addProvisionalNode = useCallback((draftId: GuideId, node: { title: string; description: string; type: NodeType; domainId: InterestId }) => {
+    runOp((current) => addProvisionalNodeOp(roadmapCatalog, current, draftId, node, nextRoadmapId, now()));
+  }, [runOp]);
+
+  const setDraftVisibility = useCallback((draftId: GuideId, visibility: DraftVisibility) => {
+    runOp((current) => setDraftVisibilityOp(current, draftId, visibility, now()));
+  }, [runOp]);
+
+  const deleteDraft = useCallback((draftId: GuideId) => {
+    runOp((current) => deleteDraftOp(current, draftId));
+  }, [runOp]);
+
   const flushRoadmap = useCallback(async () => {
     await writeQueue.current;
     if (lastWriteError.current) await enqueueSave(stateRef.current);
@@ -191,9 +271,21 @@ export function RoadmapProvider({
     attachArtifact,
     selectForShare,
     clearShare,
+    createDraft,
+    updateDraftPersona,
+    placeDraftStep,
+    setDraftStepRole,
+    setDraftStepNote,
+    removeDraftStep,
+    connectDraftSteps,
+    setDraftStance,
+    clearDraftStance,
+    addProvisionalNode,
+    setDraftVisibility,
+    deleteDraft,
     flushRoadmap,
     resetRoadmap,
-  }), [addArtifact, adoptGuide, attachArtifact, clearShare, flushRoadmap, hydrated, lastIssues, persistenceError, replaceStep, resetRoadmap, selectForShare, setInterests, setProgress, state]);
+  }), [addArtifact, addProvisionalNode, adoptGuide, attachArtifact, clearDraftStance, clearShare, connectDraftSteps, createDraft, deleteDraft, flushRoadmap, hydrated, lastIssues, persistenceError, placeDraftStep, removeDraftStep, replaceStep, resetRoadmap, selectForShare, setDraftStance, setDraftStepNote, setDraftStepRole, setDraftVisibility, setInterests, setProgress, state, updateDraftPersona]);
 
   return <RoadmapContext.Provider value={value}>{children}</RoadmapContext.Provider>;
 }

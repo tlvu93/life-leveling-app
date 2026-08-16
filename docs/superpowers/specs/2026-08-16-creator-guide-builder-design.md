@@ -1,6 +1,6 @@
 # Creator Guide Builder Design
 
-- **Status:** Approved 2026-08-16
+- **Status:** Implemented 2026-08-16
 - **Parent specs:** [`2026-08-16-roadmap-domain-model-design.md`](2026-08-16-roadmap-domain-model-design.md), [`2026-08-16-explorer-surfaces-design.md`](2026-08-16-explorer-surfaces-design.md)
 - **Serves:** the Creator golden journey in [`docs/product/dj-vj-prototype-plan.md`](../../product/dj-vj-prototype-plan.md) — hypothesis H3, plus the acceptance criterion that a Creator can reuse a Node and create a visibly provisional custom Node.
 

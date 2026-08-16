@@ -1,4 +1,4 @@
-import { Compass, Route as RouteIcon, Share2 } from 'lucide-react-native';
+import { Compass, PenLine, Route as RouteIcon, Share2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -16,6 +16,7 @@ import { useLifeTheme } from '@/state/theme-context';
 const items: { label: string; href: Href; icon: LucideIcon }[] = [
   { label: 'Discover', href: '/', icon: Compass },
   { label: 'Journey', href: '/journey', icon: RouteIcon },
+  { label: 'Create', href: '/create', icon: PenLine },
   { label: 'Share', href: '/share', icon: Share2 },
 ];
 
