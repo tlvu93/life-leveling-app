@@ -8,7 +8,7 @@ popular author's preferences into universal truth.
 
 ## Canonical Path
 
-A canonical Path is the stable shared destination in the Atlas. Life Leveling
+A canonical Path is the stable shared destination in the Universe. Life Leveling
 or an approved editorial group maintains its identity, scope, aliases, core
 description, and shared Node relationships.
 
@@ -19,11 +19,11 @@ A canonical Path:
 - links to reusable Nodes and related Paths;
 - hosts multiple Guides;
 - does not prescribe one correct route;
-- uses stable identifiers so personal Builds and external links survive
+- uses stable identifiers so personal Journeys and external links survive
   editorial changes.
 
 Creating or materially changing a canonical Path requires review. Community
-votes may inform the decision but do not mutate the shared Atlas automatically.
+votes may inform the decision but do not mutate the shared Universe automatically.
 
 ## Official Guide
 
@@ -41,15 +41,15 @@ disagree with the official Guide when its audience, outcome, or philosophy is
 different.
 
 The Creator owns the Guide's wording and route composition. Shared Nodes remain
-part of the Atlas. A Guide cannot silently redefine a shared Node for every
+part of the Universe. A Guide cannot silently redefine a shared Node for every
 other route.
 
-## Personal Build
+## Personal Journey
 
-A personal Build is user-owned and private by default. It may be copied from,
+A personal Journey is user-owned and private by default. It may be copied from,
 combined from, or independent of public Guides.
 
-A Creator or moderator cannot alter someone's Build. When a source Guide
+A Creator or moderator cannot alter someone's Journey. When a source Guide
 changes, the Explorer receives an optional comparison and chooses whether to
 apply any update.
 
@@ -98,7 +98,7 @@ A publicly discoverable Guide includes:
 Feedback states remain distinct:
 
 - **Saved:** I may use this Guide.
-- **Adopted:** I copied or remixed it into a Build.
+- **Adopted:** I copied or remixed it into a Journey.
 - **Attempted:** I tried at least one meaningful Step.
 - **Reached outcome:** I reached the Guide's stated result.
 - **Helpful:** It supported my route.
@@ -125,7 +125,7 @@ review checks whether each proposal:
 - maps to an existing Node;
 - is a useful narrower or broader concept;
 - represents a genuinely new concept;
-- is primarily a resource or Guide-specific instruction rather than an Atlas
+- is primarily a resource or Guide-specific instruction rather than an Universe
   Node;
 - duplicates another proposal;
 - carries unsafe or unsupported claims.

@@ -17,7 +17,7 @@ The prototype should answer:
 
 ## Hypotheses
 
-### H1: A shared Atlas improves orientation
+### H1: A shared Universe improves orientation
 
 An Explorer with Music + Technology signals can discover DJ/VJ, understand what
 it is, and see how its concepts connect without needing a complete assessment.
@@ -35,7 +35,7 @@ model.
 
 ### H4: Adoption plus remix creates ownership
 
-The Explorer can copy a Guide into a personal Build, change at least one Step,
+The Explorer can copy a Guide into a personal Journey, change at least one Step,
 and still understand the source and consequences of that change.
 
 ### H5: Progress can feel useful without pressure
@@ -47,7 +47,7 @@ streak, grade, or global level.
 ### H6: Selective sharing is legible
 
 The Explorer can produce a read-only view containing only chosen interests,
-Build Steps, and Artifacts and can accurately explain what remains private.
+Journey Steps, and Artifacts and can accurately explain what remains private.
 
 ## Prototype content
 
@@ -115,45 +115,48 @@ provides a meaningful comparison.
 
 1. Begin with Music + Technology or open the unlisted link.
 2. Understand the DJ/VJ Path and compare the two Guides.
-3. Adopt the club-first Guide into a personal Build.
+3. Adopt the club-first Guide into a personal Journey.
 4. Replace a controller-dependent Step with a keyboard-only alternative.
 5. Mark one Step interested and attempt one bounded real-world Step.
 6. Record it as tried, practicing, or not for me; evidence remains optional.
-7. See the Build and Atlas update without a deadline or global score.
+7. See the Journey and Universe update without a deadline or global score.
 8. Preview a selective share page and choose exactly what appears.
 
 ## Prototype surfaces
 
-1. **Atlas / Discover:** search, interest entry, and nearby Paths.
+1. **Universe / Discover:** search, interest entry, and nearby Paths.
 2. **Path overview:** literal practice description, variants, realities, and
    related Paths.
 3. **Guide comparison:** route differences, assumptions, trust, and outcomes.
 4. **Guide builder:** shared-Node search, route composition, role assignment,
    context, and preview.
-5. **Personal Build:** adopted route, provenance, remixing, and progress states.
+5. **Personal Journey:** adopted route, provenance, remixing, and progress states.
 6. **Step detail:** explanation, optional Quest, resources, and progress update.
 7. **Share preview:** granular selection and read-only output.
 
-The Atlas visual renderer remains the primary orientation surface. Supporting
+The Universe visual renderer remains the primary orientation surface. Supporting
 workflows may use structured lists or editors where spatial editing would make
 the first prototype harder to understand.
 
 ## Functional acceptance criteria
 
-- Path, Guide, and Build are distinguishable without moderator explanation.
+- Path, Guide, and Journey are distinguishable without moderator explanation.
 - A Creator can reuse a Node and create a visibly provisional custom Node.
 - Required, recommended, optional, alternative, and checkpoint roles are
   visually and semantically distinct.
 - Guide comparison exposes at least three material differences.
-- Adopting creates an independent personal Build with source provenance.
+- Adopting creates an independent personal Journey with source provenance.
 - Remixing never modifies the source Guide.
 - No Guide adoption creates a schedule, deadline, or reminder automatically.
 - All non-coercive Step states are reachable.
-- The Atlas reflects the selected Path and personal Build rather than seeded
+- The Universe reflects the selected Path and personal Journey rather than seeded
   fixture history.
 - The user can dismiss or edit any proposed next Step.
 - The share preview begins empty and exposes no unselected private data.
-- No screen presents a global level, life-completion percentage, or streak.
+- No screen presents a streak or a life-completion score. Per-Path explored
+  figures and level-like identity markers are open assumptions (decisions
+  A-008/A-009): the default build ships count-based framing, and sessions may
+  present the alternative framings as variants to gather evidence.
 - The experience works at phone and desktop review sizes.
 
 ## Research plan
@@ -182,6 +185,9 @@ Observe whether they can:
 - compare Guides and identify meaningful differences;
 - adopt and change a route deliberately;
 - choose an honest progress state;
+- react to progress-framing variants (per-Path explored percentage versus
+  practiced counts, with and without a level-like marker) without inferring a
+  grade or deadline (decisions A-008 to A-010);
 - leave with a useful next possibility without feeling pressure;
 - predict the contents of a shared profile.
 
@@ -192,9 +198,9 @@ child profile or evidence is stored in this prototype.
 
 Proceed to a broader roadmap library when:
 
-- at least 80% of Explorers distinguish Path, Guide, and Build;
+- at least 80% of Explorers distinguish Path, Guide, and Journey;
 - at least 70% identify a meaningful reason to prefer one Guide;
-- at least 70% make a deliberate Build change rather than accepting blindly;
+- at least 70% make a deliberate Journey change rather than accepting blindly;
 - most Creators can model their route primarily with shared Nodes;
 - no participant believes adopting a Guide creates obligations or allows the
   Creator to grade them;
@@ -218,9 +224,9 @@ ownership, or progress repeatedly require moderator explanation.
 
 ## Relationship to the current application
 
-The current Expo client supplies reusable foundations: Atlas rendering,
+The current Expo client supplies reusable foundations: Universe rendering,
 responsive navigation, local persistence, evidence handling, themes, and test
-harnesses. Its onboarding, recommendation, Quest resolution, Guide deck, Atlas
+harnesses. Its onboarding, recommendation, Quest resolution, Guide deck, Universe
 statuses, and hard-coded Live AV HUD were built for the earlier
 experiment-first Alpha and should be treated as migration inputs rather than
 the final workflow.

@@ -11,7 +11,7 @@ Read these documents before making product or workflow decisions:
    promise, audience, and product boundaries.
 2. [`product/vocabulary.md`](product/vocabulary.md) - the shared object model and
    public language.
-3. [`product/journeys.md`](product/journeys.md) - the connected Explorer and
+3. [`product/flows.md`](product/flows.md) - the connected Explorer and
    Creator workflows.
 4. [`product/path-and-guide-governance.md`](product/path-and-guide-governance.md)
    - official Paths, community Guides, publishing, and trust.

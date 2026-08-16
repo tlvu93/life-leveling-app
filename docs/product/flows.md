@@ -1,4 +1,4 @@
-# Explorer and Creator Journeys
+# Explorer and Creator Flows
 
 - **Status:** Canonical journey direction
 - **Last updated:** 2026-08-15
@@ -24,7 +24,7 @@ life audit before showing value.
 
 ### 2. Discover Paths
 
-The Atlas reveals a small, understandable set of possible directions. Each
+The Universe reveals a small, understandable set of possible directions. Each
 result explains why it appeared without claiming certainty.
 
 The Explorer can browse beyond recommendations. Personalization helps
@@ -52,17 +52,17 @@ made explicit:
 
 Popularity alone is not treated as quality.
 
-### 5. Adopt or remix a Build
+### 5. Adopt or remix a Journey
 
 The Explorer can use a Guide as written, combine parts of several Guides, or
-change the route before starting. The result is a personal Build.
+change the route before starting. The result is a personal Journey.
 
 The application explains provenance without implying that the Creator controls
 the personal copy.
 
 ### 6. Explore at their own pace
 
-The Build shows possible next Steps without becoming an obligation list. The
+The Journey shows possible next Steps without becoming an obligation list. The
 Explorer may learn, observe, try a Quest, practice, attach an Artifact, jump to
 another branch, or pause.
 
@@ -84,7 +84,7 @@ notes and unrelated activity remain hidden.
 
 A parent may help a child enter interests, inspect unfamiliar Paths, compare
 age-appropriate Guides, and arrange access to a real-world Step. The child can
-confirm or reject the suggested signals, choose the Build, use "not for me," and
+confirm or reject the suggested signals, choose the Journey, use "not for me," and
 participate in every sharing decision.
 
 The parent is a facilitator, not the owner of the child's identity or progress.
@@ -121,7 +121,7 @@ The Creator adds the practical context that makes advice trustworthy:
 
 ### 4. Preview as an Explorer
 
-Before sharing, the Creator sees the same Guide comparison and Build adoption
+Before sharing, the Creator sees the same Guide comparison and Journey adoption
 view an Explorer will see. Missing outcomes, unexplained hard prerequisites,
 and disconnected Nodes are surfaced.
 
@@ -145,7 +145,7 @@ helpfulness, accuracy, and needs-update reports.
 ### 7. Version rather than silently rewrite
 
 Material changes produce a new Guide version and a plain-language change log.
-Existing personal Builds are offered the update; they are not overwritten.
+Existing personal Journeys are offered the update; they are not overwritten.
 
 ## Connected DJ/VJ golden journey
 
@@ -171,17 +171,17 @@ They try one bounded Step: synchronize two visual changes with sections of a
 familiar track. They record the Step as tried, keep a private note, and leave
 the next Step unscheduled.
 
-The Atlas now shows the personal Build and related possibilities without a
-streak, deadline, or global level. The Explorer may later share only the Build
+The Universe now shows the personal Journey and related possibilities without a
+streak, deadline, or global level. The Explorer may later share only the Journey
 title, selected interests, the tried Step, and a chosen Artifact.
 
-## Journey acceptance questions
+## Flow acceptance questions
 
 An Explorer should be able to explain:
 
-1. the difference between a Path, Guide, and personal Build;
+1. the difference between a Path, Guide, and personal Journey;
 2. why two credible Guides can disagree;
-3. which parts of the Build they can change;
+3. which parts of the Journey they can change;
 4. what their progress state does and does not claim;
 5. what will remain private if they share a profile.
 

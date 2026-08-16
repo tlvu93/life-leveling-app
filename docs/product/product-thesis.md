@@ -5,7 +5,7 @@
 
 ## One-sentence promise
 
-Life Leveling is a community-powered Atlas of hobbies, skills, and possible
+Life Leveling is a community-powered Universe of hobbies, skills, and possible
 life directions where people can discover roadmaps, follow or remix routes
 created by practitioners, and optionally document what they explore.
 
@@ -44,7 +44,7 @@ The value hierarchy is:
    curiosity.
 2. **Understand routes.** Compare how experienced people approach the same
    Path, including disagreements and trade-offs.
-3. **Take ownership.** Adopt, change, combine, or create a personal Build.
+3. **Take ownership.** Adopt, change, combine, or create a personal Journey.
 4. **Explore without pressure.** Try Steps, skip them, pause, or change
    direction without punishment.
 5. **Remember and demonstrate selectively.** Keep private progress or share a
@@ -78,13 +78,13 @@ One person may be an Explorer on one Path and a Creator on another.
 
 ## Product shape
 
-The Atlas is a shared map of Paths and reusable concepts. A Path describes a
+The Universe is a shared map of Paths and reusable concepts. A Path describes a
 destination such as DJ/VJ, sports storytelling, or furniture making. It may
 contain an official orientation and many community-authored Guides.
 
 A Guide is not universal truth. It is an author's reasoned route through the
 Path for a stated audience and context. An Explorer adopts or remixes a Guide
-into a personal Build. Their Build remains theirs even if the source Guide is
+into a personal Journey. Their Journey remains theirs even if the source Guide is
 updated, hidden, or replaced.
 
 Creators may present a themed collection as a Galaxy, but shared concepts keep
@@ -104,7 +104,7 @@ daily obligation queue.
 Several credible routes can lead toward the same Path. Requirements,
 recommendations, optional depth, and alternatives must be distinguishable.
 
-### The Explorer owns the Build
+### The Explorer owns the Journey
 
 Recommendations can suggest; only the person decides what to adopt, skip,
 reorder, pause, or share.
@@ -146,7 +146,7 @@ The primary product outcome is:
 > A person finds a plausible Path, understands why different routes exist, and
 > adopts or remixes a roadmap that feels like their own.
 
-The strongest downstream signal is meaningful progress on that Build: a Step
+The strongest downstream signal is meaningful progress on that Journey: a Step
 tried, a capability practiced, a project demonstrated, or an informed decision
 to pause or leave the Path.
 
@@ -154,7 +154,7 @@ Healthy early measures include:
 
 - Paths discovered that the Explorer did not already know;
 - Guides meaningfully compared before adoption;
-- Builds adopted and deliberately changed rather than passively accepted;
+- Journeys adopted and deliberately changed rather than passively accepted;
 - Explorers who return because the next possibility is useful, not because a
   streak demands it;
 - progress updates the Explorer describes as accurate and non-judgmental;

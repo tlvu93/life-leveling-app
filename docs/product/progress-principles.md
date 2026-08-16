@@ -12,7 +12,7 @@ The Explorer controls progress state. The application may suggest a state after
 an explicit action, but it does not silently infer mastery from time in app,
 content views, streaks, or Creator claims.
 
-Progress on one Build remains available when the person changes Guides. The
+Progress on one Journey remains available when the person changes Guides. The
 route may change; lived history does not disappear.
 
 ## Step states
@@ -25,22 +25,22 @@ Use states that describe the person's relationship with a Step:
 - **Demonstrated:** connected to an observable outcome or chosen Artifact;
 - **Paused:** intentionally inactive, with no penalty;
 - **Not for me:** explored enough to decline this Step or branch;
-- **Skipped:** omitted from this Build without implying failure.
+- **Skipped:** omitted from this Journey without implying failure.
 
 Use **Completed** only for bounded projects, events, or checklists with a clear
 finish. Knowledge and open-ended skills are not completed permanently.
 
-## Build states
+## Journey states
 
-A Build may be:
+A Journey may be:
 
 - **Considering:** being compared or edited;
 - **Active:** currently useful for orientation;
 - **Paused:** retained without active intent;
 - **Retired:** no longer followed but preserved as history.
 
-The product does not assume that only one active Build can matter, but the first
-prototype may limit active Builds to keep the experience legible.
+The product does not assume that only one active Journey can matter, but the first
+prototype may limit active Journeys to keep the experience legible.
 
 ## What counts as meaningful
 
@@ -78,7 +78,7 @@ The following do not independently establish meaningful progress:
   disabled immediately.
 - No locked linear sequence unless a dependency is genuinely required for
   safety or the stated outcome.
-- No shame copy when a Build is paused, changed, or retired.
+- No shame copy when a Journey is paused, changed, or retired.
 - No forced reflection after every interaction.
 
 The interface may make progress satisfying through map reveals, route clarity,
@@ -102,7 +102,7 @@ application actually interprets them and the user has consented to that use.
 A shareable profile or portfolio begins empty. The Explorer deliberately adds:
 
 - selected interests or Paths;
-- selected Builds and their source Guides;
+- selected Journeys and their source Guides;
 - specific Step states;
 - demonstrated milestones;
 - chosen Artifacts;
@@ -117,14 +117,14 @@ Shared views distinguish:
 - **interested in** from **practicing**;
 - **practicing** from **demonstrated**;
 - self-recorded progress from externally verified credentials;
-- a personal Build from the source Creator's Guide.
+- a personal Journey from the source Creator's Guide.
 
 The product does not calculate a public rank from these signals.
 
 ## Parent and child use
 
 A parent can facilitate exploration, but the child should participate in Path,
-Build, progress, and sharing decisions. Parent-visible controls must not turn
+Journey, progress, and sharing decisions. Parent-visible controls must not turn
 private curiosity into monitoring or performance pressure.
 
 Until dedicated child-account rules are implemented, tests use adult accounts
@@ -135,7 +135,7 @@ or a parent and child viewing together without storing a child profile.
 During testing, ask about behavior and interpretation rather than whether the
 participant "liked" the feature:
 
-1. Does the Build feel like a map or an assignment?
+1. Does the Journey feel like a map or an assignment?
 2. Which Steps feel optional, and how can you tell?
 3. What would happen if you did nothing for a month?
 4. How would you record something you tried but did not enjoy?

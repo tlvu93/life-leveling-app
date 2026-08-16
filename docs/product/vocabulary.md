@@ -8,13 +8,17 @@ Game language is used only when it makes a relationship clearer.
 
 ## Core objects
 
-### Atlas
+### Universe
 
-The shared, explorable map of Paths, reusable Nodes, and their relationships.
-The Atlas is stable enough that people can orient themselves while their
+The shared, explorable world of Paths, reusable Nodes, and their relationships
+— the Living Universe the person moves through. Formerly called the Atlas; the
+implemented client and the v2 technical specs still use the `Atlas` identifier
+in code and filenames, and may migrate lazily.
+
+The Universe is stable enough that people can orient themselves while their
 personal visibility and progress change.
 
-The Atlas is not a completeness score. Undiscovered territory does not imply a
+The Universe is not a completeness score. Undiscovered territory does not imply a
 deficit.
 
 ### Path
@@ -34,7 +38,7 @@ identity.
 
 ### Node
 
-A reusable concept in the Atlas. Common Node types are:
+A reusable concept in the Universe. Common Node types are:
 
 - **Foundation:** background knowledge that supports several routes;
 - **Skill:** a capability that can be practiced;
@@ -67,18 +71,19 @@ carries no meaning.
 
 A Guide is versioned advice, not canonical truth.
 
-### Build
+### Journey
 
-The Explorer's personal roadmap. A Build may begin as a copy of a Guide, a
+The Explorer's personal roadmap (formerly called Build; the domain-model code
+keeps the `Build` identifier for now). A Journey may begin as a copy of a Guide, a
 combination of several Guides, or a route created from scratch.
 
 The Explorer can reorder, remove, add, or reclassify Steps. The source Guide is
 retained as provenance, but later Guide updates do not silently overwrite the
-Build.
+Journey.
 
 ### Step
 
-A Node as it appears inside a Guide or Build, including its route role,
+A Node as it appears inside a Guide or Journey, including its route role,
 position, notes, and any completion suggestion.
 
 Not every Step is a task. A Step can be something to understand, observe,
@@ -106,7 +111,7 @@ recording, project, or external reference. Artifacts are private by default.
 
 A Creator- or organization-curated view of related Paths, Guides, and Nodes.
 A Galaxy can have a distinct theme and presentation, but it is normally a
-subgraph of the shared Atlas rather than a disconnected copy of common
+subgraph of the shared Universe rather than a disconnected copy of common
 concepts.
 
 Examples include an Audiovisual Performance Galaxy, a Local Maker Galaxy, or a
@@ -116,7 +121,7 @@ school's Creative Technology Galaxy.
 
 ### Explorer
 
-A person discovering Paths or maintaining a personal Build.
+A person discovering Paths or maintaining a personal Journey.
 
 ### Creator
 
@@ -125,18 +130,19 @@ not automatically grant authority; context and evidence establish trust.
 
 ### Progress
 
-The Explorer's relationship with a Step or Build, recorded in language such as
+The Explorer's relationship with a Step or Journey, recorded in language such as
 interested, tried, practicing, demonstrated, paused, skipped, or not for me.
 
-### Journey
+### History
 
-The person's private history across Builds. This is useful internally but
-should not compete with Path, Guide, and Build in primary navigation.
+The person's private record across Journeys (formerly called Journey). This is
+useful internally but should not compete with Path, Guide, and Journey in
+primary navigation.
 
 ## Relationship model
 
 ```text
-Atlas
+Universe
   contains Paths and reusable Nodes
 
 Path
@@ -146,9 +152,9 @@ Guide
   selects and connects shared Nodes
 
 Explorer adopts or remixes Guide
-  creating a personal Build
+  creating a personal Journey
 
-Build
+Journey
   records progress and optional Artifacts per Step
 
 Galaxy
@@ -157,7 +163,7 @@ Galaxy
 
 ## New and duplicate Nodes
 
-A Creator can use a provisional custom Node when the Atlas does not contain the
+A Creator can use a provisional custom Node when the Universe does not contain the
 needed concept. The Node remains scoped to that private or unlisted Guide until
 a public proposal is reviewed.
 
@@ -171,13 +177,20 @@ Review may:
 
 ## Language guardrails
 
+These are bets tied to the product thesis, not permanent laws. They split into
+commitments held until participant evidence says otherwise, and open framing
+questions the prototype sessions will test (see decisions A-008 to A-010).
+
+### Committed until evidence
+
 Avoid these concepts in core product UI:
 
-- global level, life level, or overall completion percentage;
 - calling, destiny, perfect match, or "meant for you";
 - overdue, failed, fell behind, or get back on track;
 - mandatory prerequisites when the relationship is only conventional advice;
-- completion claims based only on opening content or checking a box.
+- completion claims based only on opening content or checking a box;
+- a life-completion percentage or any single score claiming to summarize a
+  whole person.
 
 Prefer:
 
@@ -185,4 +198,17 @@ Prefer:
 - one route, another route, recommended for, optional for;
 - based on your selected interests, not a guaranteed fit;
 - private unless you choose to share.
+
+### Under test in the prototype
+
+The mock explorations propose framings the original guardrails banned outright.
+These are now open questions with session evidence as the referee:
+
+- a per-Path "explored" figure (percentage versus practiced/demonstrated
+  counts) — discovery framing may not carry the obligation weight the ban
+  assumed (A-008);
+- a playful level-like identity marker in the HUD — may read as identity or as
+  pressure (A-009);
+- Universe-wide tallies that enumerate untouched territory ("not started: N")
+  — the standing bet is that this reads as a deficit, but it is a bet (A-010).
 
