@@ -24,7 +24,7 @@ export function ExclusionsPanel({
   return (
     <View style={styles.root}>
       {stances.map((stance) => (
-        <View key={stance.nodeId} testID={`stance-${stance.nodeId}`} style={[styles.stance, { borderColor: theme.borderSoft }]}>
+        <View key={stance.nodeId} testID={`stance-${stance.nodeId}`} style={[styles.stance, { borderColor: theme.panelBorder }]}>
           <Text style={[styles.title, { color: theme.ink }]}>{stance.nodeTitle}</Text>
           <Text style={[styles.reason, { color: theme.inkSecondary }]}>{stance.reason}</Text>
           <Pressable testID={`unexclude-${stance.nodeId}`} accessibilityRole="button" onPress={() => onClear(stance.nodeId)}>
@@ -41,7 +41,7 @@ export function ExclusionsPanel({
               testID={`exclude-${node.id}`}
               accessibilityRole="button"
               onPress={() => { setTarget(node.id); setReason(''); }}
-              style={[styles.chip, { borderColor: theme.borderSoft }]}>
+              style={[styles.chip, { borderColor: theme.panelBorder }]}>
               <Text style={[styles.chipText, { color: theme.inkSecondary }]}>{`Leave out ${node.title}`}</Text>
             </Pressable>
           ))}
@@ -59,7 +59,7 @@ export function ExclusionsPanel({
             placeholder="Why does your route not need it?"
             placeholderTextColor={theme.inkSecondary}
             multiline
-            style={[styles.input, { color: theme.ink, borderColor: theme.borderSoft }]}
+            style={[styles.input, { color: theme.ink, borderColor: theme.panelBorder }]}
           />
           <View style={styles.formActions}>
             <Pressable

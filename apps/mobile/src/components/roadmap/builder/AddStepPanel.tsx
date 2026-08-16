@@ -36,7 +36,7 @@ export function AddStepPanel({
         onChangeText={setQuery}
         placeholder="Search the shared concepts"
         placeholderTextColor={theme.inkSecondary}
-        style={[styles.input, { color: theme.ink, borderColor: theme.borderSoft, backgroundColor: theme.surfaceMuted }]}
+        style={[styles.input, { color: theme.ink, borderColor: theme.panelBorder, backgroundColor: theme.panel }]}
       />
       {matches.map((node) => (
         <Pressable
@@ -44,7 +44,7 @@ export function AddStepPanel({
           testID={`place-${node.id}`}
           accessibilityRole="button"
           onPress={() => { onPlace(node.id); setQuery(''); }}
-          style={[styles.row, { borderColor: theme.borderSoft }]}>
+          style={[styles.row, { borderColor: theme.panelBorder }]}>
           <Text style={[styles.rowTitle, { color: theme.ink }]}>{node.title}</Text>
           {node.provisional && <Text style={[styles.flag, { color: theme.amber }]}>YOUR PROPOSAL</Text>}
         </Pressable>
@@ -66,7 +66,7 @@ export function AddStepPanel({
         </Text>
       </Pressable>
       {proposing && (
-        <View style={[styles.proposal, { borderColor: theme.borderSoft }]}>
+        <View style={[styles.proposal, { borderColor: theme.panelBorder }]}>
           <TextInput
             testID="proposal-title"
             accessibilityLabel="Name of the concept you are proposing"
@@ -74,7 +74,7 @@ export function AddStepPanel({
             onChangeText={setProposedTitle}
             placeholder="Open-decks etiquette"
             placeholderTextColor={theme.inkSecondary}
-            style={[styles.input, { color: theme.ink, borderColor: theme.borderSoft }]}
+            style={[styles.input, { color: theme.ink, borderColor: theme.panelBorder }]}
           />
           <TextInput
             testID="proposal-description"
@@ -84,7 +84,7 @@ export function AddStepPanel({
             placeholder="What does it mean, in one or two sentences?"
             placeholderTextColor={theme.inkSecondary}
             multiline
-            style={[styles.input, styles.multiline, { color: theme.ink, borderColor: theme.borderSoft }]}
+            style={[styles.input, styles.multiline, { color: theme.ink, borderColor: theme.panelBorder }]}
           />
           <Text style={[styles.note, { color: theme.inkSecondary }]}>
             It stays yours until review decides whether it belongs to everyone.

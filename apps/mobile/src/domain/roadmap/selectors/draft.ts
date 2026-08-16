@@ -7,6 +7,7 @@ import { builderView, searchNodes, type BuilderNodeVm, type BuilderStepVm } from
 export type DraftSummaryVm = {
   draftId: GuideId;
   title: string;
+  pathId: PathId;
   pathTitle: string;
   stepCount: number;
   issueCount: number;
@@ -35,6 +36,7 @@ export type DraftBuilderVm = {
 export type DraftPreviewVm = {
   draftId: GuideId;
   title: string;
+  pathId: PathId;
   pathTitle: string;
   persona: GuidePersona;
   rationale: string;
@@ -64,6 +66,7 @@ export function draftListView(catalog: RoadmapCatalog, state: RoadmapState): Dra
   return state.drafts.map((draft) => ({
     draftId: draft.guide.id,
     title: draft.guide.title,
+    pathId: draft.guide.pathId,
     pathTitle: catalog.paths.find((p) => p.id === draft.guide.pathId)?.title ?? draft.guide.pathId,
     stepCount: draft.guide.steps.length,
     issueCount: validateGuide(draft.guide, new Set(nodesFor(catalog, draft).map((n) => n.id))).length,
@@ -134,6 +137,7 @@ export function draftPreviewView(catalog: RoadmapCatalog, state: RoadmapState, d
   return {
     draftId,
     title: draft.guide.title,
+    pathId: draft.guide.pathId,
     pathTitle: catalog.paths.find((p) => p.id === draft.guide.pathId)?.title ?? draft.guide.pathId,
     persona: draft.guide.persona,
     rationale: draft.guide.rationale,

@@ -58,7 +58,9 @@ test.describe('Explorer golden journey', () => {
     await expect(page.getByTestId('share-empty')).toBeVisible();
 
     // The guardrail that stayed committed: no life-completion score anywhere.
-    await expect(page.getByText(/life level|overall completion/i)).toHaveCount(0);
+    // Scoped to the content: the app header carries the product name, which is
+    // a brand mark rather than a score.
+    await expect(page.locator('[data-testid="roadmap-content"]').getByText(/life level|overall completion/i)).toHaveCount(0);
   });
 
   test('the percentage framing variant is available to moderators', async ({ page }) => {

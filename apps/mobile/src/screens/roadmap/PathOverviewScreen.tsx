@@ -1,8 +1,10 @@
+import { BadgeCheck, GitCompare, MapPin, Route as RouteIcon, Users } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, NotFound, RoadmapLoading, SectionTitle } from '@/components/roadmap/pieces';
+import { Body, Card, CardCta, NotFound, PrimaryButton, RoadmapLoading, SectionHeading } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
+import { domainVisual } from '@/components/universe/universe-visuals';
 import { pathOverviewView } from '@/domain/roadmap/selectors/path-overview';
 import { pathTransferView } from '@/domain/roadmap/selectors/path-transfer';
 import { framingFlagsFrom, progressLabel } from '@/lib/framing-flags';
@@ -21,62 +23,105 @@ export default function PathOverviewScreen() {
   const vm = pathOverviewView(catalog, pathId);
   if (!vm) return <RoadmapScaffold title="Path"><NotFound what="Path" /></RoadmapScaffold>;
 
+  const path = catalog.paths.find((p) => p.id === pathId);
+  const tone = domainVisual(path?.interestIds[0] ?? '').core;
   const transfer = pathTransferView(catalog, state, pathId);
   const flags = framingFlagsFrom(params);
-  const featuredGuideId = catalog.paths.find((p) => p.id === pathId)?.featuredGuideId;
+  const featuredGuideId = path?.featuredGuideId;
+
+  const facts: { icon: typeof MapPin; label: string; lines: string[] }[] = [
+    { icon: MapPin, label: 'WHERE IT HAPPENS', lines: vm.overview.settings },
+    { icon: RouteIcon, label: 'VARIANTS', lines: vm.overview.variants },
+    { icon: Users, label: 'REALITIES', lines: vm.overview.realities },
+  ];
 
   return (
-    <RoadmapScaffold title={vm.title}>
+    <RoadmapScaffold eyebrow="LIVING UNIVERSE / PATH" title={vm.title} subtitle={vm.overview.whatItIs}>
       {transfer && (
-        <Text testID="transfer-line" style={[styles.transfer, { color: theme.accent }]}>
-          {progressLabel(flags, transfer.applyCount, transfer.totalNodes)}
-        </Text>
+        <View style={styles.statusRow}>
+          <View style={[styles.pill, { borderColor: tone, backgroundColor: `${tone}14` }]}>
+            <Text testID="transfer-line" style={[styles.pillText, { color: theme.ink }]}>
+              {progressLabel(flags, transfer.applyCount, transfer.totalNodes)}
+            </Text>
+          </View>
+        </View>
       )}
 
-      <Body>{vm.overview.whatItIs}</Body>
+      <SectionHeading index="01" title="What this Path actually is" subtitle="Written from how people describe it, not from a curriculum." />
 
-      <SectionTitle>Where it happens</SectionTitle>
-      {vm.overview.settings.map((line) => <Body key={line}>{`• ${line}`}</Body>)}
+      <View style={styles.factGrid}>
+        {facts.map(({ icon: Icon, label, lines }) => (
+          <Card key={label} grow tone={tone}>
+            <View style={styles.factHead}>
+              <Icon color={tone} size={16} />
+              <Text style={[styles.factLabel, { color: tone }]}>{label}</Text>
+            </View>
+            {lines.map((line) => (
+              <View key={line} style={styles.bulletRow}>
+                <View style={[styles.bullet, { backgroundColor: tone }]} />
+                <Text style={[styles.bulletText, { color: theme.inkSecondary }]}>{line}</Text>
+              </View>
+            ))}
+          </Card>
+        ))}
+      </View>
 
-      <SectionTitle>Variants</SectionTitle>
-      {vm.overview.variants.map((line) => <Body key={line}>{`• ${line}`}</Body>)}
+      <Card tone={theme.amber}>
+        <Text style={[styles.factLabel, { color: theme.amber }]}>COMMON GROUND, AND WHAT IS CONTESTED</Text>
+        <Body>{vm.overview.foundations}</Body>
+      </Card>
 
-      <SectionTitle>Realities</SectionTitle>
-      {vm.overview.realities.map((line) => <Body key={line}>{`• ${line}`}</Body>)}
+      <SectionHeading
+        index="02"
+        title="Guides through this Path"
+        subtitle="Each Guide is one person's opinionated route. Adopting one copies its Steps into a Journey you can then rewrite."
+      />
 
-      <SectionTitle>Common ground, and what is contested</SectionTitle>
-      <Body>{vm.overview.foundations}</Body>
-
-      <SectionTitle>Guides through this Path</SectionTitle>
       {vm.guides.length >= 2 && (
-        <Card testID="compare-guides" onPress={() => router.push(`/compare?a=${vm.guides[0].id}&b=${vm.guides[1].id}`)}>
-          <Text style={[styles.action, { color: theme.accent }]}>Compare these two routes</Text>
+        <Card testID="compare-guides" tone={theme.violet} onPress={() => router.push(`/compare?a=${vm.guides[0].id}&b=${vm.guides[1].id}`)}>
+          <View style={styles.factHead}>
+            <GitCompare color={theme.violet} size={17} />
+            <Text style={[styles.cardTitle, { color: theme.ink }]}>Compare these two routes</Text>
+          </View>
           <Body>They disagree in ways worth seeing before you pick one.</Body>
+          <CardCta label="See where they differ" tone={theme.violet} />
         </Card>
       )}
+
       {vm.guides.map((guide) => (
-        <Card key={guide.id} testID={`guide-${guide.id}`}>
+        <Card key={guide.id} testID={`guide-${guide.id}`} tone={guide.id === featuredGuideId ? tone : theme.panelBorder}>
           <View style={styles.guideHead}>
-            <Text style={[styles.guideTitle, { color: theme.ink }]}>{guide.title}</Text>
+            <Text style={[styles.cardTitle, { color: theme.ink }]}>{guide.title}</Text>
             {guide.id === featuredGuideId && (
-              <Text testID={`featured-${guide.id}`} style={[styles.featured, { color: theme.accent, borderColor: theme.accent }]}>FEATURED</Text>
+              <View testID={`featured-${guide.id}`} style={[styles.featured, { borderColor: tone, backgroundColor: `${tone}14` }]}>
+                <BadgeCheck color={tone} size={13} />
+                <Text style={[styles.featuredText, { color: tone }]}>FEATURED</Text>
+              </View>
             )}
           </View>
-          <Body>{`For: ${guide.audience}`}</Body>
-          <Body>{`Outcome: ${guide.outcome}`}</Body>
-          <Pressable
+          <View style={[styles.personaRow, styles.personaDivider, { borderTopColor: theme.panelBorder }]}>
+            <Text style={[styles.personaLabel, { color: theme.inkSecondary }]}>FOR</Text>
+            <Text style={[styles.personaText, { color: theme.ink }]}>{guide.audience}</Text>
+          </View>
+          <View style={styles.personaRow}>
+            <Text style={[styles.personaLabel, { color: theme.inkSecondary }]}>OUTCOME</Text>
+            <Text style={[styles.personaText, { color: theme.ink }]}>{guide.outcome}</Text>
+          </View>
+          <PrimaryButton
             testID={`adopt-${guide.id}`}
-            accessibilityRole="button"
-            onPress={() => { adoptGuide(guide.id); router.push('/journey'); }}>
-            <Text style={[styles.action, { color: theme.accent }]}>Make this my Journey</Text>
-          </Pressable>
+            label="Make this my Journey"
+            tone={tone}
+            onPress={() => { adoptGuide(guide.id); router.push('/journey'); }}
+          />
         </Card>
       ))}
 
-      {vm.neighbors.length > 0 && <SectionTitle>Nearby Paths</SectionTitle>}
+      {vm.neighbors.length > 0 && (
+        <SectionHeading index="03" title="Nearby Paths" subtitle="Where this Path touches another world, and what carries across." />
+      )}
       {vm.neighbors.map((neighbor) => (
-        <Card key={neighbor.id} testID={`neighbor-${neighbor.id}`} onPress={() => router.push(`/paths/${neighbor.id}`)}>
-          <Text style={[styles.guideTitle, { color: theme.ink }]}>{neighbor.title}</Text>
+        <Card key={neighbor.id} testID={`neighbor-${neighbor.id}`} tone={theme.panelBorder} onPress={() => router.push(`/paths/${neighbor.id}`)}>
+          <Text style={[styles.cardTitle, { color: theme.ink }]}>{neighbor.title}</Text>
           {neighbor.via === 'bridge' && neighbor.bridgeNote && (
             <Text testID={`bridge-${neighbor.id}`} style={[styles.bridge, { color: theme.accent }]}>{neighbor.bridgeNote}</Text>
           )}
@@ -88,10 +133,22 @@ export default function PathOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  transfer: { fontSize: 14, fontWeight: '700' },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: { minHeight: 34, justifyContent: 'center', borderWidth: 1, borderRadius: 6, paddingHorizontal: 11 },
+  pillText: { fontSize: 10, fontWeight: '700' },
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  factHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  factLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  bulletRow: { flexDirection: 'row', gap: 8, paddingRight: 4 },
+  bullet: { width: 5, height: 5, marginTop: 6, borderRadius: 3 },
+  bulletText: { flex: 1, fontSize: 11, lineHeight: 17 },
+  cardTitle: { fontSize: 17, fontWeight: '900' },
   guideHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  guideTitle: { fontSize: 16, fontWeight: '700' },
-  featured: { fontSize: 10, fontWeight: '700', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  bridge: { fontSize: 13, fontStyle: 'italic' },
-  action: { fontSize: 14, fontWeight: '700', marginTop: 4 },
+  featured: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 4 },
+  featuredText: { fontSize: 7, fontWeight: '900' },
+  personaRow: { gap: 3, paddingTop: 8 },
+  personaDivider: { marginTop: 4, borderTopWidth: 1, paddingTop: 12 },
+  personaLabel: { fontSize: 7, fontWeight: '900' },
+  personaText: { fontSize: 12, lineHeight: 17 },
+  bridge: { fontSize: 12, fontStyle: 'italic' },
 });

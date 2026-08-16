@@ -9,11 +9,13 @@ import { useLifeTheme } from '@/state/theme-context';
  * The Alpha's own header stays untouched so its screens and e2e keep working.
  */
 export function UniverseHeader({
-  journeyLabel, marker,
+  journeyLabel, marker, floating = true,
 }: {
   journeyLabel: string;
   /** Level-style pips: an open assumption (decision A-009), not a commitment. */
   marker?: { label: string; filled: number; segments: number } | null;
+  /** The canvas floats the header over the world; scrolling screens dock it. */
+  floating?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -25,7 +27,7 @@ export function UniverseHeader({
   return (
     <View
       testID="universe-header"
-      style={[styles.header, {
+      style={[styles.header, floating && styles.floating, {
         height: 64 + insets.top,
         paddingTop: insets.top,
         borderBottomColor: theme.panelBorder,
@@ -93,7 +95,8 @@ export function UniverseHeader({
 }
 
 const styles = StyleSheet.create({
-  header: { position: 'absolute', zIndex: 50, top: 0, right: 0, left: 0, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
+  header: { zIndex: 50, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
+  floating: { position: 'absolute', top: 0, right: 0, left: 0 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 22 },
   brandCompact: { gap: 8, paddingHorizontal: 10 },
   brandMark: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },

@@ -57,7 +57,7 @@ export function PersonaFields({
             style={[
               styles.input,
               field.multiline && styles.inputMultiline,
-              { color: theme.ink, borderColor: theme.borderSoft, backgroundColor: theme.surfaceMuted },
+              { color: theme.ink, borderColor: theme.panelBorder, backgroundColor: theme.panel },
             ]}
           />
         </View>
