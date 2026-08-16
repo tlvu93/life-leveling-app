@@ -1,0 +1,75 @@
+import type { Guide } from '../../catalog';
+
+// Content source: docs/product/research/dj-vj-route-research.md §3 (as of 2026-08).
+export const guideClubFirst: Guide = {
+  id: 'guide-club-first',
+  version: 1,
+  pathId: 'djvj',
+  title: 'Club-first DJ/VJ with borrowed gear',
+  persona: {
+    audience:
+      'Adults in or near a city with rental studios and open-decks nights, on a limited budget, who want to play for real people in real rooms rather than perfect a bedroom setup.',
+    startingPoint: 'A laptop and headphones. No music training assumed; no gear ownership assumed.',
+    outcome:
+      'Perform a ten-minute audiovisual set on club-standard gear at an open-decks night — realistically within six to twelve months of consistent practice.',
+    assumptions: [
+      'Clubs provide the players — you bring a prepared USB stick and headphones.',
+      'Hourly club-standard practice rooms exist near you.',
+      'Visuals are a supporting layer: tempo-synced loops on whatever screen the venue has, using free-tier software.',
+    ],
+  },
+  steps: [
+    { id: 'a1', nodeId: 'rhythm-song-structure', role: 'required', note: 'Mixing happens at phrase boundaries; learn to count before you learn to touch anything.', sortKey: 0 },
+    { id: 'a2', nodeId: 'music-selection-library', role: 'required', note: 'Deliberately before technique: practicing on fifteen songs is the classic motivation-killer. You cannot learn track selection with nothing to select from.', sortKey: 1 },
+    { id: 'a3', nodeId: 'signal-flow-rig-setup', role: 'required', note: 'The four things needed to play on any setup. Venue gear varies and is not always in good condition.', sortKey: 2 },
+    { id: 'a4', nodeId: 'gear-access-practice-setup', role: 'required', note: 'Main route: rent the club booth by the hour — practice on the same players you will meet at gigs, use open decks, and ask venues for pre-opening time.', sortKey: 3 },
+    { id: 'a4-controller', nodeId: 'gear-access-practice-setup', role: 'alternative', note: 'Alternative: own a starter controller and bridge to club players later.', sortKey: 4 },
+    { id: 'a4-free', nodeId: 'gear-access-practice-setup', role: 'alternative', note: 'Alternative: free software, keyboard only, on the laptop you already own — a real learning stopgap, not a destination.', sortKey: 5 },
+    { id: 'a5', nodeId: 'mixing-technique', role: 'required', note: 'Learn manual beatmatching by ear even though sync exists — club players do not show side-by-side waveforms and beatgrids fail. Then use sync as a tool.', sortKey: 6 },
+    { id: 'a6', nodeId: 'club-media-player-workflow', role: 'required', note: 'On this route a hard prerequisite: only exported tracks exist in the booth. Two formatted sticks, always.', sortKey: 7 },
+    { id: 'a7', nodeId: 'harmonic-mixing', role: 'recommended', note: 'Use the key wheel as a servant, not a master; the perfect next track may not be in a compatible key.', sortKey: 8 },
+    { id: 'a8', nodeId: 'reactive-visuals', role: 'recommended', note: 'One deck of loops, tap-tempo synced, on the free trial tier; content cut to short beat-lengths so playback lands on phrase.', sortKey: 9 },
+    { id: 'a9', nodeId: 'live-control-surfaces', role: 'recommended', note: 'Hot cues, loops, and one small controller mapped for the visual layer.', sortKey: 10 },
+    { id: 'a10', nodeId: 'observing-a-live-set', role: 'recommended', note: 'Close-camera streams for phrase mixing and crowd-reading; attend open decks alone and stay for everyone’s sets.', sortKey: 11 },
+    {
+      id: 'a11', nodeId: 'private-one-track-experiment', role: 'recommended',
+      note: 'Recording reveals where your weaknesses are.', sortKey: 12,
+      quest: { id: 'q-a-blend', kind: 'make', prompt: 'Record one two-track blend and listen back.' },
+    },
+    {
+      id: 'a12', nodeId: 'ten-minute-av-set', role: 'checkpoint',
+      note: 'Pre-planning a first set is the honest move for beginners.', sortKey: 13,
+      quest: { id: 'q-a-set', kind: 'make', prompt: 'Play a ten-minute set at an open-decks night: three to four planned tracks, visuals on tap-tempo, backup USB in your pocket.' },
+    },
+    { id: 'a-theory', nodeId: 'music-theory-fundamentals', role: 'optional-depth', note: 'Pays off for anyone heading toward production, where theory becomes effectively mandatory.', sortKey: 14 },
+    { id: 'a-instrument', nodeId: 'playing-an-instrument', role: 'optional-depth', note: 'Pays off for anyone who finds ear training through an instrument makes them faster.', sortKey: 15 },
+    { id: 'a-viscomp', nodeId: 'visual-composition', role: 'optional-depth', note: 'Worth real study if the visual layer starts to matter to you.', sortKey: 16 },
+    { id: 'a-vislib', nodeId: 'visual-content-library', role: 'optional-depth', note: 'Start with free loop libraries; make your own when you know what you are missing.', sortKey: 17 },
+    { id: 'a-projection', nodeId: 'projection-display-basics', role: 'optional-depth', note: 'Only needed once you carry the visual output yourself.', sortKey: 18 },
+  ],
+  edges: [
+    { from: 'a1', to: 'a2', kind: 'next' },
+    { from: 'a2', to: 'a3', kind: 'next' },
+    { from: 'a3', to: 'a4', kind: 'next' },
+    { from: 'a4', to: 'a5', kind: 'next' },
+    { from: 'a5', to: 'a6', kind: 'next' },
+    { from: 'a6', to: 'a7', kind: 'next' },
+    { from: 'a7', to: 'a8', kind: 'next' },
+    { from: 'a8', to: 'a9', kind: 'next' },
+    { from: 'a9', to: 'a10', kind: 'next' },
+    { from: 'a10', to: 'a11', kind: 'next' },
+    { from: 'a11', to: 'a12', kind: 'next' },
+    { from: 'a3', to: 'a4-controller', kind: 'alternative' },
+    { from: 'a3', to: 'a4-free', kind: 'alternative' },
+    { from: 'a4-controller', to: 'a5', kind: 'next' },
+    { from: 'a4-free', to: 'a5', kind: 'next' },
+    { from: 'a7', to: 'a-theory', kind: 'next' },
+    { from: 'a-theory', to: 'a-instrument', kind: 'next' },
+    { from: 'a8', to: 'a-viscomp', kind: 'next' },
+    { from: 'a-viscomp', to: 'a-vislib', kind: 'next' },
+    { from: 'a3', to: 'a-projection', kind: 'next' },
+  ],
+  stances: [],
+  rationale:
+    'Nothing in this route requires reading music or playing keys. The one piece of theory you cannot skip is already Step 1: phrasing and song structure. Key mixing is covered by the Camelot wheel, which was built so you never have to know that 8A is A minor — and some of the best DJs warn against being a slave to that readout anyway; your ears are always king in the end. I keep both contested Nodes visible as optional depth rather than deleting them, because they genuinely pay off for two kinds of people: anyone heading toward production, where theory becomes effectively mandatory, and anyone who finds ear training through an instrument makes them faster. Other Guides mark these core, and they have their reasons. Read both and decide.',
+};
