@@ -88,3 +88,62 @@ describe('migrateRoadmapState', () => {
     expect(ROADMAP_STORAGE_KEY).toBe('life-leveling.roadmap.v1');
   });
 });
+
+describe('draft migration', () => {
+  const draftGuide = {
+    id: 'draft-1', version: 1, pathId: 'djvj', title: 'My route',
+    persona: { audience: 'a', startingPoint: 's', outcome: 'o', assumptions: ['x'] },
+    steps: [{ id: 'ds1', nodeId: 'rhythm-song-structure', role: 'required', note: 'n', sortKey: 0 }],
+    edges: [],
+    stances: [{ nodeId: 'music-theory-fundamentals', stance: 'excluded', reason: 'not on this route' }],
+    rationale: 'r',
+  };
+  const draft = { guide: draftGuide, provisionalNodes: [], visibility: 'unlisted', updatedAt: 't1' };
+
+  it('upgrades a version 1 payload by adding an empty drafts list', () => {
+    const state = migrateRoadmapState({ version: 1, interests: ['music'], builds: [] });
+    expect(state.version).toBe(2);
+    expect(state.drafts).toEqual([]);
+    expect(state.interests).toEqual(['music']);
+  });
+  it('round trips a version 2 draft', () => {
+    const state = migrateRoadmapState({ version: 2, builds: [], drafts: [draft] });
+    expect(state.drafts).toHaveLength(1);
+    expect(state.drafts[0].guide.steps[0].nodeId).toBe('rhythm-song-structure');
+    expect(state.drafts[0].guide.stances[0].reason).toBe('not on this route');
+    expect(state.drafts[0].visibility).toBe('unlisted');
+  });
+  it('keeps an empty draft, which is how every draft starts', () => {
+    const empty = { ...draft, guide: { ...draftGuide, steps: [], edges: [] } };
+    expect(migrateRoadmapState({ version: 2, builds: [], drafts: [empty] }).drafts).toHaveLength(1);
+  });
+  it('drops a draft whose route is broken', () => {
+    const cyclic = {
+      ...draft,
+      guide: {
+        ...draftGuide,
+        steps: [draftGuide.steps[0], { ...draftGuide.steps[0], id: 'ds2' }],
+        edges: [{ from: 'ds1', to: 'ds2', kind: 'next' }, { from: 'ds2', to: 'ds1', kind: 'next' }],
+      },
+    };
+    expect(migrateRoadmapState({ version: 2, builds: [], drafts: [cyclic] }).drafts).toEqual([]);
+  });
+  it('falls back to private for an unknown visibility and dedupes draft ids', () => {
+    const odd = { ...draft, visibility: 'public' };
+    const state = migrateRoadmapState({ version: 2, builds: [], drafts: [odd, draft] });
+    expect(state.drafts).toHaveLength(1);
+    expect(state.drafts[0].visibility).toBe('private');
+  });
+  it('keeps provisional nodes scoped to their draft', () => {
+    const withNode = {
+      ...draft,
+      provisionalNodes: [{ id: 'p1', type: 'skill', title: 'Tap drill', description: 'd', domainId: 'music', clusterId: 'djvj', depth: 1, size: 'minor' }],
+    };
+    const state = migrateRoadmapState({ version: 2, builds: [], drafts: [withNode] });
+    expect(state.drafts[0].provisionalNodes[0].provisional).toEqual({ scopeGuideId: 'draft-1' });
+  });
+  it('drops provisional nodes that are missing required fields', () => {
+    const broken = { ...draft, provisionalNodes: [{ id: 'p1', title: '', type: 'skill' }] };
+    expect(migrateRoadmapState({ version: 2, builds: [], drafts: [broken] }).drafts[0].provisionalNodes).toEqual([]);
+  });
+});

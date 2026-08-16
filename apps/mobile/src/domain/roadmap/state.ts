@@ -1,4 +1,4 @@
-import type { GuideStep, RouteEdge, RouteRole } from './catalog';
+import type { AtlasNode, Guide, GuideStep, NodeSize, NodeType, RouteEdge, RouteRole } from './catalog';
 import { validateRoute } from './graph';
 import type { ArtifactId, BuildId, GuideId, InterestId, NodeId, PathId, StepId } from './ids';
 import { interestLabels } from './ids';
@@ -40,24 +40,39 @@ export type ShareSelection = {
   artifactIds: ArtifactId[];
 };
 
+export type DraftVisibility = 'private' | 'unlisted';
+
+/**
+ * A Guide being authored. Provisional Nodes travel with the draft because they
+ * are proposals: they are not in the shared catalog until review accepts them.
+ */
+export type GuideDraft = {
+  guide: Guide;
+  provisionalNodes: AtlasNode[];
+  visibility: DraftVisibility;
+  updatedAt: string;
+};
+
 export type RoadmapState = {
-  version: 1;
+  version: 2;
   interests: InterestId[];
   builds: Build[];
   activeBuildId: BuildId | null;
   artifacts: Artifact[];
   progress: Record<StepId, ProgressEntry>;
   share: ShareSelection;
+  drafts: GuideDraft[];
 };
 
 export const defaultRoadmapState: RoadmapState = {
-  version: 1,
+  version: 2,
   interests: [],
   builds: [],
   activeBuildId: null,
   artifacts: [],
   progress: {},
   share: { interestIds: [], buildId: null, stepIds: [], artifactIds: [] },
+  drafts: [],
 };
 
 function freshDefault(): RoadmapState {
@@ -68,6 +83,7 @@ function freshDefault(): RoadmapState {
     artifacts: [],
     progress: {},
     share: { interestIds: [], buildId: null, stepIds: [], artifactIds: [] },
+    drafts: [],
   };
 }
 
@@ -166,9 +182,91 @@ function interestsFrom(value: unknown): InterestId[] {
     typeof candidate === 'string' && Object.prototype.hasOwnProperty.call(interestLabels, candidate))));
 }
 
+const nodeTypes: readonly NodeType[] = ['foundation', 'skill', 'experience', 'project', 'milestone', 'resource'];
+const nodeSizes: readonly NodeSize[] = ['major', 'standard', 'minor'];
+
+function provisionalNodeFrom(value: unknown, scopeGuideId: string): AtlasNode | null {
+  const record = asRecord(value);
+  const id = str(record?.id, 120);
+  const title = str(record?.title, 180)?.trim();
+  const type = nodeTypes.find((t) => t === record?.type);
+  const domainId = typeof record?.domainId === 'string' && Object.prototype.hasOwnProperty.call(interestLabels, record.domainId)
+    ? (record.domainId as InterestId)
+    : null;
+  const clusterId = str(record?.clusterId, 120);
+  if (!record || !id || !title || !type || !domainId || !clusterId) return null;
+  const depth = record.depth === 0 || record.depth === 1 || record.depth === 2 || record.depth === 3 ? record.depth : 1;
+  return {
+    id,
+    type,
+    title,
+    description: str(record.description, 2000) ?? '',
+    domainId,
+    clusterId,
+    depth,
+    size: nodeSizes.find((s) => s === record.size) ?? 'minor',
+    provisional: { scopeGuideId },
+  };
+}
+
+function guideFrom(value: unknown): Guide | null {
+  const record = asRecord(value);
+  const id = str(record?.id, 120);
+  const pathId = str(record?.pathId, 120);
+  const title = str(record?.title, 180);
+  if (!record || !id || !pathId || title === null || !Array.isArray(record.steps)) return null;
+  const steps = record.steps.map(stepFrom).filter((s): s is BuildStep => s !== null);
+  if (steps.length !== record.steps.length) return null;
+  const edges = edgesFrom(record.edges, new Set(steps.map((s) => s.id)));
+  // A draft may legitimately be empty; only a genuinely broken route is dropped.
+  if (steps.length > 0 && validateRoute(steps, edges).length > 0) return null;
+  const persona = asRecord(record.persona);
+  const stances = Array.isArray(record.stances)
+    ? record.stances.flatMap((candidate) => {
+      const stance = asRecord(candidate);
+      const nodeId = str(stance?.nodeId, 120);
+      const reason = str(stance?.reason, 1000);
+      return nodeId && stance?.stance === 'excluded' && reason ? [{ nodeId, stance: 'excluded' as const, reason }] : [];
+    })
+    : [];
+  return {
+    id,
+    version: typeof record.version === 'number' && Number.isFinite(record.version) ? record.version : 1,
+    pathId,
+    title,
+    persona: {
+      audience: str(persona?.audience, 1000) ?? '',
+      startingPoint: str(persona?.startingPoint, 1000) ?? '',
+      outcome: str(persona?.outcome, 1000) ?? '',
+      assumptions: Array.isArray(persona?.assumptions)
+        ? persona.assumptions.filter((a): a is string => typeof a === 'string').map((a) => a.slice(0, 500))
+        : [],
+    },
+    steps: steps.map(({ origin: _origin, ...step }) => step),
+    edges,
+    stances,
+    rationale: str(record.rationale, 4000) ?? '',
+  };
+}
+
+function draftFrom(value: unknown): GuideDraft | null {
+  const record = asRecord(value);
+  const guide = guideFrom(record?.guide);
+  if (!record || !guide) return null;
+  const provisionalNodes = Array.isArray(record.provisionalNodes)
+    ? record.provisionalNodes.map((n) => provisionalNodeFrom(n, guide.id)).filter((n): n is AtlasNode => n !== null)
+    : [];
+  return {
+    guide,
+    provisionalNodes,
+    visibility: record.visibility === 'unlisted' ? 'unlisted' : 'private',
+    updatedAt: str(record.updatedAt, 60) ?? '',
+  };
+}
+
 export function migrateRoadmapState(value: unknown): RoadmapState {
   const record = asRecord(parseStored(value));
-  if (!record || record.version !== 1) return freshDefault();
+  if (!record || (record.version !== 1 && record.version !== 2)) return freshDefault();
 
   const interests = interestsFrom(record.interests);
 
@@ -239,10 +337,20 @@ export function migrateRoadmapState(value: unknown): RoadmapState {
       : [],
   };
 
+  const draftIds = new Set<string>();
+  const drafts = Array.isArray(record.drafts)
+    ? record.drafts.map(draftFrom).filter((d): d is GuideDraft => {
+      if (!d || draftIds.has(d.guide.id)) return false;
+      draftIds.add(d.guide.id);
+      return true;
+    })
+    : [];
+
   return {
-    version: 1,
+    version: 2,
     interests,
     builds,
+    drafts,
     activeBuildId: typeof record.activeBuildId === 'string' && buildIds.has(record.activeBuildId) ? record.activeBuildId : null,
     artifacts,
     progress,
