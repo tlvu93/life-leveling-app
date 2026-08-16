@@ -31,8 +31,13 @@ export type UniverseLayout = {
 
 const NODE_RADIUS: Record<NodeSize, number> = { major: 22, standard: 13, minor: 8 };
 /** Orbital bands: foundation nearest the centre, specialisation at the rim. */
-const BAND_RADIUS = [0, 74, 128, 178] as const;
-const NODE_GAP = 16;
+const BAND_RADIUS = [0, 120, 210, 300] as const;
+/**
+ * Seats are spaced for their labels, not just their discs: a node draws its
+ * title beside it, and a dense constellation was unreadable when only the
+ * circles were kept apart.
+ */
+const NODE_GAP = 74;
 const CLUSTER_PADDING = 46;
 const WORLD_MARGIN = 140;
 

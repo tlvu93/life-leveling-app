@@ -36,6 +36,15 @@ export type UniverseWorldSceneProps = {
 };
 
 const LABEL_HALO_OFFSETS: [number, number][] = [[1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3]];
+const MAX_LABEL_CHARS = 26;
+
+/** Long node titles are the main source of label collisions when zoomed in. */
+function shortTitle(title: string): string {
+  if (title.length <= MAX_LABEL_CHARS) return title;
+  const cut = title.slice(0, MAX_LABEL_CHARS);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 12 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
 
 /**
  * `measureText` throws "Not implemented on React Native Web", which takes the
@@ -50,6 +59,29 @@ function textWidth(font: SkFont, text: string): number {
     // fall through to the estimate
   }
   return text.length * font.getSize() * 0.52;
+}
+
+/**
+ * The hub treatment from the Atlas: a starburst of tapered rays and two faint
+ * radar rings, so a major concept reads as a landmark rather than a big dot.
+ */
+function HubEnvironment({ x, y, radius, domain }: { x: number; y: number; radius: number; domain: DomainVisual }) {
+  const rays = 16;
+  const burst = Skia.Path.Make();
+  for (let i = 0; i < rays; i += 1) {
+    const angle = (i / rays) * Math.PI * 2;
+    const inner = radius * 1.25;
+    const outer = radius * (i % 2 === 0 ? 2.25 : 1.75);
+    burst.moveTo(x + Math.cos(angle) * inner, y + Math.sin(angle) * inner);
+    burst.lineTo(x + Math.cos(angle) * outer, y + Math.sin(angle) * outer);
+  }
+  return (
+    <Group>
+      <Path path={burst} style="stroke" strokeWidth={1.1} color={withAlpha(domain.glow, 0.35)} />
+      <Circle cx={x} cy={y} r={radius * 2.5} style="stroke" strokeWidth={0.9} color={withAlpha(domain.glow, 0.22)} />
+      <Circle cx={x} cy={y} r={radius * 3.1} style="stroke" strokeWidth={0.7} color={withAlpha(domain.glow, 0.13)} />
+    </Group>
+  );
 }
 
 /** Halo, optional bloom rims, gradient body, crisp rim — the Atlas recipe. */
@@ -229,9 +261,20 @@ export function UniverseWorldScene({
       {/* The active Journey's route, over the graph it runs through. */}
       {routeStarted && (
         <Group>
-          <Path path={routePath} style="stroke" strokeWidth={14} color={visual.routeBloom} opacity={0.5} />
-          <Path path={routePath} style="stroke" strokeWidth={6} color={visual.routeSoft} opacity={0.7} />
-          <Path path={routePath} style="stroke" strokeWidth={2.4} color={visual.routeCore} />
+          <Path path={routePath} style="stroke" strokeWidth={22} color={visual.routeBloom} opacity={0.32} strokeCap="round" />
+          <Path path={routePath} style="stroke" strokeWidth={12} color={visual.routeSoft} opacity={0.45} strokeCap="round" />
+          <Path path={routePath} style="stroke" strokeWidth={5} color={visual.routeCore} strokeCap="round" />
+          {/* Beads mark each Step the route passes through, as the Atlas does. */}
+          {routeNodeIds.map((nodeId) => {
+            const seat = layout.byId.get(nodeId);
+            if (!seat) return null;
+            return (
+              <Group key={`bead-${nodeId}`}>
+                <Circle cx={seat.x} cy={seat.y} r={5.5} color={visual.routeSoft} opacity={0.5} />
+                <Circle cx={seat.x} cy={seat.y} r={2.6} color={visual.routeCore} />
+              </Group>
+            );
+          })}
         </Group>
       )}
 
@@ -253,6 +296,9 @@ export function UniverseWorldScene({
 
         return (
           <Group key={node.id} opacity={faded ? 0.3 : selectedId && !selected && !related ? 0.55 : 1}>
+            {node.size === 'major' && (
+              <HubEnvironment x={seat.x} y={seat.y} radius={seat.radius} domain={domain} />
+            )}
             <NodeShell
               x={seat.x}
               y={seat.y}
@@ -269,15 +315,25 @@ export function UniverseWorldScene({
               </Group>
             )}
             {showLabel && fonts && (() => {
-              const width = textWidth(fonts.label, node.title);
-              const lx = seat.x - width / 2;
-              const ly = seat.y + seat.radius + fonts.label.getSize() + 5;
+              // Labels fan outward from their constellation's centre instead of
+              // all stacking underneath, which is what made a dense cluster
+              // unreadable.
+              const home = layout.clusters.find((c) => c.pathId === seat.clusterId);
+              const dx = home ? seat.x - home.x : 0;
+              const dy = home ? seat.y - home.y : 1;
+              const text = shortTitle(node.title);
+              const width = textWidth(fonts.label, text);
+              const size = fonts.label.getSize();
+              const outward = Math.hypot(dx, dy) || 1;
+              const pad = seat.radius + size * 0.75;
+              const lx = seat.x + (dx / outward) * pad - width / 2;
+              const ly = seat.y + (dy / outward) * pad + size * 0.36;
               return (
                 <Group>
-                  {LABEL_HALO_OFFSETS.map(([dx, dy], offset) => (
-                    <SkiaText key={offset} x={lx + dx} y={ly + dy} text={node.title} font={fonts.label} color={visual.labelHalo} />
+                  {LABEL_HALO_OFFSETS.map(([hx, hy], offset) => (
+                    <SkiaText key={offset} x={lx + hx} y={ly + hy} text={text} font={fonts.label} color={visual.labelHalo} />
                   ))}
-                  <SkiaText x={lx} y={ly} text={node.title} font={fonts.label} color={visual.labelInk} />
+                  <SkiaText x={lx} y={ly} text={text} font={fonts.label} color={visual.labelInk} />
                 </Group>
               );
             })()}

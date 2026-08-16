@@ -8,7 +8,7 @@ test.describe('Universe canvas', () => {
     await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
 
     // Tier 0 shows the major concepts; the tier label says which level this is.
-    await expect(page.getByTestId('universe-tier')).toContainText('Regions');
+    await expect(page.getByTestId('universe-tier').first()).toContainText('Regions');
     await expect(page.getByTestId('universe-node-rhythm-song-structure')).toBeVisible();
 
     // Selecting opens the inspector with the real node, not a placeholder.
@@ -23,14 +23,14 @@ test.describe('Universe canvas', () => {
 
   test('zooming reveals denser information, not just bigger shapes', async ({ page }) => {
     await page.goto('/universe', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('universe-tier')).toContainText('Regions');
+    await expect(page.getByTestId('universe-tier').first()).toContainText('Regions');
     await expect(page.getByTestId('universe-node-observing-a-live-set')).toHaveCount(0);
 
     for (let i = 0; i < 5; i += 1) {
-      if ((await page.getByTestId('universe-tier').textContent()) === 'Concepts') break;
-      await page.getByTestId('universe-zoom-in').click();
+      if ((await page.getByTestId('universe-tier').first().textContent()) === 'Concepts') break;
+      await page.getByLabel('Zoom in').click();
     }
-    await expect(page.getByTestId('universe-tier')).toContainText('Concepts');
+    await expect(page.getByTestId('universe-tier').first()).toContainText('Concepts');
     await expect(page.getByTestId('universe-node-observing-a-live-set')).toHaveCount(1);
   });
 
