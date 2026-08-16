@@ -1,6 +1,6 @@
 # Universe Canvas Design
 
-- **Status:** Approved 2026-08-16
+- **Status:** Implemented 2026-08-16
 - **Parent specs:** [`2026-08-16-universe-schema-extension-design.md`](2026-08-16-universe-schema-extension-design.md), [`2026-08-16-explorer-surfaces-design.md`](2026-08-16-explorer-surfaces-design.md)
 - **Constraints:** [`docs/v2/atlas-interaction-spec.md`](../../v2/atlas-interaction-spec.md) (semantic zoom, selection, layout behaviour, "no physics simulation"), the Living Universe vision (metadata-driven cluster placement, typed relationships, bridges), and the 2026-08-15 performance findings.
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { GuidePersona } from '@/domain/roadmap/catalog';
@@ -20,7 +21,20 @@ export function PersonaFields({
   onChange: (patch: { title?: string } & Partial<GuidePersona>) => void;
 }) {
   const { theme } = useLifeTheme();
-  const valueOf = (key: Field['key']) => (key === 'title' ? title : (persona[key] as string));
+  const stored = (key: Field['key']) => (key === 'title' ? title : (persona[key] as string));
+
+  /**
+   * Text is held locally while a field is focused and committed on blur.
+   * Writing per keystroke would serialize and persist the entire roadmap state
+   * on every character.
+   */
+  const [local, setLocal] = useState<Partial<Record<Field['key'], string>>>({});
+  const valueOf = (key: Field['key']) => local[key] ?? stored(key);
+  const release = (key: Field['key']) => setLocal((current) => {
+    const next = { ...current };
+    delete next[key];
+    return next;
+  });
 
   return (
     <View style={styles.root}>
@@ -31,7 +45,12 @@ export function PersonaFields({
             testID={`persona-${field.key}`}
             accessibilityLabel={field.label}
             value={valueOf(field.key)}
-            onChangeText={(text) => onChange({ [field.key]: text })}
+            onChangeText={(text) => setLocal((current) => ({ ...current, [field.key]: text }))}
+            onBlur={() => {
+              const text = local[field.key];
+              if (text !== undefined && text !== stored(field.key)) onChange({ [field.key]: text });
+              release(field.key);
+            }}
             placeholder={field.hint}
             placeholderTextColor={theme.inkSecondary}
             multiline={field.multiline}

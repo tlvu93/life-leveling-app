@@ -63,7 +63,8 @@ export type RoadmapContextValue = {
   connectDraftSteps: (draftId: GuideId, from: StepId, to: StepId, kind: RouteEdgeKind) => void;
   setDraftStance: (draftId: GuideId, nodeId: NodeId, reason: string) => void;
   clearDraftStance: (draftId: GuideId, nodeId: NodeId) => void;
-  addProvisionalNode: (draftId: GuideId, node: { title: string; description: string; type: NodeType; domainId: InterestId }) => void;
+  /** Returns true when the proposal landed, so a form can survive a rejection. */
+  addProvisionalNode: (draftId: GuideId, node: { title: string; description: string; type: NodeType; domainId: InterestId }) => boolean;
   setDraftVisibility: (draftId: GuideId, visibility: DraftVisibility) => void;
   deleteDraft: (draftId: GuideId) => void;
   flushRoadmap: () => Promise<void>;
@@ -119,16 +120,20 @@ export function RoadmapProvider({
     return writeQueue.current;
   }, []);
 
-  /** Applies a pure op: issues are surfaced, and a failed op leaves state untouched. */
-  const runOp = useCallback((op: (current: RoadmapState) => OpResult) => {
+  /**
+   * Applies a pure op: issues are surfaced, a failed op leaves state untouched,
+   * and the issues are returned so a caller can keep a form open on rejection.
+   */
+  const runOp = useCallback((op: (current: RoadmapState) => OpResult): OpIssue[] => {
     const current = stateRef.current;
     const { state: next, issues } = op(current);
     setLastIssues(issues);
-    if (next === current) return;
+    if (next === current) return issues;
     touched.current = true;
     stateRef.current = next;
     setState(next);
     void enqueueSave(next);
+    return issues;
   }, [enqueueSave]);
 
   useEffect(() => {
@@ -229,7 +234,7 @@ export function RoadmapProvider({
   }, [runOp]);
 
   const addProvisionalNode = useCallback((draftId: GuideId, node: { title: string; description: string; type: NodeType; domainId: InterestId }) => {
-    runOp((current) => addProvisionalNodeOp(roadmapCatalog, current, draftId, node, nextRoadmapId, now()));
+    return runOp((current) => addProvisionalNodeOp(roadmapCatalog, current, draftId, node, nextRoadmapId, now())).length === 0;
   }, [runOp]);
 
   const setDraftVisibility = useCallback((draftId: GuideId, visibility: DraftVisibility) => {

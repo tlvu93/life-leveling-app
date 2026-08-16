@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { roadmapCatalog } from '../domain/roadmap/fixtures/catalog';
-import { defaultRoadmapState, type RoadmapState } from '../domain/roadmap/state';
+import { defaultRoadmapState, migrateRoadmapState, type RoadmapState } from '../domain/roadmap/state';
 import {
   addProvisionalNode,
   clearDraftStance,
@@ -130,7 +130,41 @@ describe('removeDraftStep', () => {
   });
 });
 
+describe('edits never persist a route that storage would refuse', () => {
+  it('rejects a duplicate edge instead of writing a draft that would be dropped on reload', () => {
+    const { state, draftId } = placed(['rhythm-song-structure', 'mixing-technique']);
+    const [a, b] = state.drafts[0].guide.steps.map((s) => s.id);
+    const once = connectDraftSteps(roadmapCatalog, state, draftId, a, b, 'next', 't2').state;
+    const twice = connectDraftSteps(roadmapCatalog, once, draftId, a, b, 'next', 't3');
+    expect(twice.state).toBe(once);
+    expect(twice.issues).not.toEqual([]);
+    expect(migrateRoadmapState(JSON.stringify(once)).drafts).toHaveLength(1);
+  });
+  it('rejects an edge that would make the route cyclic', () => {
+    const { state, draftId } = placed(['rhythm-song-structure', 'mixing-technique']);
+    const [a, b] = state.drafts[0].guide.steps.map((s) => s.id);
+    const forward = connectDraftSteps(roadmapCatalog, state, draftId, a, b, 'next', 't2').state;
+    const cyclic = connectDraftSteps(roadmapCatalog, forward, draftId, b, a, 'next', 't3');
+    expect(cyclic.state).toBe(forward);
+    expect(cyclic.issues).not.toEqual([]);
+  });
+  it('still allows removing an unrelated Step when the route has a problem elsewhere', () => {
+    const { state, draftId } = placed(['rhythm-song-structure', 'mixing-technique', 'harmonic-mixing']);
+    const [a, b, c] = state.drafts[0].guide.steps.map((s) => s.id);
+    const connected = connectDraftSteps(roadmapCatalog, state, draftId, a, b, 'next', 't2').state;
+    const { state: removed, issues } = removeDraftStep(connected, draftId, c, 't3');
+    expect(issues).toEqual([]);
+    expect(removed.drafts[0].guide.steps.map((s) => s.id)).toEqual([a, b]);
+  });
+});
+
 describe('stances', () => {
+  it('can exclude a concept on a brand-new draft, which has no Steps yet', () => {
+    const { state, draftId } = started();
+    const { state: excluded, issues } = setDraftStance(roadmapCatalog, state, draftId, 'music-theory-fundamentals', 'phrasing is enough', 't1');
+    expect(issues).toEqual([]);
+    expect(excluded.drafts[0].guide.stances).toHaveLength(1);
+  });
   it('records an exclusion with a reason and clears it again', () => {
     const { state, draftId } = placed(['rhythm-song-structure']);
     const { state: excluded, issues } = setDraftStance(roadmapCatalog, state, draftId, 'music-theory-fundamentals', 'phrasing is the only theory this route needs', 't2');

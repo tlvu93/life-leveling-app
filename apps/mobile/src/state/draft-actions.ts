@@ -20,6 +20,12 @@ function findDraft(state: RoadmapState, draftId: GuideId): GuideDraft | undefine
   return state.drafts.find((d) => d.guide.id === draftId);
 }
 
+/** An empty draft is a legitimate starting state, not a broken route. */
+function routeIssues(steps: GuideDraft['guide']['steps'], edges: GuideDraft['guide']['edges']): string[] {
+  if (steps.length === 0) return [];
+  return validateRoute(steps, edges).map((issue) => issue.message);
+}
+
 /** Provisional Nodes are placeable inside their own draft, and nowhere else. */
 export function draftNodes(catalog: RoadmapCatalog, draft: GuideDraft): AtlasNode[] {
   return [...catalog.nodes, ...draft.provisionalNodes];
@@ -34,6 +40,13 @@ function commit(state: RoadmapState, draftId: GuideId, result: GuideEditResult, 
   // problems belong to the builder view, not to "your last action failed".
   if (result.guide === current.guide && !extra) {
     return { state, issues: result.issues.map((issue) => ({ code: 'invalid-route' as const, message: issue.message })) };
+  }
+  // An edit must never leave the route structurally broken. Storage drops a
+  // draft it cannot validate, so writing one here would quietly destroy the
+  // author's work at the next launch.
+  const brokenNow = routeIssues(result.guide.steps, result.guide.edges);
+  if (brokenNow.length > routeIssues(current.guide.steps, current.guide.edges).length) {
+    return { state, issues: brokenNow.map((message) => ({ code: 'invalid-route' as const, message })) };
   }
   const next: GuideDraft = { ...current, ...extra, guide: result.guide, updatedAt: now };
   return {
@@ -119,7 +132,9 @@ export function removeDraftStep(state: RoadmapState, draftId: GuideId, stepId: S
     }
   }
   const steps = draft.guide.steps.filter((s) => s.id !== stepId);
-  if (steps.length > 0 && validateRoute(steps, edges).length > 0) {
+  // Only a problem this removal *introduces* blocks it; a pre-existing one
+  // elsewhere in the route must not trap unrelated Steps in the draft.
+  if (routeIssues(steps, edges).length > routeIssues(draft.guide.steps, draft.guide.edges).length) {
     return fail(state, `Removing "${stepId}" would break the route.`, 'invalid-route');
   }
   return commit(state, draftId, { guide: { ...draft.guide, steps, edges }, issues: [] }, now);
@@ -139,10 +154,15 @@ export function setDraftStance(
   const draft = findDraft(state, draftId);
   if (!draft) return fail(state, `No draft "${draftId}".`);
   const result = setStance(draftNodes(catalog, draft), draft.guide, nodeId, reason);
-  // A stance on a placed Node, or one without a reason, is not a draft state
-  // worth storing: refuse it and say why.
-  if (result.issues.length > 0) {
-    return { state, issues: result.issues.map((issue) => ({ code: 'invalid-route' as const, message: issue.message })) };
+  // Only stance-specific problems block a stance. Judging it on the whole
+  // guide would make an exclusion impossible on a draft with no Steps yet —
+  // which is the state every draft starts in.
+  const blocking = result.issues.filter((issue) =>
+    (issue.code === 'stance-on-placed' || issue.code === 'empty-stance-reason' || issue.code === 'duplicate-stance'
+      || (issue.code === 'unknown-node' && issue.nodeId === nodeId))
+    && (issue.nodeId === undefined || issue.nodeId === nodeId));
+  if (blocking.length > 0) {
+    return { state, issues: blocking.map((issue) => ({ code: 'invalid-route' as const, message: issue.message })) };
   }
   return commit(state, draftId, result, now);
 }

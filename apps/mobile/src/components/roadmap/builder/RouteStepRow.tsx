@@ -14,10 +14,11 @@ const roles: { role: RouteRole; label: string }[] = [
 ];
 
 export function RouteStepRow({
-  step, previousStepId, onSetRole, onSetNote, onRemove, onConnect,
+  step, previousStepId, connectedToPrevious, onSetRole, onSetNote, onRemove, onConnect,
 }: {
   step: BuilderStepVm;
   previousStepId: StepId | null;
+  connectedToPrevious: boolean;
   onSetRole: (role: RouteRole) => void;
   onSetNote: (note: string) => void;
   onRemove: () => void;
@@ -65,7 +66,13 @@ export function RouteStepRow({
         style={[styles.note, { color: theme.ink, borderColor: theme.borderSoft }]}
       />
 
-      {previousStepId && !step.branchOf && (
+      {/* Once connected the buttons state the fact instead of inviting a second
+          tap, which would append a duplicate edge. */}
+      {previousStepId && (connectedToPrevious || step.branchOf ? (
+        <Text testID={`connected-${step.stepId}`} style={[styles.connected, { color: theme.inkSecondary }]}>
+          {step.branchOf ? 'Branches from the Step above' : 'Follows the Step above'}
+        </Text>
+      ) : (
         <View style={styles.connect}>
           <Pressable
             testID={`connect-next-${step.stepId}`}
@@ -80,7 +87,7 @@ export function RouteStepRow({
             <Text style={[styles.connectText, { color: theme.accent }]}>Is an alternative to it</Text>
           </Pressable>
         </View>
-      )}
+      ))}
     </View>
   );
 }
@@ -97,4 +104,5 @@ const styles = StyleSheet.create({
   note: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, minHeight: 44, textAlignVertical: 'top' },
   connect: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   connectText: { fontSize: 12, fontWeight: '700' },
+  connected: { fontSize: 12 },
 });

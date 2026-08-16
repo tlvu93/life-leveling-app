@@ -7,12 +7,14 @@ import type { InterestId, NodeId } from '@/domain/roadmap/ids';
 import { useLifeTheme } from '@/state/theme-context';
 
 export function AddStepPanel({
-  available, domainId, onPlace, onPropose,
+  available, domainId, onSearch, onPlace, onPropose,
 }: {
   available: BuilderNodeVm[];
   domainId: InterestId;
+  /** Searches titles AND descriptions, so "camelot" finds Harmonic Mixing. */
+  onSearch: (query: string) => BuilderNodeVm[];
   onPlace: (nodeId: NodeId) => void;
-  onPropose: (node: { title: string; description: string; type: NodeType; domainId: InterestId }) => void;
+  onPropose: (node: { title: string; description: string; type: NodeType; domainId: InterestId }) => boolean;
 }) {
   const { theme } = useLifeTheme();
   const [query, setQuery] = useState('');
@@ -20,8 +22,10 @@ export function AddStepPanel({
   const [proposedTitle, setProposedTitle] = useState('');
   const [proposedDescription, setProposedDescription] = useState('');
 
-  const needle = query.trim().toLowerCase();
-  const matches = (needle ? available.filter((n) => n.title.toLowerCase().includes(needle)) : available).slice(0, 8);
+  const needle = query.trim();
+  const found = needle ? onSearch(needle) : available;
+  const matches = found.slice(0, 8);
+  const hidden = found.length - matches.length;
 
   return (
     <View style={styles.root}>
@@ -48,6 +52,11 @@ export function AddStepPanel({
       {needle.length > 0 && matches.length === 0 && (
         <Text testID="no-matches" style={[styles.empty, { color: theme.inkSecondary }]}>
           Nothing shared matches that. You can propose it below.
+        </Text>
+      )}
+      {hidden > 0 && (
+        <Text testID="more-matches" style={[styles.empty, { color: theme.inkSecondary }]}>
+          {`${hidden} more match${hidden === 1 ? 'es' : 'es'} — keep typing to narrow it down.`}
         </Text>
       )}
 
@@ -84,7 +93,8 @@ export function AddStepPanel({
             testID="submit-proposal"
             accessibilityRole="button"
             onPress={() => {
-              onPropose({ title: proposedTitle, description: proposedDescription, type: 'skill', domainId });
+              // Keep what the author typed unless the proposal actually landed.
+              if (!onPropose({ title: proposedTitle, description: proposedDescription, type: 'skill', domainId })) return;
               setProposedTitle('');
               setProposedDescription('');
               setProposing(false);

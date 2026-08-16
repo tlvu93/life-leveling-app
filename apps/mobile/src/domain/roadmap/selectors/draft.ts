@@ -1,4 +1,4 @@
-import type { AtlasNode, GuidePersona, RoadmapCatalog, RouteRole } from '../catalog';
+import type { AtlasNode, GuidePersona, RoadmapCatalog, RouteEdge, RouteRole } from '../catalog';
 import { validateGuide, type GraphIssue } from '../graph';
 import type { GuideId, NodeId, PathId, StepId } from '../ids';
 import type { DraftVisibility, GuideDraft, RoadmapState } from '../state';
@@ -23,6 +23,8 @@ export type DraftBuilderVm = {
   rationale: string;
   visibility: DraftVisibility;
   route: BuilderStepVm[];
+  /** The draft's edges, so the builder can show what is already connected. */
+  connections: RouteEdge[];
   stances: { nodeId: NodeId; nodeTitle: string; reason: string }[];
   issues: GraphIssue[];
   publishable: boolean;
@@ -84,7 +86,9 @@ export function draftBuilderView(catalog: RoadmapCatalog, state: RoadmapState, d
 
   // Anything unplaced can join the route; only unplaced, unstanced Nodes can be
   // excluded, and this Path's own concepts are the ones worth offering first.
-  const unplaced = view.nodes.filter((n) => !placed.has(n.id));
+  // A Node the author has excluded is not on offer: placing it would make the
+  // draft contradict itself and stop it being publishable.
+  const unplaced = view.nodes.filter((n) => !placed.has(n.id) && !stanced.has(n.id));
   const byRelevance = (a: BuilderNodeVm, b: BuilderNodeVm) => {
     const near = Number(onPath.has(b.id)) - Number(onPath.has(a.id));
     return near !== 0 ? near : a.title.localeCompare(b.title);
@@ -99,19 +103,23 @@ export function draftBuilderView(catalog: RoadmapCatalog, state: RoadmapState, d
     rationale: draft.guide.rationale,
     visibility: draft.visibility,
     route: view.route,
+    connections: draft.guide.edges,
     stances: draft.guide.stances.map((s) => ({ nodeId: s.nodeId, nodeTitle: titleOf(s.nodeId), reason: s.reason })),
     issues: view.issues,
     publishable: view.issues.length === 0 && personaComplete(draft.guide.persona) && draft.guide.steps.length >= 2,
     available: [...unplaced].sort(byRelevance),
-    excludable: unplaced.filter((n) => !stanced.has(n.id) && onPath.has(n.id)).sort(byRelevance),
+    excludable: unplaced.filter((n) => onPath.has(n.id)).sort(byRelevance),
   };
 }
 
+/** Title-and-description search, so "camelot" finds Harmonic Mixing. */
 export function searchDraftNodes(catalog: RoadmapCatalog, state: RoadmapState, draftId: GuideId, query: string): BuilderNodeVm[] {
   const draft = findDraft(state, draftId);
   if (!draft) return [];
   const placed = new Set(draft.guide.steps.map((s) => s.nodeId));
-  return searchNodes(draftCatalog(catalog, draft), draft.guide, query).filter((n) => !placed.has(n.id));
+  const stanced = new Set(draft.guide.stances.map((s) => s.nodeId));
+  return searchNodes(draftCatalog(catalog, draft), draft.guide, query)
+    .filter((n) => !placed.has(n.id) && !stanced.has(n.id));
 }
 
 /** What an Explorer opening the unlisted link would read. */

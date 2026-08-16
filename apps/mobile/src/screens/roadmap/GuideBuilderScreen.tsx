@@ -7,7 +7,7 @@ import { PersonaFields } from '@/components/roadmap/builder/PersonaFields';
 import { RouteStepRow } from '@/components/roadmap/builder/RouteStepRow';
 import { Body, NotFound, RoadmapLoading, SectionTitle } from '@/components/roadmap/pieces';
 import { RoadmapScaffold } from '@/components/roadmap/RoadmapScaffold';
-import { draftBuilderView } from '@/domain/roadmap/selectors/draft';
+import { draftBuilderView, searchDraftNodes } from '@/domain/roadmap/selectors/draft';
 import { useRoadmap } from '@/state/roadmap-context';
 import { useLifeTheme } from '@/state/theme-context';
 
@@ -44,6 +44,9 @@ export default function GuideBuilderScreen() {
           key={step.stepId}
           step={step}
           previousStepId={index > 0 ? vm.route[index - 1].stepId : null}
+          connectedToPrevious={index > 0 && vm.connections.some(
+            (edge) => edge.from === vm.route[index - 1].stepId && edge.to === step.stepId,
+          )}
           onSetRole={(role) => roadmap.setDraftStepRole(draftId, step.stepId, role)}
           onSetNote={(note) => roadmap.setDraftStepNote(draftId, step.stepId, note)}
           onRemove={() => roadmap.removeDraftStep(draftId, step.stepId)}
@@ -55,6 +58,7 @@ export default function GuideBuilderScreen() {
       <AddStepPanel
         available={vm.available}
         domainId={domainId}
+        onSearch={(query) => searchDraftNodes(roadmap.catalog, roadmap.state, draftId, query)}
         onPlace={(nodeId) => roadmap.placeDraftStep(draftId, nodeId)}
         onPropose={(node) => roadmap.addProvisionalNode(draftId, node)}
       />
@@ -88,7 +92,8 @@ export default function GuideBuilderScreen() {
         <Text style={[styles.action, { color: theme.accent }]}>Preview it as an Explorer would see it</Text>
       </Pressable>
 
-      {vm.publishable ? (
+      {/* Creating a link needs a finished draft; taking one back never does. */}
+      {(vm.publishable || vm.visibility === 'unlisted') && (
         <Pressable
           testID="toggle-unlisted"
           accessibilityRole="button"
@@ -97,7 +102,8 @@ export default function GuideBuilderScreen() {
             {vm.visibility === 'unlisted' ? 'Make it private again' : 'Create an unlisted link'}
           </Text>
         </Pressable>
-      ) : (
+      )}
+      {!vm.publishable && (
         <Body testID="not-publishable">
           Add who it is for, where it starts, where it leads, and at least two Steps before sharing a link.
         </Body>
