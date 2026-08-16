@@ -10,13 +10,14 @@ import { eventTechGuide, eventTechNodes, eventTechPath } from './stubs/event-tec
 import { japaneseGuide, japaneseNodes, japanesePath } from './stubs/japanese';
 import { musicProductionGuide, musicProductionNodes, musicProductionPath } from './stubs/music-production';
 import { projectionMappingGuide, projectionMappingNodes, projectionMappingPath } from './stubs/projection-mapping';
+import { stubRelationships } from './stubs/relationships';
 import { uxDesignGuide, uxDesignNodes, uxDesignPath } from './stubs/ux-design';
 import { woodworkingGuide, woodworkingNodes, woodworkingPath } from './stubs/woodworking';
 
 // A node id appears exactly once: stubs referencing shared DJ/VJ nodes list the
 // id in their path's nodeIds but do not redefine the node.
 export const roadmapCatalog: RoadmapCatalog = {
-  contentVersion: 1,
+  contentVersion: 2,
   nodes: [
     ...djvjNodes,
     ...eventTechNodes,
@@ -51,5 +52,5 @@ export const roadmapCatalog: RoadmapCatalog = {
     woodworkingGuide,
     uxDesignGuide,
   ],
-  relationships: [...djvjRelationships],
+  relationships: [...djvjRelationships, ...stubRelationships],
 };

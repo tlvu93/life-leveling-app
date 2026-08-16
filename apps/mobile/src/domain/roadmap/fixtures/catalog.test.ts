@@ -79,6 +79,27 @@ describe('roadmap catalog fixtures', () => {
       expect({ neighbour, reached: reached.has(neighbour) }).toEqual({ neighbour, reached: true });
     }
   });
+  it('every path is touched by at least one bridge', () => {
+    const clusterOf = (id: string) => roadmapCatalog.nodes.find((n) => n.id === id)?.clusterId;
+    const bridged = new Set(
+      roadmapCatalog.relationships
+        .filter((r) => r.kind === 'bridge')
+        .flatMap((r) => [clusterOf(r.from), clusterOf(r.to)])
+        .filter((c): c is string => Boolean(c)),
+    );
+    for (const path of roadmapCatalog.paths) {
+      expect({ path: path.id, bridged: bridged.has(path.id) }).toEqual({ path: path.id, bridged: true });
+    }
+  });
+  it('every path has an internal dependency spine', () => {
+    const clusterOf = (id: string) => roadmapCatalog.nodes.find((n) => n.id === id)?.clusterId;
+    for (const path of roadmapCatalog.paths) {
+      const internal = roadmapCatalog.relationships.filter(
+        (r) => r.kind === 'dependency' && clusterOf(r.from) === path.id && clusterOf(r.to) === path.id,
+      );
+      expect({ path: path.id, hasSpine: internal.length >= 2 }).toEqual({ path: path.id, hasSpine: true });
+    }
+  });
   it('the theory disagreement spans the catalog: optional in A, excluded in B, required somewhere', () => {
     const a = roadmapCatalog.guides.find((g) => g.id === 'guide-club-first');
     const b = roadmapCatalog.guides.find((g) => g.id === 'guide-visual-first');
