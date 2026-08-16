@@ -26,13 +26,13 @@ const guide: Guide = {
 const catalog: RoadmapCatalog = {
   contentVersion: 1,
   nodes: [
-    { id: 'n-rhythm', type: 'foundation', title: 'Rhythm', description: '' },
-    { id: 'n-gear', type: 'resource', title: 'Gear', description: '' },
-    { id: 'n-gear-alt', type: 'resource', title: 'Gear (alt)', description: '' },
-    { id: 'n-mix', type: 'skill', title: 'Mixing', description: '' },
-    { id: 'n-free-software', type: 'resource', title: 'Free software', description: '' },
+    { id: 'n-rhythm', type: 'foundation', title: 'Rhythm', description: '', domainId: 'music', clusterId: 'p1', depth: 0, size: 'major' },
+    { id: 'n-gear', type: 'resource', title: 'Gear', description: '', domainId: 'technology', clusterId: 'p1', depth: 0, size: 'standard' },
+    { id: 'n-gear-alt', type: 'resource', title: 'Gear (alt)', description: '', domainId: 'technology', clusterId: 'p1', depth: 0, size: 'standard' },
+    { id: 'n-mix', type: 'skill', title: 'Mixing', description: '', domainId: 'music', clusterId: 'p1', depth: 1, size: 'major' },
+    { id: 'n-free-software', type: 'resource', title: 'Free software', description: '', domainId: 'technology', clusterId: 'p1', depth: 0, size: 'minor' },
   ],
-  paths: [], guides: [guide],
+  paths: [], guides: [guide], relationships: [],
 };
 const seq = () => { let n = 0; return () => `id-${n++}`; };
 const stepIdFor = (state: ReturnType<typeof adoptGuide>['state'], nodeId: string) =>

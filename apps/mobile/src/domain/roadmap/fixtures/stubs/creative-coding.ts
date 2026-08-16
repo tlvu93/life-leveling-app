@@ -2,9 +2,9 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 
 // Stub depth. whatItIs from docs/product/research/dj-vj-route-research.md §6.
 export const creativeCodingNodes: AtlasNode[] = [
-  { id: 'live-coding-patterns', type: 'skill', title: 'Live-Coding Musical Patterns', description: 'Writing and editing cyclic musical patterns in code, live, with the screen projected.' },
-  { id: 'browser-video-synthesis', type: 'skill', title: 'Browser Video Synthesis', description: 'Live-coding visuals in a browser-based video synth — free, zero-install, and performable.' },
-  { id: 'algorave-set', type: 'milestone', title: 'Algorave Set', description: 'Performing live-coded music or visuals for a dancing audience, code on screen.' },
+  { id: 'live-coding-patterns', type: 'skill', title: 'Live-Coding Musical Patterns', description: 'Writing and editing cyclic musical patterns in code, live, with the screen projected.', domainId: 'technology', clusterId: 'creative-coding-music', depth: 1, size: 'major' },
+  { id: 'browser-video-synthesis', type: 'skill', title: 'Browser Video Synthesis', description: 'Live-coding visuals in a browser-based video synth — free, zero-install, and performable.', domainId: 'technology', clusterId: 'creative-coding-music', depth: 2, size: 'standard' },
+  { id: 'algorave-set', type: 'milestone', title: 'Algorave Set', description: 'Performing live-coded music or visuals for a dancing audience, code on screen.', domainId: 'music', clusterId: 'creative-coding-music', depth: 3, size: 'major' },
 ];
 
 export const creativeCodingPath: Path = {

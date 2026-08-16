@@ -2,9 +2,9 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 
 // Stub depth. whatItIs from docs/product/research/dj-vj-route-research.md §6.
 export const projectionMappingNodes: AtlasNode[] = [
-  { id: 'surface-mapping', type: 'skill', title: 'Surface Mapping & Warping', description: 'Warping and masking video to fit real three-dimensional surfaces — façades, stage sets, sculptures.' },
-  { id: 'site-survey', type: 'experience', title: 'Site Survey', description: 'Measuring a real surface, planning projector placement, and testing throw and brightness before the show.' },
-  { id: 'mapped-installation', type: 'milestone', title: 'Mapped Installation', description: 'A finished projection onto a real object or wall, aligned, blended, and reliable over hours.' },
+  { id: 'surface-mapping', type: 'skill', title: 'Surface Mapping & Warping', description: 'Warping and masking video to fit real three-dimensional surfaces — façades, stage sets, sculptures.', domainId: 'design', clusterId: 'projection-mapping', depth: 1, size: 'major' },
+  { id: 'site-survey', type: 'experience', title: 'Site Survey', description: 'Measuring a real surface, planning projector placement, and testing throw and brightness before the show.', domainId: 'design', clusterId: 'projection-mapping', depth: 1, size: 'minor' },
+  { id: 'mapped-installation', type: 'milestone', title: 'Mapped Installation', description: 'A finished projection onto a real object or wall, aligned, blended, and reliable over hours.', domainId: 'design', clusterId: 'projection-mapping', depth: 3, size: 'major' },
 ];
 
 export const projectionMappingPath: Path = {

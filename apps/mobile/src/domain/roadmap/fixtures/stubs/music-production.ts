@@ -3,9 +3,9 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // Stub depth. whatItIs from docs/product/research/dj-vj-route-research.md §6.
 // This guide is the catalog's pro-theory counterweight: music theory is REQUIRED here.
 export const musicProductionNodes: AtlasNode[] = [
-  { id: 'daw-fluency', type: 'skill', title: 'DAW Fluency', description: 'Picking one digital audio workstation and learning it deeply — the entry decision of the studio craft.' },
-  { id: 'arrangement', type: 'skill', title: 'Arrangement', description: 'Turning loops and ideas into finished song structures with intros, builds, and payoffs.' },
-  { id: 'finished-track', type: 'milestone', title: 'Finished Track', description: 'A complete, mixed track you can release or play out — the unit of progress in this craft.' },
+  { id: 'daw-fluency', type: 'skill', title: 'DAW Fluency', description: 'Picking one digital audio workstation and learning it deeply — the entry decision of the studio craft.', domainId: 'music', clusterId: 'music-production', depth: 0, size: 'major' },
+  { id: 'arrangement', type: 'skill', title: 'Arrangement', description: 'Turning loops and ideas into finished song structures with intros, builds, and payoffs.', domainId: 'music', clusterId: 'music-production', depth: 1, size: 'standard' },
+  { id: 'finished-track', type: 'milestone', title: 'Finished Track', description: 'A complete, mixed track you can release or play out — the unit of progress in this craft.', domainId: 'music', clusterId: 'music-production', depth: 3, size: 'major' },
 ];
 
 export const musicProductionPath: Path = {

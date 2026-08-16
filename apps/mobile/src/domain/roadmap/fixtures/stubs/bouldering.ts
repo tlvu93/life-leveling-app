@@ -4,11 +4,11 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // exists in the real world, and the product deliberately does not import it —
 // progress states stay the standard seven.
 export const boulderingNodes: AtlasNode[] = [
-  { id: 'movement-fundamentals', type: 'foundation', title: 'Movement Fundamentals', description: 'Body position, footwork, and weight shift — the technique that outlasts strength.' },
-  { id: 'gym-access', type: 'resource', title: 'Gym Access', description: 'A climbing gym membership or day passes — the practical gate to regular practice.' },
-  { id: 'falling-safely', type: 'skill', title: 'Falling Safely', description: 'Controlled falls onto mats, spotting awareness, and knowing when to drop.' },
-  { id: 'reading-problems', type: 'skill', title: 'Reading Problems', description: 'Studying a boulder problem before pulling on — sequences, holds, and rests. Gyms grade problems on their own scales; that is the gym’s language, not a score this route keeps.' },
-  { id: 'outdoor-session', type: 'experience', title: 'Outdoor Session', description: 'A first session on real rock with experienced climbers, pads, and conservative choices.' },
+  { id: 'movement-fundamentals', type: 'foundation', title: 'Movement Fundamentals', description: 'Body position, footwork, and weight shift — the technique that outlasts strength.', domainId: 'movement', clusterId: 'bouldering', depth: 0, size: 'major' },
+  { id: 'gym-access', type: 'resource', title: 'Gym Access', description: 'A climbing gym membership or day passes — the practical gate to regular practice.', domainId: 'movement', clusterId: 'bouldering', depth: 0, size: 'standard' },
+  { id: 'falling-safely', type: 'skill', title: 'Falling Safely', description: 'Controlled falls onto mats, spotting awareness, and knowing when to drop.', domainId: 'movement', clusterId: 'bouldering', depth: 0, size: 'standard' },
+  { id: 'reading-problems', type: 'skill', title: 'Reading Problems', description: 'Studying a boulder problem before pulling on — sequences, holds, and rests. Gyms grade problems on their own scales; that is the gym’s language, not a score this route keeps.', domainId: 'movement', clusterId: 'bouldering', depth: 1, size: 'standard' },
+  { id: 'outdoor-session', type: 'experience', title: 'Outdoor Session', description: 'A first session on real rock with experienced climbers, pads, and conservative choices.', domainId: 'movement', clusterId: 'bouldering', depth: 2, size: 'major' },
 ];
 
 export const boulderingPath: Path = {

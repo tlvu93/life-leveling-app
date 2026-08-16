@@ -3,10 +3,10 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // Stub depth. whatItIs from docs/product/research/dj-vj-route-research.md §6.
 // Schema pressure point: an apprenticeship-shaped route (show up, learn on real rigs).
 export const eventTechNodes: AtlasNode[] = [
-  { id: 'live-sound-basics', type: 'skill', title: 'Live Sound Basics', description: 'PA systems, consoles, gain structure, and mixing a room rather than a recording.' },
-  { id: 'stage-lighting-dmx', type: 'skill', title: 'Stage Lighting & DMX', description: 'Fixtures, DMX control, and programming looks with free open-source lighting software and a cheap interface.' },
-  { id: 'stagehand-apprenticeship', type: 'experience', title: 'Stagehand Apprenticeship', description: 'Volunteering or working as a stagehand at venues, churches, and community events — the trade’s canonical entry point.' },
-  { id: 'show-call', type: 'milestone', title: 'Working a Show Call', description: 'Crewing a real event from load-in to load-out, where success means the show going right and nobody noticing you.' },
+  { id: 'live-sound-basics', type: 'skill', title: 'Live Sound Basics', description: 'PA systems, consoles, gain structure, and mixing a room rather than a recording.', domainId: 'technology', clusterId: 'event-technology', depth: 1, size: 'standard' },
+  { id: 'stage-lighting-dmx', type: 'skill', title: 'Stage Lighting & DMX', description: 'Fixtures, DMX control, and programming looks with free open-source lighting software and a cheap interface.', domainId: 'technology', clusterId: 'event-technology', depth: 1, size: 'standard' },
+  { id: 'stagehand-apprenticeship', type: 'experience', title: 'Stagehand Apprenticeship', description: 'Volunteering or working as a stagehand at venues, churches, and community events — the trade’s canonical entry point.', domainId: 'technology', clusterId: 'event-technology', depth: 0, size: 'major' },
+  { id: 'show-call', type: 'milestone', title: 'Working a Show Call', description: 'Crewing a real event from load-in to load-out, where success means the show going right and nobody noticing you.', domainId: 'technology', clusterId: 'event-technology', depth: 3, size: 'major' },
 ];
 
 export const eventTechPath: Path = {

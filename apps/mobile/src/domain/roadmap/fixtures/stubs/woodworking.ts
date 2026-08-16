@@ -3,11 +3,11 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // Breadth stress-test stub. Pressure point: access- and safety-gated Resource
 // nodes sit on the required spine, and projects ARE the milestones.
 export const woodworkingNodes: AtlasNode[] = [
-  { id: 'tool-safety', type: 'foundation', title: 'Tool Safety', description: 'Sharp tools, guarded machines, eyes and ears — the non-negotiable floor of the craft.' },
-  { id: 'workshop-access', type: 'resource', title: 'Workshop Access', description: 'A community workshop, makerspace, class shop, or a corner of your own — access gates everything.' },
-  { id: 'joinery-basics', type: 'skill', title: 'Joinery Basics', description: 'Cutting wood so it stays together: butt, lap, and simple box joints before anything fancy.' },
-  { id: 'first-box', type: 'project', title: 'First Box', description: 'The classic first project: four corners, a bottom, and every beginner mistake in one small package.' },
-  { id: 'finished-piece', type: 'milestone', title: 'Finished Piece', description: 'A completed piece someone actually uses — the craft’s unit of progress.' },
+  { id: 'tool-safety', type: 'foundation', title: 'Tool Safety', description: 'Sharp tools, guarded machines, eyes and ears — the non-negotiable floor of the craft.', domainId: 'making', clusterId: 'woodworking', depth: 0, size: 'standard' },
+  { id: 'workshop-access', type: 'resource', title: 'Workshop Access', description: 'A community workshop, makerspace, class shop, or a corner of your own — access gates everything.', domainId: 'making', clusterId: 'woodworking', depth: 0, size: 'standard' },
+  { id: 'joinery-basics', type: 'skill', title: 'Joinery Basics', description: 'Cutting wood so it stays together: butt, lap, and simple box joints before anything fancy.', domainId: 'making', clusterId: 'woodworking', depth: 1, size: 'major' },
+  { id: 'first-box', type: 'project', title: 'First Box', description: 'The classic first project: four corners, a bottom, and every beginner mistake in one small package.', domainId: 'making', clusterId: 'woodworking', depth: 2, size: 'standard' },
+  { id: 'finished-piece', type: 'milestone', title: 'Finished Piece', description: 'A completed piece someone actually uses — the craft’s unit of progress.', domainId: 'making', clusterId: 'woodworking', depth: 3, size: 'major' },
 ];
 
 export const woodworkingPath: Path = {

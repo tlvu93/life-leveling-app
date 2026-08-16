@@ -1,6 +1,6 @@
 import type { AtlasNode, Guide, NodeType, RouteEdgeKind, RouteRole } from './catalog';
 import { validateGuide, type GraphIssue } from './graph';
-import type { NodeId, StepId } from './ids';
+import type { InterestId, NodeId, StepId } from './ids';
 
 export type GuideEditResult = { guide: Guide; issues: GraphIssue[] };
 
@@ -48,11 +48,25 @@ export function clearStance(nodes: readonly AtlasNode[], guide: Guide, nodeId: N
   return validated(nodes, { ...guide, stances: guide.stances.filter((s) => s.nodeId !== nodeId) });
 }
 
+/**
+ * A provisional node lands in the drafting guide's own constellation: the
+ * Creator is proposing a concept for this Path, and review decides later
+ * whether it belongs anywhere wider.
+ */
 export function createProvisionalNode(
   nodes: readonly AtlasNode[], guide: Guide,
-  draft: { title: string; description: string; type: NodeType }, nodeId: NodeId, stepId: StepId,
+  draft: { title: string; description: string; type: NodeType; domainId: InterestId; depth?: 0 | 1 | 2 | 3 },
+  nodeId: NodeId, stepId: StepId,
 ): GuideEditResult & { node: AtlasNode } {
-  const node: AtlasNode = { id: nodeId, ...draft, provisional: { scopeGuideId: guide.id } };
+  const { depth = 1, ...rest } = draft;
+  const node: AtlasNode = {
+    id: nodeId,
+    ...rest,
+    clusterId: guide.pathId,
+    depth,
+    size: 'minor',
+    provisional: { scopeGuideId: guide.id },
+  };
   const result = placeStep([...nodes, node], guide,
     { nodeId, role: 'optional-depth', note: '', sortKey: guide.steps.length }, stepId);
   return { ...result, node };

@@ -3,8 +3,8 @@ import type { AtlasNode, Guide } from './catalog';
 import { connectEdge, createProvisionalNode, placeStep, setRole, setStance } from './guide-edit';
 
 const nodes: AtlasNode[] = [
-  { id: 'n-rhythm', type: 'foundation', title: 'Rhythm & Song Structure', description: 'd' },
-  { id: 'n-theory', type: 'foundation', title: 'Music Theory Fundamentals', description: 'd' },
+  { id: 'n-rhythm', type: 'foundation', title: 'Rhythm & Song Structure', description: 'd', domainId: 'music', clusterId: 'p1', depth: 0, size: 'major' },
+  { id: 'n-theory', type: 'foundation', title: 'Music Theory Fundamentals', description: 'd', domainId: 'music', clusterId: 'p1', depth: 2, size: 'standard' },
 ];
 const empty: Guide = {
   id: 'draft-1', version: 1, pathId: 'p1', title: 'Draft',
@@ -40,9 +40,14 @@ describe('guide editing', () => {
   });
   it('createProvisionalNode scopes the node to the guide and places it', () => {
     const { guide, node, issues } = createProvisionalNode(nodes, empty,
-      { title: 'Open-Decks Etiquette', description: 'Sign-up norms.', type: 'experience' }, 'prov-1', 'sp-1');
+      { title: 'Open-Decks Etiquette', description: 'Sign-up norms.', type: 'experience', domainId: 'music' }, 'prov-1', 'sp-1');
     expect(issues).toEqual([]);
     expect(node.provisional).toEqual({ scopeGuideId: 'draft-1' });
     expect(guide.steps[0].nodeId).toBe('prov-1');
+  });
+  it('lands a provisional node in the drafting guide\'s own constellation', () => {
+    const { node } = createProvisionalNode(nodes, empty,
+      { title: 'Tap-Tempo Drill', description: 'Tap along.', type: 'skill', domainId: 'technology' }, 'prov-2', 'sp-2');
+    expect(node).toMatchObject({ clusterId: 'p1', depth: 1, size: 'minor', domainId: 'technology' });
   });
 });

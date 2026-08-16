@@ -3,11 +3,11 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // Breadth stress-test stub. Pressure point: the share surface IS the outcome —
 // a portfolio-shaped route where selective sharing carries the payoff.
 export const uxDesignNodes: AtlasNode[] = [
-  { id: 'design-fundamentals', type: 'foundation', title: 'Design Fundamentals', description: 'Hierarchy, typography, layout, and interaction basics — the craft under every screen.' },
-  { id: 'research-basics', type: 'skill', title: 'Research Basics', description: 'Talking to users, running small tests, and separating what people say from what they do.' },
-  { id: 'portfolio-case-study', type: 'project', title: 'Portfolio Case Study', description: 'One real problem, documented honestly: context, process, decisions, outcome.' },
-  { id: 'critique-session', type: 'experience', title: 'Critique Session', description: 'Showing work to practitioners and hearing what lands — the fastest feedback loop in the field.' },
-  { id: 'first-client-or-role', type: 'milestone', title: 'First Client or Role', description: 'Paid work — a freelance project, internship, or junior role — won largely on the portfolio.' },
+  { id: 'design-fundamentals', type: 'foundation', title: 'Design Fundamentals', description: 'Hierarchy, typography, layout, and interaction basics — the craft under every screen.', domainId: 'design', clusterId: 'ux-design', depth: 0, size: 'major' },
+  { id: 'research-basics', type: 'skill', title: 'Research Basics', description: 'Talking to users, running small tests, and separating what people say from what they do.', domainId: 'design', clusterId: 'ux-design', depth: 1, size: 'standard' },
+  { id: 'portfolio-case-study', type: 'project', title: 'Portfolio Case Study', description: 'One real problem, documented honestly: context, process, decisions, outcome.', domainId: 'design', clusterId: 'ux-design', depth: 2, size: 'major' },
+  { id: 'critique-session', type: 'experience', title: 'Critique Session', description: 'Showing work to practitioners and hearing what lands — the fastest feedback loop in the field.', domainId: 'design', clusterId: 'ux-design', depth: 2, size: 'minor' },
+  { id: 'first-client-or-role', type: 'milestone', title: 'First Client or Role', description: 'Paid work — a freelance project, internship, or junior role — won largely on the portfolio.', domainId: 'design', clusterId: 'ux-design', depth: 3, size: 'major' },
 ];
 
 export const uxDesignPath: Path = {

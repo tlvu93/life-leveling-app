@@ -4,11 +4,11 @@ import type { AtlasNode, Guide, Path } from '../../catalog';
 // performable milestone — paused/practicing must read sensibly over years,
 // with no deadline language anywhere.
 export const japaneseNodes: AtlasNode[] = [
-  { id: 'kana', type: 'skill', title: 'Kana', description: 'Reading hiragana and katakana fluently — the alphabet floor everything else stands on.' },
-  { id: 'core-grammar', type: 'foundation', title: 'Core Grammar', description: 'The sentence patterns that make input comprehensible; depth arrives over years, not weeks.' },
-  { id: 'immersion-listening', type: 'experience', title: 'Immersion Listening', description: 'Regular listening to native material slightly above your level — the method wars agree on the input, not the order.' },
-  { id: 'speaking-practice', type: 'skill', title: 'Speaking Practice', description: 'Producing the language with a partner, tutor, or exchange — uncomfortable early, and that is normal.' },
-  { id: 'first-conversation', type: 'milestone', title: 'First Real Conversation', description: 'A short, unscripted exchange with a native speaker that both sides understood.' },
+  { id: 'kana', type: 'skill', title: 'Kana', description: 'Reading hiragana and katakana fluently — the alphabet floor everything else stands on.', domainId: 'language', clusterId: 'learning-japanese', depth: 0, size: 'standard' },
+  { id: 'core-grammar', type: 'foundation', title: 'Core Grammar', description: 'The sentence patterns that make input comprehensible; depth arrives over years, not weeks.', domainId: 'language', clusterId: 'learning-japanese', depth: 0, size: 'major' },
+  { id: 'immersion-listening', type: 'experience', title: 'Immersion Listening', description: 'Regular listening to native material slightly above your level — the method wars agree on the input, not the order.', domainId: 'language', clusterId: 'learning-japanese', depth: 1, size: 'standard' },
+  { id: 'speaking-practice', type: 'skill', title: 'Speaking Practice', description: 'Producing the language with a partner, tutor, or exchange — uncomfortable early, and that is normal.', domainId: 'language', clusterId: 'learning-japanese', depth: 2, size: 'standard' },
+  { id: 'first-conversation', type: 'milestone', title: 'First Real Conversation', description: 'A short, unscripted exchange with a native speaker that both sides understood.', domainId: 'language', clusterId: 'learning-japanese', depth: 3, size: 'major' },
 ];
 
 export const japanesePath: Path = {
