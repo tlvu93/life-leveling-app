@@ -1,6 +1,6 @@
 # Universe Schema Extension Design
 
-- **Status:** Approved 2026-08-16 (design approved in-session; extends the roadmap domain model spec)
+- **Status:** Implemented 2026-08-16 (extends the roadmap domain model spec)
 - **Parent spec:** [`2026-08-16-roadmap-domain-model-design.md`](2026-08-16-roadmap-domain-model-design.md)
 - **Inputs:** the Living Universe vision validation (typed relationships, metadata-driven layout, featured routes, progress transfer), [`docs/product/decisions.md`](../../product/decisions.md) P-003/P-012 and A-008.
 

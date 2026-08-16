@@ -100,6 +100,30 @@ describe('roadmap catalog fixtures', () => {
       expect({ path: path.id, hasSpine: internal.length >= 2 }).toEqual({ path: path.id, hasSpine: true });
     }
   });
+  it('every node carries usable layout metadata', () => {
+    for (const node of roadmapCatalog.nodes) {
+      expect({
+        node: node.id,
+        ok: node.clusterId.length > 0 && node.depth >= 0 && node.depth <= 3,
+      }).toEqual({ node: node.id, ok: true });
+    }
+  });
+  it('every bridge explains itself', () => {
+    for (const rel of roadmapCatalog.relationships.filter((r) => r.kind === 'bridge')) {
+      expect({ rel: `${rel.from}->${rel.to}`, explained: Boolean(rel.note?.trim()) })
+        .toEqual({ rel: `${rel.from}->${rel.to}`, explained: true });
+    }
+  });
+  it('no relationship references a provisional node', () => {
+    const provisional = new Set(roadmapCatalog.nodes.filter((n) => n.provisional).map((n) => n.id));
+    for (const rel of roadmapCatalog.relationships) {
+      expect({ rel: `${rel.from}->${rel.to}`, clean: !provisional.has(rel.from) && !provisional.has(rel.to) })
+        .toEqual({ rel: `${rel.from}->${rel.to}`, clean: true });
+    }
+  });
+  it('declares content version 2', () => {
+    expect(roadmapCatalog.contentVersion).toBe(2);
+  });
   it('the theory disagreement spans the catalog: optional in A, excluded in B, required somewhere', () => {
     const a = roadmapCatalog.guides.find((g) => g.id === 'guide-club-first');
     const b = roadmapCatalog.guides.find((g) => g.id === 'guide-visual-first');
