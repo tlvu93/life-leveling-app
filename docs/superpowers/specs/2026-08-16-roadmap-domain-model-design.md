@@ -20,7 +20,7 @@ A versioned, platform-neutral roadmap domain model (Path / Node / Guide / Build 
 
 ```
 apps/mobile/src/domain/roadmap/
-  ids.ts             branded id types + id helpers
+  ids.ts             id type aliases + interest ids (plain string aliases, matching the existing domain code's style)
   catalog.ts         canonical types: AtlasNode, Path, Guide, GuideStep, RouteEdge, NodeStance, Quest
   graph.ts           route-graph validator + deterministic linearization
   state.ts           RoadmapState v1 types, defaults, migrateRoadmapState(unknown)
@@ -56,6 +56,7 @@ type Path = {
   id: PathId;
   title: string;
   status: 'full' | 'stub';
+  interestIds: InterestId[];   // discovery ranking: interest overlap
   overview: {
     whatItIs: string;
     settings: string[];        // plan bullet 1
@@ -200,7 +201,7 @@ All pure `(catalog, state, args?) → ViewModel`; view-models are plain serializ
 4. **guide-builder.ts** — `builderView(catalog, draft)`: searchable Node list (title/description match, provisional flagged), the draft's linearized route with branch structure, live validator issues, role/stance palettes. Editing itself is `guide-edit.ts`.
 5. **build.ts** — `buildView(catalog, state, buildId)`: linearized route with per-Step role, origin badge (from-guide / added / replaced-with-original-name), progress state, provenance header ("adopted from {guide} v{n}").
 6. **step-detail.ts** — `stepDetailView(catalog, state, buildId, stepId)`: Node explanation, author note, optional Quest, current progress + the seven choosable states, attached Artifacts.
-7. **share-preview.ts** — `sharePreviewView(catalog, state)`: read-only page model built exclusively from `ShareSelection`; empty selection → empty page. Also `shareAudit(state)`: the list of everything NOT shared, for the "explain what remains private" moment (H6).
+7. **share-preview.ts** — `sharePreviewView(catalog, state)`: read-only page model built exclusively from `ShareSelection`; empty selection → empty page. Also `shareAudit(state)`: counts of everything NOT shared (builds, steps, artifacts, interests), for the "explain what remains private" moment (H6).
 
 ## Fixtures
 

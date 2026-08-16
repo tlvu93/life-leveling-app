@@ -25,6 +25,24 @@ describe('builderView', () => {
     const found = searchNodes(roadmapCatalog, guideClubFirst, 'etiquette');
     expect(found[0].provisional).toBe(true);
   });
+  it('keeps cycle-trapped steps visible in the route so the draft can be fixed', () => {
+    const cyclic = {
+      ...guideClubFirst,
+      id: 'draft-cyclic',
+      steps: [
+        { id: 's1', nodeId: 'rhythm-song-structure', role: 'required' as const, note: '', sortKey: 0 },
+        { id: 's2', nodeId: 'mixing-technique', role: 'required' as const, note: '', sortKey: 1 },
+      ],
+      edges: [
+        { from: 's1', to: 's2', kind: 'next' as const },
+        { from: 's2', to: 's1', kind: 'next' as const },
+      ],
+      stances: [],
+    };
+    const cyclicVm = builderView(roadmapCatalog, cyclic);
+    expect(cyclicVm.issues.map((i) => i.code)).toContain('cycle');
+    expect(cyclicVm.route.map((s) => s.stepId)).toEqual(['s1', 's2']);
+  });
   it('search matches titles and descriptions case-insensitively', () => {
     expect(searchNodes(roadmapCatalog, guideVisualFirst, 'CAMELOT').map((n) => n.id))
       .toEqual(['music-theory-fundamentals', 'harmonic-mixing']);

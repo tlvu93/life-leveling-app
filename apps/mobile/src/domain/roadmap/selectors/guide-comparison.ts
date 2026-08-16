@@ -97,7 +97,8 @@ export function compareGuides(catalog: RoadmapCatalog, guideIdA: GuideId, guideI
     const aGone = row.a.kind !== 'placed';
     const bGone = row.b.kind !== 'placed';
     const placedVsExcluded = (row.a.kind === 'placed' && row.b.kind === 'excluded') || (row.b.kind === 'placed' && row.a.kind === 'excluded');
-    if ((aStrong && bGone) || (bStrong && aGone) || placedVsExcluded) {
+    const roleClassChanged = row.a.kind === 'placed' && row.b.kind === 'placed' && aStrong !== bStrong;
+    if ((aStrong && bGone) || (bStrong && aGone) || placedVsExcluded || roleClassChanged) {
       materialDifferences.push(`${row.nodeTitle}: ${describe(row.a)} in ${a.title}, ${describe(row.b)} in ${b.title}.`);
     }
   }

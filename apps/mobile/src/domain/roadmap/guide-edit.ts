@@ -18,6 +18,9 @@ export function placeStep(
   nodes: readonly AtlasNode[], guide: Guide,
   draft: { nodeId: NodeId; role: RouteRole; note: string; sortKey: number }, stepId: StepId,
 ): GuideEditResult {
+  if (guide.steps.some((s) => s.id === stepId)) {
+    return { guide, issues: [{ code: 'duplicate-step', stepId, message: `Step id "${stepId}" is already in the draft.` }] };
+  }
   return validated(nodes, { ...guide, steps: [...guide.steps, { id: stepId, ...draft }] });
 }
 

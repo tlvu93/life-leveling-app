@@ -3,7 +3,7 @@ import { validateRoute } from './graph';
 import type { ArtifactId, BuildId, GuideId, NodeId, StepId } from './ids';
 import type { Artifact, Build, BuildStep, ProgressEntry, RoadmapState, ShareSelection } from './state';
 
-export type OpIssueCode = 'missing-guide' | 'missing-build' | 'missing-step' | 'missing-artifact' | 'missing-progress' | 'invalid-route';
+export type OpIssueCode = 'missing-guide' | 'missing-build' | 'missing-step' | 'missing-artifact' | 'missing-progress' | 'invalid-route' | 'unknown-node';
 export type OpIssue = { code: OpIssueCode; message: string };
 export type OpResult = { state: RoadmapState; issues: OpIssue[] };
 
@@ -35,21 +35,32 @@ export function adoptGuide(catalog: RoadmapCatalog, state: RoadmapState, guideId
   return ok({ ...state, builds: [...state.builds, build], activeBuildId: build.id });
 }
 
-export function replaceStep(state: RoadmapState, buildId: BuildId, stepId: StepId, nodeId: NodeId): OpResult {
+/**
+ * Origin is provenance, not a change log: a from-guide step becomes
+ * replaced(original node); an already-replaced step keeps its ORIGINAL node so
+ * repeated remixing never forgets what the guide placed; a user-added step
+ * stays "added" — there is no guide step to have replaced.
+ */
+export function replaceStep(catalog: RoadmapCatalog, state: RoadmapState, buildId: BuildId, stepId: StepId, nodeId: NodeId): OpResult {
   const build = state.builds.find((b) => b.id === buildId);
   if (!build) return fail(state, 'missing-build', `No build "${buildId}".`);
   const step = build.steps.find((s) => s.id === stepId);
   if (!step) return fail(state, 'missing-step', `No step "${stepId}" in build "${buildId}".`);
+  if (!catalog.nodes.some((n) => n.id === nodeId)) return fail(state, 'unknown-node', `No node "${nodeId}" in the catalog.`);
   return ok(withBuild(state, buildId, (b) => ({
     ...b,
     steps: b.steps.map((s) => (s.id === stepId
-      ? { ...s, nodeId, origin: { kind: 'replaced', originalNodeId: s.nodeId } }
+      ? {
+        ...s,
+        nodeId,
+        origin: s.origin.kind === 'added' ? s.origin : { kind: 'replaced', originalNodeId: s.origin.kind === 'replaced' ? s.origin.originalNodeId : s.nodeId },
+      }
       : s)),
   })));
 }
 
 export function addStep(
-  state: RoadmapState, buildId: BuildId,
+  catalog: RoadmapCatalog, state: RoadmapState, buildId: BuildId,
   draft: { nodeId: NodeId; role: RouteRole; note: string; sortKey: number },
   afterStepId: StepId | null, ids: () => string,
 ): OpResult {
@@ -58,26 +69,31 @@ export function addStep(
   if (afterStepId !== null && !build.steps.some((s) => s.id === afterStepId)) {
     return fail(state, 'missing-step', `No step "${afterStepId}" to attach after.`);
   }
+  if (!catalog.nodes.some((n) => n.id === draft.nodeId)) return fail(state, 'unknown-node', `No node "${draft.nodeId}" in the catalog.`);
   const step: BuildStep = { id: ids(), ...draft, origin: { kind: 'added' } };
   const edges = afterStepId ? [...build.edges, { from: afterStepId, to: step.id, kind: 'next' as const }] : build.edges;
   return ok(withBuild(state, buildId, (b) => ({ ...b, steps: [...b.steps, step], edges })));
 }
 
 /**
- * Removes a step, splicing next-edges across the gap (pred -> succ).
- * Alternative edges touching the step are dropped. Refuses (input unchanged)
- * if the spliced graph would be invalid.
+ * Removes a step, splicing every incoming/outgoing edge pair across the gap.
+ * A spliced edge is 'alternative' when either side of the gap was — so branch
+ * structure survives removal instead of silently collapsing into the mainline.
+ * Refuses (input unchanged) if the spliced graph would be invalid.
  */
 export function removeStep(state: RoadmapState, buildId: BuildId, stepId: StepId): OpResult {
   const build = state.builds.find((b) => b.id === buildId);
   if (!build) return fail(state, 'missing-build', `No build "${buildId}".`);
   if (!build.steps.some((s) => s.id === stepId)) return fail(state, 'missing-step', `No step "${stepId}".`);
-  const preds = build.edges.filter((e) => e.to === stepId && e.kind === 'next').map((e) => e.from);
-  const succs = build.edges.filter((e) => e.from === stepId && e.kind === 'next').map((e) => e.to);
+  const incoming = build.edges.filter((e) => e.to === stepId);
+  const outgoing = build.edges.filter((e) => e.from === stepId);
   const kept = build.edges.filter((e) => e.from !== stepId && e.to !== stepId);
   const spliced = [...kept];
-  for (const p of preds) for (const s of succs) {
-    if (!spliced.some((e) => e.from === p && e.to === s && e.kind === 'next')) spliced.push({ from: p, to: s, kind: 'next' });
+  for (const p of incoming) for (const s of outgoing) {
+    const kind = p.kind === 'alternative' || s.kind === 'alternative' ? 'alternative' as const : 'next' as const;
+    if (p.from !== s.to && !spliced.some((e) => e.from === p.from && e.to === s.to && e.kind === kind)) {
+      spliced.push({ from: p.from, to: s.to, kind });
+    }
   }
   const steps = build.steps.filter((s) => s.id !== stepId);
   if (validateRoute(steps, spliced).length > 0) {

@@ -62,5 +62,7 @@ describe('validateGuide', () => {
     expect(validateGuide(g2, nodes).map((i) => i.code)).toContain('stance-on-placed');
     const g3 = { ...base, stances: [{ nodeId: 'theory', stance: 'excluded' as const, reason: '  ' }] };
     expect(validateGuide(g3, nodes).map((i) => i.code)).toContain('empty-stance-reason');
+    const g4 = { ...base, stances: [{ nodeId: 'music-theroy-typo', stance: 'excluded' as const, reason: 'r' }] };
+    expect(validateGuide(g4, nodes).map((i) => i.code)).toContain('unknown-node');
   });
 });

@@ -22,6 +22,12 @@ describe('guide editing', () => {
     expect(c.issues.map((i) => i.code)).toContain('missing-step');
     expect(c.guide).toEqual(a.guide);
   });
+  it('refuses to place a duplicate step id, leaving the draft unchanged', () => {
+    const a = placeStep(nodes, empty, { nodeId: 'n-rhythm', role: 'required', note: '', sortKey: 0 }, 's1');
+    const dup = placeStep(nodes, a.guide, { nodeId: 'n-theory', role: 'required', note: '', sortKey: 1 }, 's1');
+    expect(dup.issues.map((i) => i.code)).toEqual(['duplicate-step']);
+    expect(dup.guide).toEqual(a.guide);
+  });
   it('setRole and setStance validate their targets', () => {
     const a = placeStep(nodes, empty, { nodeId: 'n-rhythm', role: 'recommended', note: '', sortKey: 0 }, 's1');
     const b = setRole(nodes, a.guide, 's1', 'required');

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Guide, RoadmapCatalog } from './catalog';
 import {
-  addArtifact, adoptGuide, attachArtifact, removeStep, replaceStep,
+  addArtifact, addStep, adoptGuide, attachArtifact, removeStep, replaceStep,
   selectForShare, setProgress,
 } from './ops';
 import { defaultRoadmapState } from './state';
@@ -12,16 +12,31 @@ const guide: Guide = {
   steps: [
     { id: 'gs1', nodeId: 'n-rhythm', role: 'required', note: 'count first', sortKey: 0 },
     { id: 'gs2', nodeId: 'n-gear', role: 'required', note: '', sortKey: 1 },
-    { id: 'gs3', nodeId: 'n-mix', role: 'checkpoint', note: '', sortKey: 2 },
+    { id: 'gs2b', nodeId: 'n-gear-alt', role: 'alternative', note: '', sortKey: 2 },
+    { id: 'gs3', nodeId: 'n-mix', role: 'checkpoint', note: '', sortKey: 3 },
   ],
   edges: [
     { from: 'gs1', to: 'gs2', kind: 'next' },
     { from: 'gs2', to: 'gs3', kind: 'next' },
+    { from: 'gs1', to: 'gs2b', kind: 'alternative' },
+    { from: 'gs2b', to: 'gs3', kind: 'next' },
   ],
   stances: [], rationale: '',
 };
-const catalog: RoadmapCatalog = { contentVersion: 1, nodes: [], paths: [], guides: [guide] };
+const catalog: RoadmapCatalog = {
+  contentVersion: 1,
+  nodes: [
+    { id: 'n-rhythm', type: 'foundation', title: 'Rhythm', description: '' },
+    { id: 'n-gear', type: 'resource', title: 'Gear', description: '' },
+    { id: 'n-gear-alt', type: 'resource', title: 'Gear (alt)', description: '' },
+    { id: 'n-mix', type: 'skill', title: 'Mixing', description: '' },
+    { id: 'n-free-software', type: 'resource', title: 'Free software', description: '' },
+  ],
+  paths: [], guides: [guide],
+};
 const seq = () => { let n = 0; return () => `id-${n++}`; };
+const stepIdFor = (state: ReturnType<typeof adoptGuide>['state'], nodeId: string) =>
+  state.builds[0].steps.find((s) => s.nodeId === nodeId)?.id ?? '';
 
 describe('adoptGuide', () => {
   it('copies the route into an independent build with provenance', () => {
@@ -29,9 +44,9 @@ describe('adoptGuide', () => {
     expect(issues).toEqual([]);
     const build = state.builds[0];
     expect(build.provenance).toEqual({ kind: 'adopted', guideId: 'g1', guideVersion: 2 });
-    expect(build.steps.map((s) => s.origin)).toEqual([{ kind: 'from-guide' }, { kind: 'from-guide' }, { kind: 'from-guide' }]);
+    expect(build.steps.every((s) => s.origin.kind === 'from-guide')).toBe(true);
     expect(build.steps.map((s) => s.id)).not.toEqual(guide.steps.map((s) => s.id));
-    expect(build.edges).toHaveLength(2);
+    expect(build.edges).toHaveLength(4);
     expect(state.activeBuildId).toBe(build.id);
     guide.steps[0].note = 'MUTATED';
     expect(build.steps[0].note).toBe('count first');
@@ -48,12 +63,38 @@ describe('replaceStep', () => {
   it('swaps the node and records origin with the prior node id', () => {
     const adopted = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
     const buildId = adopted.builds[0].id;
-    const stepId = adopted.builds[0].steps[1].id;
-    const { state, issues } = replaceStep(adopted, buildId, stepId, 'n-free-software');
+    const stepId = stepIdFor(adopted, 'n-gear');
+    const { state, issues } = replaceStep(catalog, adopted, buildId, stepId, 'n-free-software');
     expect(issues).toEqual([]);
-    const step = state.builds[0].steps[1];
-    expect(step.nodeId).toBe('n-free-software');
-    expect(step.origin).toEqual({ kind: 'replaced', originalNodeId: 'n-gear' });
+    const step = state.builds[0].steps.find((s) => s.id === stepId);
+    expect(step?.nodeId).toBe('n-free-software');
+    expect(step?.origin).toEqual({ kind: 'replaced', originalNodeId: 'n-gear' });
+  });
+  it('keeps the ORIGINAL guide node across repeated replacement', () => {
+    const adopted = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
+    const buildId = adopted.builds[0].id;
+    const stepId = stepIdFor(adopted, 'n-gear');
+    let s = replaceStep(catalog, adopted, buildId, stepId, 'n-free-software').state;
+    s = replaceStep(catalog, s, buildId, stepId, 'n-mix').state;
+    const step = s.builds[0].steps.find((x) => x.id === stepId);
+    expect(step?.nodeId).toBe('n-mix');
+    expect(step?.origin).toEqual({ kind: 'replaced', originalNodeId: 'n-gear' });
+  });
+  it('keeps user-added steps labeled added when their node changes', () => {
+    const adopted = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
+    const buildId = adopted.builds[0].id;
+    const withAdded = addStep(catalog, adopted, buildId, { nodeId: 'n-mix', role: 'recommended', note: '', sortKey: 9 }, stepIdFor(adopted, 'n-mix'), () => 'added-1').state;
+    const addedId = withAdded.builds[0].steps.find((s) => s.origin.kind === 'added')?.id ?? '';
+    const { state } = replaceStep(catalog, withAdded, buildId, addedId, 'n-free-software');
+    expect(state.builds[0].steps.find((s) => s.id === addedId)?.origin).toEqual({ kind: 'added' });
+  });
+  it('rejects nodes that are not in the catalog', () => {
+    const adopted = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
+    const result = replaceStep(catalog, adopted, adopted.builds[0].id, stepIdFor(adopted, 'n-gear'), 'typo-node');
+    expect(result.state).toBe(adopted);
+    expect(result.issues.map((i) => i.code)).toEqual(['unknown-node']);
+    const added = addStep(catalog, adopted, adopted.builds[0].id, { nodeId: 'ghost', role: 'recommended', note: '', sortKey: 9 }, null, seq());
+    expect(added.issues.map((i) => i.code)).toEqual(['unknown-node']);
   });
 });
 
@@ -61,15 +102,35 @@ describe('removeStep', () => {
   it('splices edges, prunes progress and share refs, keeps the graph valid', () => {
     let s = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
     const buildId = s.builds[0].id;
-    const [a, b, c] = s.builds[0].steps.map((x) => x.id);
+    const a = stepIdFor(s, 'n-rhythm');
+    const b = stepIdFor(s, 'n-gear');
+    const bAlt = stepIdFor(s, 'n-gear-alt');
+    const c = stepIdFor(s, 'n-mix');
     s = setProgress(s, b, { state: 'tried', updatedAt: 't1', artifactIds: [] }).state;
     s = selectForShare(s, { buildId, stepIds: [b] }).state;
     const { state, issues } = removeStep(s, buildId, b);
     expect(issues).toEqual([]);
-    expect(state.builds[0].steps.map((x) => x.id)).toEqual([a, c]);
-    expect(state.builds[0].edges).toEqual([{ from: a, to: c, kind: 'next' }]);
+    expect(state.builds[0].steps.map((x) => x.id)).toEqual([a, bAlt, c]);
+    expect(state.builds[0].edges).toHaveLength(3);
+    expect(state.builds[0].edges).toEqual(expect.arrayContaining([
+      { from: a, to: c, kind: 'next' },
+      { from: a, to: bAlt, kind: 'alternative' },
+      { from: bAlt, to: c, kind: 'next' },
+    ]));
     expect(state.progress[b]).toBeUndefined();
     expect(state.share.stepIds).toEqual([]);
+  });
+  it('preserves branch structure when removing a branch step', () => {
+    const s = adoptGuide(catalog, defaultRoadmapState, 'g1', seq(), 't0').state;
+    const buildId = s.builds[0].id;
+    const a = stepIdFor(s, 'n-rhythm');
+    const bAlt = stepIdFor(s, 'n-gear-alt');
+    const c = stepIdFor(s, 'n-mix');
+    const { state, issues } = removeStep(s, buildId, bAlt);
+    expect(issues).toEqual([]);
+    expect(state.builds[0].edges).toEqual(expect.arrayContaining([
+      { from: a, to: c, kind: 'alternative' },
+    ]));
   });
 });
 

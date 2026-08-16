@@ -170,17 +170,36 @@ export function migrateRoadmapState(value: unknown): RoadmapState {
   const record = asRecord(parseStored(value));
   if (!record || record.version !== 1) return freshDefault();
 
-  const builds = Array.isArray(record.builds)
+  const interests = interestsFrom(record.interests);
+
+  // Ids must be globally unique — every op and selector assumes it. Duplicate
+  // build/artifact ids keep the first; a build whose step ids collide with an
+  // earlier build's is dropped whole (this is the sanitizer for untrusted storage).
+  const builds: Build[] = [];
+  const buildIds = new Set<string>();
+  const stepIds = new Set<string>();
+  const candidates = Array.isArray(record.builds)
     ? record.builds.map(buildFrom).filter((b): b is Build => b !== null)
     : [];
-  const buildIds = new Set(builds.map((b) => b.id));
-  const stepIds = new Set(builds.flatMap((b) => b.steps.map((s) => s.id)));
-  const artifacts = Array.isArray(record.artifacts)
+  for (const build of candidates) {
+    if (buildIds.has(build.id)) continue;
+    if (build.steps.some((s) => stepIds.has(s.id))) continue;
+    buildIds.add(build.id);
+    for (const s of build.steps) stepIds.add(s.id);
+    builds.push(build);
+  }
+  const artifacts: Artifact[] = [];
+  const artifactIds = new Set<string>();
+  const artifactCandidates = Array.isArray(record.artifacts)
     ? record.artifacts.map(artifactFrom).filter((a): a is Artifact => a !== null)
     : [];
-  const artifactIds = new Set(artifacts.map((a) => a.id));
+  for (const artifact of artifactCandidates) {
+    if (artifactIds.has(artifact.id)) continue;
+    artifactIds.add(artifact.id);
+    artifacts.push(artifact);
+  }
 
-  const progress: Record<StepId, ProgressEntry> = {};
+  const progressEntries: [StepId, ProgressEntry][] = [];
   const progressRecord = asRecord(record.progress);
   if (progressRecord) {
     for (const [stepId, raw] of Object.entries(progressRecord)) {
@@ -190,22 +209,27 @@ export function migrateRoadmapState(value: unknown): RoadmapState {
       const updatedAt = str(entry?.updatedAt, 60);
       if (!state || !updatedAt) continue;
       const note = str(entry?.note, 1000);
-      progress[stepId] = {
+      progressEntries.push([stepId, {
         state,
         updatedAt,
         artifactIds: Array.isArray(entry?.artifactIds)
           ? entry.artifactIds.filter((id): id is ArtifactId => typeof id === 'string' && artifactIds.has(id))
           : [],
         ...(note ? { note } : {}),
-      };
+      }]);
     }
   }
+  // Object.fromEntries defines own data properties, so a stored key named
+  // "__proto__" cannot poison the prototype the way plain assignment would.
+  const progress: Record<StepId, ProgressEntry> = Object.fromEntries(progressEntries);
 
   const shareRecord = asRecord(record.share);
   const shareBuildId = typeof shareRecord?.buildId === 'string' && buildIds.has(shareRecord.buildId) ? shareRecord.buildId : null;
   const shareBuildStepIds = new Set(builds.find((b) => b.id === shareBuildId)?.steps.map((s) => s.id) ?? []);
   const share: ShareSelection = {
-    interestIds: interestsFrom(shareRecord?.interestIds),
+    // Shared interests must be a subset of the user's own interests — the
+    // invariant selectForShare enforces and the share page depends on.
+    interestIds: interestsFrom(shareRecord?.interestIds).filter((id) => interests.includes(id)),
     buildId: shareBuildId,
     stepIds: shareBuildId && Array.isArray(shareRecord?.stepIds)
       ? shareRecord.stepIds.filter((id): id is StepId => typeof id === 'string' && shareBuildStepIds.has(id))
@@ -217,7 +241,7 @@ export function migrateRoadmapState(value: unknown): RoadmapState {
 
   return {
     version: 1,
-    interests: interestsFrom(record.interests),
+    interests,
     builds,
     activeBuildId: typeof record.activeBuildId === 'string' && buildIds.has(record.activeBuildId) ? record.activeBuildId : null,
     artifacts,

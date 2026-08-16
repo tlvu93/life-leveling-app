@@ -22,7 +22,7 @@ describe('buildView', () => {
   });
   it('badges replaced steps with the original node title', () => {
     const gearStep = adopted.builds[0].steps.find((s) => s.nodeId === 'gear-access-practice-setup');
-    const remixed = replaceStep(adopted, buildId, gearStep?.id ?? '', 'signal-flow-rig-setup').state;
+    const remixed = replaceStep(roadmapCatalog, adopted, buildId, gearStep?.id ?? '', 'signal-flow-rig-setup').state;
     const vm = buildView(roadmapCatalog, remixed, buildId);
     const badge = vm?.steps.find((s) => s.stepId === gearStep?.id)?.originBadge;
     expect(badge).toBe('Replaced: Gear Access & Practice Setup');

@@ -28,6 +28,7 @@ describe('migrateRoadmapState', () => {
   it('prunes orphaned progress, share refs, and unknown progress states', () => {
     const state = migrateRoadmapState({
       version: 1,
+      interests: ['music'],
       builds: [validBuild],
       artifacts: [{ id: 'a1', kind: 'note', title: 't', value: 'v', createdAt: 'now' }],
       progress: {
@@ -45,6 +46,43 @@ describe('migrateRoadmapState', () => {
     const state = migrateRoadmapState({ version: 1, builds: [], share: { interestIds: [], buildId: 'gone', stepIds: ['s1'], artifactIds: [] } });
     expect(state.share.buildId).toBeNull();
     expect(state.share.stepIds).toEqual([]);
+  });
+  it('drops shared interests the user does not hold', () => {
+    const state = migrateRoadmapState({
+      version: 1,
+      interests: ['music'],
+      builds: [],
+      share: { interestIds: ['music', 'design'], buildId: null, stepIds: [], artifactIds: [] },
+    });
+    expect(state.share.interestIds).toEqual(['music']);
+  });
+  it('enforces unique build ids and cross-build step ids by dropping later offenders', () => {
+    const clone = { ...validBuild, title: 'Duplicate id' };
+    const collidingSteps = { ...validBuild, id: 'b2', title: 'Same step ids' };
+    const state = migrateRoadmapState({ version: 1, builds: [validBuild, clone, collidingSteps] });
+    expect(state.builds.map((b) => b.id)).toEqual(['b1']);
+    expect(state.builds[0].title).toBe('My route');
+  });
+  it('deduplicates artifact ids keeping the first', () => {
+    const state = migrateRoadmapState({
+      version: 1,
+      builds: [],
+      artifacts: [
+        { id: 'a1', kind: 'note', title: 'first', value: 'v', createdAt: 't' },
+        { id: 'a1', kind: 'link', title: 'second', value: 'v', createdAt: 't' },
+      ],
+    });
+    expect(state.artifacts).toHaveLength(1);
+    expect(state.artifacts[0].title).toBe('first');
+  });
+  it('stores a "__proto__" step id as data without poisoning the prototype', () => {
+    const raw = '{"version":1,"builds":[{"id":"b1","title":"t","pathId":"p","provenance":{"kind":"scratch"},'
+      + '"steps":[{"id":"__proto__","nodeId":"n1","role":"required","note":"","sortKey":0,"origin":{"kind":"added"}}],"edges":[]}],'
+      + '"progress":{"__proto__":{"state":"tried","updatedAt":"t","artifactIds":[]}}}';
+    const state = migrateRoadmapState(raw);
+    expect(Object.getPrototypeOf(state.progress)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(state.progress, '__proto__')).toBe(true);
+    expect(state.progress['__proto__'].state).toBe('tried');
   });
   it('exports the storage key', () => {
     expect(ROADMAP_STORAGE_KEY).toBe('life-leveling.roadmap.v1');

@@ -11,6 +11,11 @@ describe('compareGuides', () => {
   it('finds at least three material differences between the DJ/VJ fixture guides', () => {
     expect(vm?.materialDifferences.length).toBeGreaterThanOrEqual(3);
   });
+  it('counts role-class changes between two placed steps as material', () => {
+    const mixing = vm?.materialDifferences.find((d) => d.startsWith('Mixing Technique'));
+    expect(mixing).toContain('required in Club-first DJ/VJ with borrowed gear');
+    expect(mixing).toContain('alternative in Visual-first reactive performance');
+  });
   it('renders the contested-node rows as placed-vs-excluded with reasons', () => {
     const theory = vm?.rows.find((r) => r.nodeId === 'music-theory-fundamentals');
     expect(theory?.a).toEqual({ kind: 'placed', role: 'optional-depth', note: expect.any(String) });

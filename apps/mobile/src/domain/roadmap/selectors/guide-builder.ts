@@ -27,7 +27,15 @@ export function builderView(catalog: RoadmapCatalog, draft: Guide): GuideBuilder
     if (e.kind === 'alternative') branchOf.set(e.to, e.from);
   }
   const byId = new Map(draft.steps.map((s) => [s.id, s]));
-  const route = linearize(draft.steps, draft.edges).flatMap((stepId) => {
+  // linearize omits steps trapped in a cycle; a builder surface must still show
+  // them (with the validator's cycle issue) or the user cannot fix the draft.
+  const ordered = linearize(draft.steps, draft.edges);
+  const orderedSet = new Set(ordered);
+  const leftovers = draft.steps
+    .filter((s) => !orderedSet.has(s.id))
+    .sort((a, b) => a.sortKey - b.sortKey || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map((s) => s.id);
+  const route = [...ordered, ...leftovers].flatMap((stepId) => {
     const step = byId.get(stepId);
     return step ? [{
       stepId,

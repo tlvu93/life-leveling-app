@@ -39,7 +39,12 @@ function hasCycle(steps: readonly GuideStep[], edges: readonly RouteEdge[]): boo
  * Total for acyclic graphs; steps stuck in cycles are omitted. Isolated steps
  * have no incoming edges and are ordinary entries.
  */
-export function linearize(steps: readonly GuideStep[], edges: readonly RouteEdge[]): StepId[] {
+export function linearize(allSteps: readonly GuideStep[], edges: readonly RouteEdge[]): StepId[] {
+  const steps: GuideStep[] = [];
+  const uniqueIds = new Set<string>();
+  for (const s of allSteps) {
+    if (!uniqueIds.has(s.id)) { uniqueIds.add(s.id); steps.push(s); }
+  }
   const byId = new Map(steps.map((s) => [s.id, s]));
   const incoming = new Map<string, number>(steps.map((s) => [s.id, 0]));
   const out = new Map<string, string[]>();
@@ -75,6 +80,7 @@ export function validateGuide(guide: Guide, knownNodeIds: ReadonlySet<string>): 
   for (const st of guide.stances) {
     if (stanced.has(st.nodeId)) issues.push({ code: 'duplicate-stance', nodeId: st.nodeId, message: `Duplicate stance on "${st.nodeId}".` });
     stanced.add(st.nodeId);
+    if (!knownNodeIds.has(st.nodeId)) issues.push({ code: 'unknown-node', nodeId: st.nodeId, message: `Stance on unknown node "${st.nodeId}".` });
     if (placed.has(st.nodeId)) issues.push({ code: 'stance-on-placed', nodeId: st.nodeId, message: `"${st.nodeId}" is placed in the route; a stance is only for unplaced nodes.` });
     if (!st.reason.trim()) issues.push({ code: 'empty-stance-reason', nodeId: st.nodeId, message: `Excluding "${st.nodeId}" requires a reason.` });
   }
